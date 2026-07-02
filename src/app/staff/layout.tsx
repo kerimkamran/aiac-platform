@@ -24,8 +24,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
       role={profile.role}
       name={profile.full_name}
       links={[
-        { href: "/staff", label: "Candidates" },
-        { href: "/staff/builder", label: "Assessment Builder" },
+        { href: "/staff", label: "Home", icon: "home", exact: true },
+        { href: "/staff/candidates", label: "Candidates", icon: "users" },
+        { href: "/staff/builder", label: "Assessment Builder", icon: "layers" },
       ]}
     >
       {children}

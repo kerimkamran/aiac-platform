@@ -1,7 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { Card, EmptyState, Icon, JourneyTracker, PageHeader, StatusBadge } from "@/components/ui";
 
-export default async function CandidateAssessmentsPage() {
+export default async function CandidateAssessmentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ submitted?: string }>;
+}) {
+  const { submitted } = await searchParams;
   const supabase = await createClient();
   const {
     data: { user },
@@ -13,46 +19,74 @@ export default async function CandidateAssessmentsPage() {
     .eq("candidate_id", user!.id)
     .order("invited_at", { ascending: false });
 
-  const list = assessments || [];
+  const list = (assessments || []) as unknown as {
+    id: string;
+    status: string;
+    invited_at: string;
+    assessments: { title: string; description: string; time_limit_minutes: number } | null;
+  }[];
 
   return (
-    <div className="p-8 max-w-4xl">
-      <h1 className="text-2xl font-semibold text-gray-900 mb-6">My assessments</h1>
+    <div className="p-6 lg:p-10 max-w-4xl">
+      <PageHeader title="My assessments" subtitle="Everything you've been invited to, from first invitation to final review." />
 
-      {list.length === 0 && (
-        <p className="text-sm text-gray-500 border rounded-lg p-6 bg-white">
-          No assessments yet.
-        </p>
+      {submitted && (
+        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-2xl px-5 py-4 mb-6 anim-fade-up">
+          <Icon name="checkCircle" className="w-5 h-5 shrink-0" />
+          <p>
+            <span className="font-semibold">Assessment submitted.</span> Your answers have been scored by the AI engine
+            and are now with a human reviewer — you&apos;ll find your results here once the review is complete.
+          </p>
+        </div>
       )}
 
-      <div className="space-y-3">
-        {list.map((a) => {
-          const meta = a.assessments as unknown as { title: string; description: string; time_limit_minutes: number };
-          return (
-            <div key={a.id} className="bg-white border rounded-lg p-5">
-              <div className="flex items-start justify-between mb-2">
-                <h2 className="font-semibold text-gray-900">{meta?.title}</h2>
-                <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-gray-100 text-gray-600">
-                  {a.status.replace("_", " ")}
-                </span>
+      {list.length === 0 && (
+        <EmptyState
+          title="No assessments yet"
+          body="When a recruiter invites you to an assessment, it appears here automatically."
+        />
+      )}
+
+      <div className="space-y-4">
+        {list.map((a) => (
+          <Card key={a.id} className="p-6">
+            <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+              <div className="min-w-0">
+                <h2 className="font-bold text-foreground">{a.assessments?.title}</h2>
+                <p className="text-sm text-muted mt-1 max-w-xl">{a.assessments?.description}</p>
               </div>
-              <p className="text-sm text-gray-500 mb-3">{meta?.description}</p>
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-gray-400">{meta?.time_limit_minutes} minute time limit</span>
+              <StatusBadge status={a.status} />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-5 pt-4 border-t border-line">
+              <JourneyTracker status={a.status} />
+              <div className="flex items-center gap-4">
+                <span className="inline-flex items-center gap-1.5 text-xs text-faint">
+                  <Icon name="timer" className="w-3.5 h-3.5" />
+                  {a.assessments?.time_limit_minutes} min limit
+                </span>
                 {["invited", "in_progress"].includes(a.status) ? (
                   <Link
                     href={`/candidate/assessments/${a.id}`}
-                    className="text-sm bg-brand text-white px-4 py-2 rounded-md font-medium hover:bg-brand-light"
+                    className="inline-flex items-center gap-2 text-sm bg-brand text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand-light transition-colors"
                   >
                     {a.status === "invited" ? "Start assessment" : "Continue"}
+                    <Icon name="arrowRight" className="w-3.5 h-3.5" />
+                  </Link>
+                ) : a.status === "reviewed" ? (
+                  <Link
+                    href={`/candidate/results/${a.id}`}
+                    className="inline-flex items-center gap-2 text-sm border border-line px-4 py-2 rounded-xl font-semibold text-foreground hover:border-accent hover:text-accent-dark transition-colors"
+                  >
+                    <Icon name="award" className="w-4 h-4" />
+                    View results
                   </Link>
                 ) : (
-                  <span className="text-xs font-medium text-accent">Submitted — under review</span>
+                  <span className="text-xs font-medium text-muted">Under review — results coming soon</span>
                 )}
               </div>
             </div>
-          );
-        })}
+          </Card>
+        ))}
       </div>
     </div>
   );

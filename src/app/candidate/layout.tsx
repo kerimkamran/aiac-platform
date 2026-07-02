@@ -24,8 +24,9 @@ export default async function CandidateLayout({ children }: { children: React.Re
       role={profile.role}
       name={profile.full_name}
       links={[
-        { href: "/candidate", label: "Dashboard" },
-        { href: "/candidate/assessments", label: "My Assessments" },
+        { href: "/candidate", label: "Home", icon: "home", exact: true },
+        { href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" },
+        { href: "/candidate/results", label: "My Results", icon: "award" },
       ]}
     >
       {children}
