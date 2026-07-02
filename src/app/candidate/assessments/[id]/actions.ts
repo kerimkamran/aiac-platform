@@ -89,12 +89,15 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
 
   const overallScore = overallWeight > 0 ? Math.round((overallWeighted / overallWeight) * 10) / 10 : 0;
 
+  const tabSwitchCount = Number(formData.get("tab_switch_count") || 0) || 0;
+
   await supabase
     .from("candidate_assessments")
     .update({
       status: "scored",
       submitted_at: new Date().toISOString(),
       overall_score: overallScore,
+      tab_switch_count: tabSwitchCount,
     })
     .eq("id", candidateAssessmentId);
 

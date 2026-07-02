@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addSection, addQuestion, publishAssessment, inviteCandidate } from "../actions";
+import { addSection, addQuestion, publishAssessment, inviteCandidate, updateProctoringSettings } from "../actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 
 function CompetencySelect({
@@ -53,7 +53,7 @@ export default async function BuilderDetailPage({
   const { data: assessment } = await supabase.from("assessments").select("*").eq("id", id).single();
   if (!assessment) notFound();
 
-  const [{ data: sections }, { data: competencies }, { data: invitees }] = await Promise.all([
+  const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }] = await Promise.all([
     supabase
       .from("assessment_sections")
       .select("id, title, sequence, competencies(name, category), questions(id, question_type, prompt, options, weight, sequence)")
@@ -64,12 +64,14 @@ export default async function BuilderDetailPage({
       .from("candidate_assessments")
       .select("id, status, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email)")
       .eq("assessment_id", id),
+    supabase.from("proctoring_settings").select("camera_enabled, storage_backend").eq("assessment_id", id).maybeSingle(),
   ]);
 
   const compList = (competencies || []) as { id: string; name: string; category: string }[];
   const questionCount = (sections || []).reduce((n, s) => n + ((s.questions as unknown[]) || []).length, 0);
   const addSectionWithId = addSection.bind(null, id);
   const inviteCandidateWithId = inviteCandidate.bind(null, id);
+  const updateProctoringWithId = updateProctoringSettings.bind(null, id);
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -99,6 +101,42 @@ export default async function BuilderDetailPage({
       </PageHeader>
 
       {error && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{error}</p>}
+
+      <Card className="p-6 mb-6">
+        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+          <Icon name="camera" className="w-4 h-4 text-brand" />
+          Proctoring
+        </p>
+        <p className="text-xs text-muted mb-4">
+          When enabled, candidates are asked for camera consent and a video of the session is recorded. This is a
+          consent-gated recording only — it is not analyzed automatically for gestures, emotions, or behavior.
+        </p>
+        <form action={updateProctoringWithId} className="flex flex-wrap items-center gap-4">
+          <label className="inline-flex items-center gap-2.5 text-sm font-medium cursor-pointer">
+            <input
+              type="checkbox"
+              name="camera_enabled"
+              defaultChecked={proctoring?.camera_enabled || false}
+              className="w-4 h-4 accent-[color:var(--brand)]"
+            />
+            Require camera recording for this assessment
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <span className="text-muted">Store recordings in:</span>
+            <select
+              name="storage_backend"
+              defaultValue={proctoring?.storage_backend || "supabase"}
+              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="supabase">Project database (Supabase secure storage)</option>
+              <option value="local">Candidate&apos;s device only (not uploaded)</option>
+            </select>
+          </label>
+          <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">
+            Save
+          </button>
+        </form>
+      </Card>
 
       <div className="grid lg:grid-cols-[1.7fr_1fr] gap-6 items-start">
         {/* Sections & questions */}
@@ -237,19 +275,27 @@ export default async function BuilderDetailPage({
             Invite candidates
           </p>
           <p className="text-xs text-muted mb-4">
-            Candidates must have a candidate account with this email — invitations are matched by address.
+            Candidates don&apos;t need an existing account — we&apos;ll create one and email them a link to set their password.
           </p>
-          <form action={inviteCandidateWithId} className="flex gap-2 mb-5">
+          <form action={inviteCandidateWithId} className="flex flex-col gap-2 mb-5">
             <input
-              name="email"
-              type="email"
-              required
-              placeholder="candidate@email.com"
-              className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              name="full_name"
+              type="text"
+              placeholder="Full name"
+              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
             />
-            <button className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors shrink-0">
-              Invite
-            </button>
+            <div className="flex gap-2">
+              <input
+                name="email"
+                type="email"
+                required
+                placeholder="candidate@email.com"
+                className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <button className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors shrink-0">
+                Invite
+              </button>
+            </div>
           </form>
           <div className="space-y-2.5 max-h-72 overflow-y-auto">
             {(invitees || []).map((iv) => {

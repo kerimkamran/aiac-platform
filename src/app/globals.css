@@ -2,33 +2,35 @@
 
 :root {
   /* Surfaces & ink */
-  --background: #f3f5f9;
+  --background: #f2f4f7;
   --surface: #ffffff;
-  --foreground: #101c2c;
-  --muted: #5b6b7f;
-  --faint: #8a97a8;
-  --line: #e3e8ef;
+  --foreground: #111318;
+  --muted: #424a57;
+  --faint: #7e8797;
+  --line: #e3e8ed;
 
-  /* Brand — Azerconnect navy / teal */
-  --brand: #1e3a5f;
-  --brand-light: #2d5a8c;
-  --brand-deep: #14283f;
-  --accent: #0ea5a3;
-  --accent-dark: #0b8583;
-  --accent-soft: #e6f6f5;
+  /* Brand — Azerconnect Group design system (navy blue -> forest green) */
+  --brand: #0d3d8c;        /* blue-700, primary */
+  --brand-light: #1767c4;  /* blue-500 */
+  --brand-deep: #0a2553;   /* blue-900 */
+  --brand-50: #ebf3fd;
+  --accent: #2d6b16;       /* green-600, primary */
+  --accent-dark: #235213;  /* green-700 */
+  --accent-soft: #ecf7e4;  /* green-50 */
 
   /* Status (validated dataviz status palette) */
-  --good: #0ca30c;
-  --warning: #b97a00;
-  --serious: #c05621;
-  --critical: #d03b3b;
+  --good: #2d6b16;
+  --warning: #a06a00;
+  --serious: #a01818;
+  --critical: #c62020;
+  --info: #1767c4;
 
   /* Chart series (validated categorical slots) */
-  --chart-1: #2a78d6; /* blue   — Core */
-  --chart-2: #1baf7a; /* aqua   — Functional */
-  --chart-3: #4a3aa7; /* violet — Leadership */
-  --chart-grid: #e1e0d9;
-  --chart-axis: #c3c2b7;
+  --chart-1: #0d3d8c; /* blue   — Core */
+  --chart-2: #2d6b16; /* green  — Functional */
+  --chart-3: #b9861a; /* gold   — Leadership */
+  --chart-grid: #e3e8ed;
+  --chart-axis: #c8d0da;
 }
 
 @theme inline {
@@ -51,14 +53,14 @@
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
-  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-sora), var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-nunito), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-nunito), system-ui, -apple-system, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-nunito), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv11";
 }
 
@@ -121,13 +123,13 @@ body {
   }
 }
 
-/* ---------- Landing hero mesh ---------- */
+/* ---------- Landing hero mesh (Azerconnect navy -> forest green, 135deg) ---------- */
 .hero-mesh {
   background:
-    radial-gradient(48rem 30rem at 12% -10%, rgba(14, 165, 163, 0.28), transparent 60%),
-    radial-gradient(40rem 28rem at 95% 15%, rgba(45, 90, 140, 0.55), transparent 65%),
-    radial-gradient(30rem 24rem at 60% 110%, rgba(14, 165, 163, 0.18), transparent 60%),
-    linear-gradient(165deg, #14283f 0%, #1e3a5f 55%, #204468 100%);
+    radial-gradient(48rem 30rem at 12% -10%, rgba(45, 107, 22, 0.30), transparent 60%),
+    radial-gradient(40rem 28rem at 95% 15%, rgba(23, 103, 196, 0.55), transparent 65%),
+    radial-gradient(30rem 24rem at 60% 110%, rgba(45, 107, 22, 0.20), transparent 60%),
+    linear-gradient(135deg, #0a2553 0%, #0d3d8c 55%, #235213 100%);
 }
 .hero-grid-overlay {
   background-image:
@@ -137,13 +139,42 @@ body {
   mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 75%);
 }
 .text-gradient {
-  background: linear-gradient(92deg, #7dd8d6 0%, #4cc4c2 45%, #9fc3ee 100%);
+  background: linear-gradient(92deg, #8fd0f0 0%, #70aaea 45%, #aeda97 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
 }
 
-/* ---------- Print (candidate report) ---------- */
+/* ---------- Anti-copy deterrents (assessment runner only) ---------- */
+.no-copy {
+  user-select: none;
+  -webkit-user-select: none;
+}
+.no-copy input,
+.no-copy textarea {
+  user-select: text;
+  -webkit-user-select: text;
+}
+.watermark-overlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 40;
+  overflow: hidden;
+  opacity: 0.06;
+}
+.watermark-overlay .row {
+  display: flex;
+  gap: 4rem;
+  white-space: nowrap;
+  transform: rotate(-28deg);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--foreground);
+}
+
+/* ---------- Print (candidate report / executive report) ---------- */
 @media print {
   body { background: #fff; }
   .no-print { display: none !important; }

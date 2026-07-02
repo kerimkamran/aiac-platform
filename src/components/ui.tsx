@@ -32,6 +32,16 @@ const ICON_PATHS: Record<string, string> = {
   brain: "M12 4a3 3 0 0 0-3 3v10a3 3 0 1 0 6 0V7a3 3 0 0 0-3-3zM9 8H7a3 3 0 0 0 0 6h2m6-6h2a3 3 0 0 1 0 6h-2",
   building: "M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16m-12 0h16m-4 0v-8h4v8M8 7h2m-2 4h2m-2 4h2",
   timer: "M10 2h4M12 14l3-3m-3 11a8 8 0 1 0 0-16 8 8 0 0 0 0 16z",
+  mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2 8 7 8-7",
+  image: "M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm2 12 4-5 3 3 3-4 5 6M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z",
+  download: "M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2",
+  filter: "M4 5h16l-6 8v6l-4 2v-8z",
+  video: "M15 8v8H3V8h12zm0 3 6-4v10l-6-4z",
+  camera: "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+  ban: "M4.9 4.9 19 19M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
+  play: "M6 4l14 8-14 8V4z",
+  trash: "M4 7h16M9 7V4h6v3m-9 0 1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13",
+  command: "M6 9a3 3 0 1 1 3 3H6V9zm0 0v6m0 0a3 3 0 1 0 3 3v-3H6zm6-6a3 3 0 1 1 3-3v3h-3zm0 0h6m-6 0a3 3 0 1 0-3 3h3V9zm6 6a3 3 0 1 1-3 3v-3h3zm0 0h-6m6 0a3 3 0 1 0 3-3h-3v3z",
 };
 
 export function Icon({ name, className = "w-5 h-5" }: { name: string; className?: string }) {
@@ -85,18 +95,18 @@ export type Band = { label: string; badge: string; bar: string; hex: string };
 
 export function bandFor(score: number): Band {
   if (score >= 85)
-    return { label: "Exceeds", badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", bar: "bg-emerald-500", hex: "#0ca30c" };
+    return { label: "Exceeds", badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", bar: "bg-emerald-600", hex: "#1c400f" };
   if (score >= 70)
-    return { label: "Fully Meets", badge: "bg-teal-50 text-teal-700 ring-teal-600/20", bar: "bg-accent", hex: "#0ea5a3" };
+    return { label: "Fully Meets", badge: "bg-green-50 text-green-700 ring-green-600/20", bar: "bg-accent", hex: "#2d6b16" };
   if (score >= 50)
     return { label: "Partially Meets", badge: "bg-amber-50 text-amber-700 ring-amber-600/20", bar: "bg-amber-500", hex: "#eda100" };
   return { label: "Does Not Meet", badge: "bg-red-50 text-red-700 ring-red-600/20", bar: "bg-critical", hex: "#d03b3b" };
 }
 
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
-  Core: { text: "text-chart-1", bg: "bg-chart-1/10", dot: "bg-chart-1", hex: "#2a78d6" },
-  Leadership: { text: "text-chart-3", bg: "bg-chart-3/10", dot: "bg-chart-3", hex: "#4a3aa7" },
-  Functional: { text: "text-chart-2", bg: "bg-chart-2/10", dot: "bg-chart-2", hex: "#1baf7a" },
+  Core: { text: "text-chart-1", bg: "bg-chart-1/10", dot: "bg-chart-1", hex: "#0d3d8c" },
+  Leadership: { text: "text-chart-3", bg: "bg-chart-3/10", dot: "bg-chart-3", hex: "#b9861a" },
+  Functional: { text: "text-chart-2", bg: "bg-chart-2/10", dot: "bg-chart-2", hex: "#2d6b16" },
 };
 
 export function categoryStyle(category: string) {

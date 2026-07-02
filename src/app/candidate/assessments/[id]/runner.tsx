@@ -18,6 +18,7 @@ export function AssessmentRunner({
   deadlineMs,
   sections,
   submitAction,
+  watermarkLabel = "confidential",
 }: {
   caId: string;
   title: string;
@@ -25,6 +26,7 @@ export function AssessmentRunner({
   deadlineMs: number;
   sections: RunnerSection[];
   submitAction: (formData: FormData) => Promise<void>;
+  watermarkLabel?: string;
 }) {
   const steps: Step[] = useMemo(
     () => sections.flatMap((s, si) => s.questions.map((q) => ({ sectionTitle: s.title, sectionIndex: si, q }))),
@@ -55,18 +57,53 @@ export function AssessmentRunner({
     } catch {}
   }, [answers, storageKey]);
 
+  /* Integrity deterrents: block copy/cut/paste/context-menu/print and common
+     dev-tools / save shortcuts, and flag when the candidate leaves the tab.
+     Note: these are best-effort client-side deterrents. No website can fully
+     prevent an OS-level screenshot, screen recording, or a second device. */
+  const [tabSwitches, setTabSwitches] = useState(0);
+  useEffect(() => {
+    const block = (e: Event) => e.preventDefault();
+    const onKeyDown = (e: KeyboardEvent) => {
+      const k = e.key.toLowerCase();
+      const mod = e.ctrlKey || e.metaKey;
+      if (mod && ["c", "x", "v", "p", "s", "u"].includes(k)) e.preventDefault();
+      if (e.key === "PrintScreen") e.preventDefault();
+      if (mod && e.shiftKey && ["i", "j", "c"].includes(k)) e.preventDefault();
+      if (e.key === "F12") e.preventDefault();
+    };
+    const onVisibility = () => {
+      if (document.hidden) setTabSwitches((n) => n + 1);
+    };
+    document.addEventListener("contextmenu", block);
+    document.addEventListener("copy", block);
+    document.addEventListener("cut", block);
+    document.addEventListener("selectstart", block);
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      document.removeEventListener("contextmenu", block);
+      document.removeEventListener("copy", block);
+      document.removeEventListener("cut", block);
+      document.removeEventListener("selectstart", block);
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, []);
+
   const doSubmit = useMemo(
     () => () => {
       if (submittedRef.current) return;
       submittedRef.current = true;
       const fd = new FormData();
       for (const s of steps) fd.set(`q_${s.q.id}`, answers[s.q.id] || "");
+      fd.set("tab_switch_count", String(tabSwitches));
       try {
         localStorage.removeItem(storageKey);
       } catch {}
       startTransition(() => submitAction(fd));
     },
-    [answers, steps, storageKey, submitAction]
+    [answers, steps, storageKey, submitAction, tabSwitches]
   );
 
   /* Countdown — auto-submit on expiry */
@@ -98,7 +135,23 @@ export function AssessmentRunner({
   }
 
   return (
-    <div className="p-5 lg:p-10 max-w-3xl mx-auto">
+    <div className="no-copy relative p-5 lg:p-10 max-w-3xl mx-auto">
+      <div className="watermark-overlay" aria-hidden>
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="row">
+            {watermarkLabel} · {new Date().toLocaleDateString()} · {caId.slice(0, 8)}
+          </div>
+        ))}
+      </div>
+
+      {tabSwitches > 0 && (
+        <div className="mb-4 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+          <Icon name="eye" className="w-3.5 h-3.5 shrink-0" />
+          This tab was left {tabSwitches} time{tabSwitches > 1 ? "s" : ""} during the assessment. This is logged for
+          the reviewing admin.
+        </div>
+      )}
+
       {/* Sticky header: title, timer, progress */}
       <div className="sticky top-12 lg:top-0 z-30 -mx-5 lg:-mx-10 px-5 lg:px-10 pt-3 pb-4 bg-background/95 backdrop-blur border-b border-line mb-8">
         <div className="flex items-center justify-between gap-4 mb-3">

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Avatar, Icon, LogoMark } from "@/components/ui";
+import { CommandPalette } from "@/components/CommandPalette";
 
 export type NavLink = { href: string; label: string; icon: string; exact?: boolean };
 
@@ -35,6 +36,7 @@ export function NavShell({
         </Link>
       </div>
 
+      <CommandPalette links={links} />
       <nav className="flex-1 px-3 py-5 space-y-1 overflow-y-auto">
         <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-white/35">Workspace</p>
         {links.map((l) => {

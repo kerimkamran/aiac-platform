@@ -42,7 +42,16 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
         <Icon name="arrowLeft" className="w-4 h-4" />
         All results
       </Link>
-      <PageHeader title={meta?.title || "Result"} subtitle="Your reviewed competency profile for this assessment." />
+      <div className="flex flex-wrap items-start justify-between gap-4 mb-1">
+        <PageHeader title={meta?.title || "Result"} subtitle="Your reviewed competency profile for this assessment." />
+        <a
+          href={`/report/${id}/pdf`}
+          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0"
+        >
+          <Icon name="download" className="w-4 h-4" />
+          Download PDF
+        </a>
+      </div>
 
       <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
         <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">

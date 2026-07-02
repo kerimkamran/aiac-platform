@@ -1,9 +1,9 @@
 /* Server-rendered SVG charts — single-hue marks, hairline grid, direct labels. */
 
-const INK = "#101c2c";
-const MUTED = "#8a97a8";
-const GRID = "#e1e0d9";
-const AXIS = "#c3c2b7";
+const INK = "#111318";
+const MUTED = "#7e8797";
+const GRID = "#e3e8ed";
+const AXIS = "#c8d0da";
 
 /* Vertical bar chart of counts per proficiency band. */
 export function BandDistribution({
@@ -50,7 +50,7 @@ export function BandDistribution({
 }
 
 /* Horizontal pipeline funnel — ordinal single-hue ramp (validated blue steps). */
-const FUNNEL_RAMP = ["#86b6ef", "#5598e7", "#2a78d6", "#1c5cab"];
+const FUNNEL_RAMP = ["#a8ccf2", "#3d88d8", "#1050a8", "#0a2553"];
 
 export function PipelineFunnel({ stages }: { stages: { label: string; count: number }[] }) {
   const max = Math.max(1, ...stages.map((s) => s.count));
@@ -76,7 +76,7 @@ export function PipelineFunnel({ stages }: { stages: { label: string; count: num
 export function RadarChart({
   items,
   size = 320,
-  color = "#2a78d6",
+  color = "#0d3d8c",
 }: {
   items: { label: string; value: number }[];
   size?: number;

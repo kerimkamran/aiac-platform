@@ -1,36 +1,33 @@
 import Link from "next/link";
-import { signup } from "./actions";
-import { AuthPanel, Field } from "@/components/auth-panel";
+import { Icon } from "@/components/ui";
+import { AuthPanel } from "@/components/auth-panel";
 
-export default async function SignupPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ error?: string }>;
-}) {
-  const { error } = await searchParams;
+export const metadata = { title: "Invite only" };
 
+export default function SignupPage() {
   return (
     <AuthPanel
-      title="Create your candidate account"
-      subtitle="Sign up with the email your recruiter has — invitations are matched by email address."
+      title="Accounts are invite-only"
+      subtitle="AIAC candidate and reviewer accounts are created by your HR team — there's no public sign-up."
     >
-      <form action={signup} className="space-y-4">
-        {error && (
-          <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5">{error}</p>
-        )}
-        <Field label="Full name" name="full_name" type="text" placeholder="Leyla Mammadova" />
-        <Field label="Email" name="email" type="email" placeholder="you@example.com" />
-        <Field label="Password" name="password" type="password" placeholder="At least 6 characters" minLength={6} />
-        <button className="w-full bg-accent text-white rounded-xl py-3 text-sm font-semibold hover:bg-accent-dark transition-colors">
-          Create account
-        </button>
-        <p className="text-[13px] text-muted text-center">
-          Already have an account?{" "}
-          <Link href="/login" className="text-accent-dark font-semibold hover:underline">
-            Log in
-          </Link>
-        </p>
-      </form>
+      <div className="space-y-5">
+        <div className="flex items-start gap-3 bg-background border border-line rounded-xl p-4">
+          <span className="w-8 h-8 rounded-lg bg-brand/10 text-brand grid place-items-center shrink-0">
+            <Icon name="shield" className="w-4 h-4" />
+          </span>
+          <p className="text-sm text-muted">
+            If you were told to complete an assessment, check your inbox for an invitation email from Azerconnect
+            Group with a link to set your password. Didn&apos;t get one? Ask your recruiter or HR contact to add you.
+          </p>
+        </div>
+        <Link
+          href="/login"
+          className="w-full inline-flex items-center justify-center gap-2 bg-brand text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-light transition-colors"
+        >
+          Go to log in
+          <Icon name="arrowRight" className="w-4 h-4" />
+        </Link>
+      </div>
     </AuthPanel>
   );
 }

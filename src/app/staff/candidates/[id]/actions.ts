@@ -26,3 +26,14 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
 
   revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
 }
+
+export async function deleteProctoringRecording(candidateAssessmentId: string, recordingId: string, storagePath: string | null) {
+  const supabase = await createClient();
+
+  if (storagePath) {
+    await supabase.storage.from("proctoring").remove([storagePath]);
+  }
+  await supabase.from("proctoring_recordings").update({ deleted_at: new Date().toISOString() }).eq("id", recordingId);
+
+  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+}

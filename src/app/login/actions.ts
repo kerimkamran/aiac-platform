@@ -25,5 +25,7 @@ export async function login(formData: FormData) {
     .eq("id", user!.id)
     .single();
 
-  redirect(profile?.role === "candidate" ? "/candidate" : "/staff");
+  if (profile?.role === "candidate") redirect("/candidate");
+  if (profile?.role === "decision_maker") redirect("/decision");
+  redirect("/staff");
 }

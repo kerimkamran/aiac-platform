@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { startAssessment, submitAssessment } from "./actions";
 import { AssessmentRunner, type RunnerSection } from "./runner";
+import { ProctoredAssessmentRunner } from "./proctoring-gate";
 
 export default async function TakeAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -26,11 +27,14 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
     startedAt = new Date().toISOString();
   }
 
-  const { data: sections } = await supabase
-    .from("assessment_sections")
-    .select("id, title, sequence, questions(id, question_type, prompt, options, sequence)")
-    .eq("assessment_id", ca.assessment_id)
-    .order("sequence");
+  const [{ data: sections }, { data: proctoring }] = await Promise.all([
+    supabase
+      .from("assessment_sections")
+      .select("id, title, sequence, questions(id, question_type, prompt, options, sequence)")
+      .eq("assessment_id", ca.assessment_id)
+      .order("sequence"),
+    supabase.from("proctoring_settings").select("camera_enabled, storage_backend").eq("assessment_id", ca.assessment_id).maybeSingle(),
+  ]);
 
   const meta = ca.assessments as unknown as { title: string; description: string; time_limit_minutes: number };
   const submitWithId = submitAssessment.bind(null, id);
@@ -56,6 +60,21 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
 
   const deadlineMs = new Date(startedAt).getTime() + (meta?.time_limit_minutes || 60) * 60_000;
 
+  if (proctoring?.camera_enabled) {
+    return (
+      <ProctoredAssessmentRunner
+        caId={id}
+        title={meta?.title || "Assessment"}
+        description={meta?.description || ""}
+        deadlineMs={deadlineMs}
+        sections={runnerSections}
+        submitAction={submitWithId}
+        watermarkLabel={user?.email || "confidential"}
+        storageBackend={(proctoring.storage_backend as "supabase" | "local") || "supabase"}
+      />
+    );
+  }
+
   return (
     <AssessmentRunner
       caId={id}
@@ -64,6 +83,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
       deadlineMs={deadlineMs}
       sections={runnerSections}
       submitAction={submitWithId}
+      watermarkLabel={user?.email || "confidential"}
     />
   );
 }

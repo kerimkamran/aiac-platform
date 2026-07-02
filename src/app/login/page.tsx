@@ -26,7 +26,7 @@ export default async function LoginPage({
         <p className="text-[13px] text-muted text-center">
           No account yet?{" "}
           <Link href="/signup" className="text-accent-dark font-semibold hover:underline">
-            Sign up as a candidate
+            Accounts are invite-only
           </Link>
         </p>
       </form>

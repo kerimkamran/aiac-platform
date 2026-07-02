@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Avatar, Card, Icon, PageHeader, ScoreBadge, StatusBadge } from "@/components/ui";
+import { Icon, PageHeader } from "@/components/ui";
+import { CandidateExportTable, type CandidateExportRow } from "@/components/CandidateExportTable";
 
 const FILTERS = [
   { key: "", label: "All" },
@@ -13,15 +14,15 @@ const FILTERS = [
 export default async function StaffCandidatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; department?: string; vacancy?: string }>;
 }) {
-  const { status = "", q = "" } = await searchParams;
+  const { status = "", q = "", department = "", vacancy = "" } = await searchParams;
   const supabase = await createClient();
 
   let query = supabase
     .from("candidate_assessments")
     .select(
-      "id, status, overall_score, invited_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title)"
+      "id, status, overall_score, invited_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title)"
     )
     .order("invited_at", { ascending: false });
   if (status) query = query.eq("status", status);
@@ -34,8 +35,8 @@ export default async function StaffCandidatesPage({
     overall_score: number | null;
     invited_at: string;
     submitted_at: string | null;
-    candidate: { full_name: string; email: string } | null;
-    assessments: { title: string } | null;
+    candidate: { full_name: string; email: string; department: string | null } | null;
+    assessments: { title: string; vacancy_title: string | null } | null;
   }[];
 
   if (q) {
@@ -47,18 +48,42 @@ export default async function StaffCandidatesPage({
         r.assessments?.title?.toLowerCase().includes(needle)
     );
   }
+  if (department) list = list.filter((r) => r.candidate?.department === department);
+  if (vacancy) list = list.filter((r) => (r.assessments?.vacancy_title || r.assessments?.title) === vacancy);
+
+  const departments = Array.from(new Set(list.map((r) => r.candidate?.department).filter(Boolean))) as string[];
+  const vacancies = Array.from(
+    new Set(list.map((r) => r.assessments?.vacancy_title || r.assessments?.title).filter(Boolean))
+  ) as string[];
+
+  const qs = (overrides: Record<string, string>) => {
+    const params = new URLSearchParams({ status, q, department, vacancy, ...overrides });
+    for (const [k, v] of Array.from(params.entries())) if (!v) params.delete(k);
+    const s = params.toString();
+    return s ? `?${s}` : "";
+  };
+
+  const exportBase = `/staff/candidates/export${qs({})}`;
+
+  const exportRows: CandidateExportRow[] = list.map((r) => ({
+    id: r.id,
+    status: r.status,
+    overall_score: r.overall_score,
+    candidate: r.candidate ? { full_name: r.candidate.full_name, email: r.candidate.email } : null,
+    assessments: r.assessments ? { title: r.assessments.title } : null,
+  }));
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader title="Candidates" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
         <div className="flex items-center gap-1.5 bg-surface border border-line rounded-xl p-1">
           {FILTERS.map((f) => (
             <Link
               key={f.key}
-              href={f.key ? `/staff/candidates?status=${f.key}${q ? `&q=${encodeURIComponent(q)}` : ""}` : `/staff/candidates${q ? `?q=${encodeURIComponent(q)}` : ""}`}
+              href={`/staff/candidates${qs({ status: f.key })}`}
               className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors ${
                 status === f.key ? "bg-brand text-white" : "text-muted hover:text-foreground"
               }`}
@@ -69,6 +94,8 @@ export default async function StaffCandidatesPage({
         </div>
         <form className="flex-1 min-w-52 max-w-sm relative" action="/staff/candidates">
           {status && <input type="hidden" name="status" value={status} />}
+          {department && <input type="hidden" name="department" value={department} />}
+          {vacancy && <input type="hidden" name="vacancy" value={vacancy} />}
           <Icon name="search" className="w-4 h-4 text-faint absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             name="q"
@@ -79,57 +106,45 @@ export default async function StaffCandidatesPage({
         </form>
       </div>
 
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[640px]">
-          <thead className="text-faint text-[11px] uppercase tracking-wider border-b border-line">
-            <tr>
-              <th className="text-left px-5 py-3.5 font-semibold">Candidate</th>
-              <th className="text-left px-5 py-3.5 font-semibold">Assessment</th>
-              <th className="text-left px-5 py-3.5 font-semibold">Status</th>
-              <th className="text-left px-5 py-3.5 font-semibold">Role Fit</th>
-              <th className="px-5 py-3.5" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {list.map((r) => (
-              <tr key={r.id} className="hover:bg-background/70 transition-colors">
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={r.candidate?.full_name || "?"} />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground truncate">{r.candidate?.full_name}</p>
-                      <p className="text-xs text-muted truncate">{r.candidate?.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-muted">{r.assessments?.title}</td>
-                <td className="px-5 py-3.5">
-                  <StatusBadge status={r.status} />
-                </td>
-                <td className="px-5 py-3.5">
-                  {r.overall_score !== null ? <ScoreBadge score={Math.round(r.overall_score)} /> : <span className="text-faint">—</span>}
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <Link
-                    href={`/staff/candidates/${r.id}`}
-                    className="inline-flex items-center gap-1.5 text-accent-dark font-semibold whitespace-nowrap hover:underline"
-                  >
-                    Review
-                    <Icon name="arrowRight" className="w-3.5 h-3.5" />
-                  </Link>
-                </td>
-              </tr>
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <div className="flex items-center gap-1.5 text-xs text-faint font-semibold">
+          <Icon name="filter" className="w-3.5 h-3.5" />
+          Filter for export
+        </div>
+        <form action="/staff/candidates" className="flex items-center gap-2">
+          {status && <input type="hidden" name="status" value={status} />}
+          {q && <input type="hidden" name="q" value={q} />}
+          <select
+            name="department"
+            defaultValue={department}
+            className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            <option value="">All departments / structures</option>
+            {departments.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
             ))}
-            {list.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-5 py-12 text-center text-faint text-sm">
-                  No candidates match — try clearing the filters, or invite candidates from the Assessment Builder.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </Card>
+          </select>
+          <select
+            name="vacancy"
+            defaultValue={vacancy}
+            className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            <option value="">All vacancies / assessments</option>
+            {vacancies.map((v) => (
+              <option key={v} value={v}>
+                {v}
+              </option>
+            ))}
+          </select>
+          <button className="bg-foreground text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:opacity-90 transition-opacity">
+            Apply
+          </button>
+        </form>
+      </div>
+
+      <CandidateExportTable rows={exportRows} exportBase={exportBase} />
     </div>
   );
 }

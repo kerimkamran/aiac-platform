@@ -1,8 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording } from "./actions";
-import { assignDecisionMaker, unassignDecisionMaker } from "../../people/actions";
+import { submitReview } from "./actions";
 import { Avatar, Card, Icon, ScoreRing, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
@@ -30,7 +29,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     .eq("assessment_id", ca.assessment_id)
     .not("overall_score", "is", null);
 
-  const [{ data: competencyScores }, { data: responses }, { data: reviews }, { data: allDecisionMakers }, { data: assignedDMs }] = await Promise.all([
+  const [{ data: competencyScores }, { data: responses }, { data: reviews }] = await Promise.all([
     supabase
       .from("candidate_competency_scores")
       .select("score, level, competencies(name, category)")
@@ -44,34 +43,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       .select("decision, comment, created_at, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
       .eq("candidate_assessment_id", id)
       .order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, full_name, email").eq("role", "decision_maker").order("full_name"),
-    supabase
-      .from("candidate_decision_makers")
-      .select("profile_id, profiles(full_name, email)")
-      .eq("candidate_assessment_id", id),
   ]);
-
-  const { data: recordings } = await supabase
-    .from("proctoring_recordings")
-    .select("id, storage_path, consent_given_at, duration_seconds, created_at")
-    .eq("candidate_assessment_id", id)
-    .is("deleted_at", null)
-    .order("created_at", { ascending: false });
-
-  const recordingsWithUrls = await Promise.all(
-    (recordings || []).map(async (r) => {
-      let url: string | null = null;
-      if (r.storage_path) {
-        const { data: signed } = await supabase.storage.from("proctoring").createSignedUrl(r.storage_path, 3600);
-        url = signed?.signedUrl || null;
-      }
-      return { ...r, url };
-    })
-  );
-
-  const assignedIds = new Set((assignedDMs || []).map((a) => a.profile_id));
-  const unassignedDMs = (allDecisionMakers || []).filter((dm) => !assignedIds.has(dm.id));
-  const assignDMWithId = assignDecisionMaker.bind(null, id);
 
   const scores = ((competencyScores || []) as unknown as {
     score: number;
@@ -97,11 +69,11 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   return (
     <div className="p-6 lg:p-10 max-w-5xl print-page">
       <Link
-        href="/staff/candidates"
+        href="/decision"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-5 font-medium no-print"
       >
         <Icon name="arrowLeft" className="w-4 h-4" />
-        All candidates
+        All assigned candidates
       </Link>
 
       {/* Header */}
@@ -271,119 +243,11 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </Card>
       )}
 
-      {/* Proctoring recordings */}
-      {recordingsWithUrls.length > 0 && (
-        <Card className="p-6 mb-6 no-print">
-          <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-            <Icon name="video" className="w-4 h-4 text-brand" />
-            Proctoring recordings
-          </p>
-          <p className="text-xs text-muted mb-4">Consent-gated video captured during the assessment session.</p>
-          <div className="space-y-3">
-            {recordingsWithUrls.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-4 border border-line rounded-xl px-4 py-3">
-                <div className="min-w-0 text-sm">
-                  <p className="font-medium text-foreground">
-                    {r.consent_given_at ? new Date(r.consent_given_at).toLocaleString() : "Unknown time"} ·{" "}
-                    {r.duration_seconds ? `${Math.round(r.duration_seconds / 60)} min` : "—"}
-                  </p>
-                  <p className="text-xs text-faint">
-                    {r.url ? "Stored in project database" : "Recorded on candidate's device only — not uploaded"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {r.url && (
-                    <>
-                      <a
-                        href={r.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
-                      >
-                        <Icon name="play" className="w-3.5 h-3.5" />
-                        Watch
-                      </a>
-                      <a
-                        href={r.url}
-                        download
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
-                      >
-                        <Icon name="download" className="w-3.5 h-3.5" />
-                        Download
-                      </a>
-                    </>
-                  )}
-                  <form action={deleteProctoringRecording.bind(null, id, r.id, r.storage_path)}>
-                    <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-critical hover:underline">
-                      <Icon name="trash" className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
-      {/* Decision makers */}
-      <Card className="p-6 mb-6 no-print">
-        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="shield" className="w-4 h-4 text-brand" />
-          Decision makers
-        </p>
-        <p className="text-xs text-muted mb-4">
-          Give specific stakeholders access to review this candidate and submit a decision, alongside HR. Add new
-          people from People &amp; Access.
-        </p>
-
-        {(assignedDMs || []).length > 0 && (
-          <div className="space-y-2 mb-4">
-            {(assignedDMs as unknown as { profile_id: string; profiles: { full_name: string; email: string } | null }[]).map((a) => (
-              <div key={a.profile_id} className="flex items-center justify-between gap-3 text-sm border border-line rounded-xl px-3.5 py-2.5">
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground truncate">{a.profiles?.full_name}</p>
-                  <p className="text-xs text-muted truncate">{a.profiles?.email}</p>
-                </div>
-                <form action={unassignDecisionMaker.bind(null, id, a.profile_id)}>
-                  <button className="text-xs text-critical hover:underline shrink-0">Remove</button>
-                </form>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {unassignedDMs.length > 0 ? (
-          <form action={assignDMWithId} className="flex gap-2">
-            <select
-              name="decision_maker_id"
-              required
-              className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              {unassignedDMs.map((dm) => (
-                <option key={dm.id} value={dm.id}>
-                  {dm.full_name} — {dm.email}
-                </option>
-              ))}
-            </select>
-            <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0">
-              Assign
-            </button>
-          </form>
-        ) : (
-          <p className="text-xs text-faint">
-            {(allDecisionMakers || []).length === 0
-              ? "No decision makers yet — add one from People & Access."
-              : "All decision makers are already assigned to this candidate."}
-          </p>
-        )}
-      </Card>
-
       {/* Decision */}
       <Card className="p-6">
-        <p className="text-sm font-bold text-foreground mb-1">Recruiter decision</p>
+        <p className="text-sm font-bold text-foreground mb-1">Your decision</p>
         <p className="text-xs text-muted mb-5">
-          Human-in-the-loop: your decision confirms (or overrides) the AI-assisted scores above.
+          Submit your assessment of this candidate. HR and other assigned decision makers will see it alongside theirs.
         </p>
         <form action={submitReviewWithId} className="space-y-3.5 no-print">
           <div className="grid grid-cols-3 gap-2.5">

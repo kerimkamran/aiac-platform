@@ -159,21 +159,21 @@ export default async function Home() {
           />
           <div className="grid md:grid-cols-3 gap-6 mt-12">
             <FrameworkCard
-              color="#5598e7"
+              color="#1050a8"
               name="Core · 4"
               blurb="The mandatory behaviours every Azerconnect employee is measured on, with Basic / Skilled / Expert behavioural indicators."
               samples={["Innovating", "Collaborative", "Leading Through Change", "Resourcefulness"]}
               full
             />
             <FrameworkCard
-              color="#9085e9"
+              color="#b9861a"
               name="Leadership · 2"
               blurb="What we expect from people who set direction — inspiring others and driving a clear, compelling vision of the future."
               samples={["Engages & Inspires", "Drives Vision & Purpose"]}
               full
             />
             <FrameworkCard
-              color="#34d3a4"
+              color="#3a8820"
               name="Functional · 31"
               blurb="Role-specific depth — from business acumen to data-driven decision making — assessed with the same rigour as behaviour."
               samples={["Business Acumen", "Strategic Thinking", "Customer Centricity", "Data-Driven Decision Making", "Effective Communication"]}
@@ -187,10 +187,10 @@ export default async function Home() {
             </p>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                ["Does Not Meet", "0–49", "#e66767"],
-                ["Partially Meets", "50–69", "#eda100"],
-                ["Fully Meets", "70–84", "#34d3a4"],
-                ["Exceeds", "85–100", "#5fe08a"],
+                ["Does Not Meet", "0–49", "#c62020"],
+                ["Partially Meets", "50–69", "#a06a00"],
+                ["Fully Meets", "70–84", "#3a8820"],
+                ["Exceeds", "85–100", "#2d6b16"],
               ].map(([label, range, color]) => (
                 <div key={label} className="flex items-center gap-3">
                   <span className="w-2.5 h-9 rounded-full shrink-0" style={{ background: color as string }} />
@@ -326,7 +326,7 @@ function HeroPreview() {
     ["Data-Driven Decision Making", 91, "Functional"],
     ["Collaborative", 64, "Core"],
   ] as const;
-  const catColor: Record<string, string> = { Core: "#5598e7", Leadership: "#9085e9", Functional: "#34d3a4" };
+  const catColor: Record<string, string> = { Core: "#1050a8", Leadership: "#b9861a", Functional: "#3a8820" };
   return (
     <div className="bg-white/[0.06] backdrop-blur border border-white/15 rounded-2xl p-2 shadow-2xl shadow-black/30 max-w-4xl">
       <div className="bg-surface rounded-xl overflow-hidden text-foreground">
@@ -342,11 +342,11 @@ function HeroPreview() {
             <div className="relative w-28 h-28">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" strokeWidth="9" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#0ea5a3" strokeWidth="9" strokeLinecap="round" strokeDasharray="264" strokeDashoffset="55" />
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#2d6b16" strokeWidth="9" strokeLinecap="round" strokeDasharray="264" strokeDashoffset="55" />
               </svg>
               <span className="absolute inset-0 grid place-items-center text-3xl font-bold rotate-0">79</span>
             </div>
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-teal-50 text-teal-700 ring-1 ring-inset ring-teal-600/20">
+            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
               Fully Meets
             </span>
           </div>

@@ -97,22 +97,69 @@ export async function publishAssessment(assessmentId: string) {
 export async function inviteCandidate(assessmentId: string, formData: FormData) {
   const supabase = await createClient();
   const email = String(formData.get("email") || "").trim().toLowerCase();
+  const fullName = String(formData.get("full_name") || "").trim();
 
-  const { data: candidate } = await supabase
-    .from("profiles")
-    .select("id, role")
-    .eq("email", email)
-    .single();
-
-  if (!candidate) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("No candidate account found for that email. They must sign up first."));
+  if (!email) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Email is required."));
   }
 
-  await supabase.from("candidate_assessments").insert({
+  // Accounts are invite-only: provision the candidate if they don't already exist,
+  // then send them a real "set your password" email — no self-signup required.
+  const { data: provisioned, error: provisionError } = await supabase.rpc("admin_provision_user", {
+    p_email: email,
+    p_full_name: fullName || email.split("@")[0],
+    p_role: "candidate",
+    p_department: null,
+  });
+
+  if (provisionError) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(provisionError.message));
+  }
+
+  const candidateId = provisioned?.[0]?.profile_id as string | undefined;
+  const wasCreated = provisioned?.[0]?.created as boolean | undefined;
+
+  if (!candidateId) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Could not provision candidate."));
+  }
+
+  const { error: linkError } = await supabase.from("candidate_assessments").insert({
     assessment_id: assessmentId,
-    candidate_id: candidate!.id,
+    candidate_id: candidateId,
     status: "invited",
   });
+
+  if (linkError) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(linkError.message.includes("duplicate") ? "This candidate is already invited to this assessment." : linkError.message));
+  }
+
+  const site = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://insight-azerconnect.vercel.app";
+  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${site}/invite/callback` });
+
+  revalidatePath(`/staff/builder/${assessmentId}`);
+  revalidatePath("/staff/people");
+  void wasCreated;
+}
+
+export async function updateProctoringSettings(assessmentId: string, formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const cameraEnabled = formData.get("camera_enabled") === "on";
+  const storageBackend = String(formData.get("storage_backend") || "supabase");
+
+  await supabase.from("proctoring_settings").upsert(
+    {
+      assessment_id: assessmentId,
+      camera_enabled: cameraEnabled,
+      storage_backend: storageBackend,
+      updated_by: user?.id,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "assessment_id" }
+  );
 
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
