@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { login } from "./actions";
+import { AuthPanel, Field } from "@/components/auth-panel";
 
 export default async function LoginPage({
   searchParams,
@@ -9,63 +10,36 @@ export default async function LoginPage({
   const { error } = await searchParams;
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-sm">
-        <div className="text-center mb-8">
-          <Link href="/" className="font-semibold text-brand text-lg">
-            AI Assessment Center <span className="text-accent">by AG</span>
+    <AuthPanel
+      title="Welcome back"
+      subtitle="Log in to your candidate or staff workspace."
+    >
+      <form action={login} className="space-y-4">
+        {error && (
+          <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">{error}</p>
+        )}
+        <Field label="Email" name="email" type="email" placeholder="you@company.com" />
+        <Field label="Password" name="password" type="password" placeholder="••••••••" />
+        <button className="w-full bg-brand text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-light transition-colors">
+          Log in
+        </button>
+        <p className="text-[13px] text-muted text-center">
+          No account yet?{" "}
+          <Link href="/signup" className="text-accent-dark font-semibold hover:underline">
+            Sign up as a candidate
           </Link>
-        </div>
+        </p>
+      </form>
 
-        <form action={login} className="bg-white border rounded-lg shadow-sm p-6 space-y-4">
-          <h1 className="text-lg font-semibold text-gray-900">Log in</h1>
-
-          {error && (
-            <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
-              {error}
-            </p>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              name="email"
-              required
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder="you@company.com"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              name="password"
-              required
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="w-full bg-brand text-white rounded-md py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors"
-          >
-            Log in
-          </button>
-
-          <p className="text-xs text-gray-500 text-center">
-            No account? <Link href="/signup" className="text-accent font-medium">Sign up</Link>
-          </p>
-        </form>
-
-        <div className="mt-6 bg-gray-50 border rounded-lg p-4 text-xs text-gray-600 space-y-1">
-          <p className="font-semibold text-gray-700">Demo accounts</p>
-          <p>Candidate: candidate@aiac-demo.com / Demo12345!</p>
-          <p>HR Admin / Recruiter: recruiter@aiac-demo.com / Demo12345!</p>
-        </div>
+      <div className="mt-6 bg-background border border-line rounded-xl p-4 text-xs text-muted space-y-1.5">
+        <p className="font-bold text-foreground uppercase tracking-wide text-[10px]">Demo accounts</p>
+        <p>
+          <span className="font-semibold text-foreground">Candidate:</span> candidate@aiac-demo.com · Demo12345!
+        </p>
+        <p>
+          <span className="font-semibold text-foreground">Recruiter / HR:</span> recruiter@aiac-demo.com · Demo12345!
+        </p>
       </div>
-    </div>
+    </AuthPanel>
   );
 }

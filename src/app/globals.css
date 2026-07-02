@@ -1,23 +1,152 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8fa;
-  --foreground: #171717;
+  /* Surfaces & ink */
+  --background: #f3f5f9;
+  --surface: #ffffff;
+  --foreground: #101c2c;
+  --muted: #5b6b7f;
+  --faint: #8a97a8;
+  --line: #e3e8ef;
+
+  /* Brand — Azerconnect navy / teal */
   --brand: #1e3a5f;
   --brand-light: #2d5a8c;
+  --brand-deep: #14283f;
   --accent: #0ea5a3;
+  --accent-dark: #0b8583;
+  --accent-soft: #e6f6f5;
+
+  /* Status (validated dataviz status palette) */
+  --good: #0ca30c;
+  --warning: #b97a00;
+  --serious: #c05621;
+  --critical: #d03b3b;
+
+  /* Chart series (validated categorical slots) */
+  --chart-1: #2a78d6; /* blue   — Core */
+  --chart-2: #1baf7a; /* aqua   — Functional */
+  --chart-3: #4a3aa7; /* violet — Leadership */
+  --chart-grid: #e1e0d9;
+  --chart-axis: #c3c2b7;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
   --color-brand: var(--brand);
   --color-brand-light: var(--brand-light);
+  --color-brand-deep: var(--brand-deep);
   --color-accent: var(--accent);
+  --color-accent-dark: var(--accent-dark);
+  --color-accent-soft: var(--accent-soft);
+  --color-good: var(--good);
+  --color-warning: var(--warning);
+  --color-serious: var(--serious);
+  --color-critical: var(--critical);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-sora), var(--font-inter), system-ui, sans-serif;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-feature-settings: "cv02", "cv03", "cv11";
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* ---------- Motion ---------- */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-12px); }
+}
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes ring-fill {
+  from { stroke-dashoffset: var(--ring-circ); }
+}
+@keyframes grow-bar {
+  from { transform: scaleX(0); }
+}
+@keyframes grow-bar-y {
+  from { transform: scaleY(0); }
+}
+
+.anim-fade-up { animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-fade-in { animation: fade-in 0.5s ease both; }
+.anim-float { animation: float-slow 7s ease-in-out infinite; }
+.delay-1 { animation-delay: 0.08s; }
+.delay-2 { animation-delay: 0.16s; }
+.delay-3 { animation-delay: 0.24s; }
+.delay-4 { animation-delay: 0.32s; }
+.delay-5 { animation-delay: 0.4s; }
+
+.anim-ring circle.ring-value {
+  animation: ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.anim-grow { transform-origin: left; animation: grow-bar 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-grow-y { transform-origin: bottom; animation: grow-bar-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+.skeleton {
+  background: linear-gradient(90deg, #eceff4 25%, #f6f8fb 50%, #eceff4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .anim-fade-up, .anim-fade-in, .anim-float, .anim-grow, .anim-grow-y,
+  .anim-ring circle.ring-value, .skeleton {
+    animation: none;
+  }
+}
+
+/* ---------- Landing hero mesh ---------- */
+.hero-mesh {
+  background:
+    radial-gradient(48rem 30rem at 12% -10%, rgba(14, 165, 163, 0.28), transparent 60%),
+    radial-gradient(40rem 28rem at 95% 15%, rgba(45, 90, 140, 0.55), transparent 65%),
+    radial-gradient(30rem 24rem at 60% 110%, rgba(14, 165, 163, 0.18), transparent 60%),
+    linear-gradient(165deg, #14283f 0%, #1e3a5f 55%, #204468 100%);
+}
+.hero-grid-overlay {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 75%);
+}
+.text-gradient {
+  background: linear-gradient(92deg, #7dd8d6 0%, #4cc4c2 45%, #9fc3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ---------- Print (candidate report) ---------- */
+@media print {
+  body { background: #fff; }
+  .no-print { display: none !important; }
+  .print-page { padding: 0 !important; max-width: none !important; }
+  .print-card { border: 1px solid #d5dbe3 !important; box-shadow: none !important; break-inside: avoid; }
 }
