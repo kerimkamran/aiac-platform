@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, Icon, Avatar } from "@/components/ui";
-import { addCandidate, addDecisionMaker, resendInvite } from "./actions";
+import { addCandidate, addDecisionMaker, resendInvite, bulkAddCandidates } from "./actions";
 
 const ROLE_LABEL: Record<string, string> = {
   system_admin: "Super Admin",
@@ -39,7 +39,7 @@ export default async function PeoplePage({
       )}
       {added && (
         <div className="mb-6 text-sm text-accent-dark bg-accent-soft border border-accent/20 rounded-xl px-4 py-3">
-          {decodeURIComponent(added)} was added and invited by email.
+          {decodeURIComponent(added)}
         </div>
       )}
 
@@ -80,6 +80,39 @@ export default async function PeoplePage({
           </form>
         </Card>
       </div>
+
+      <Card className="p-6 mb-8">
+        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+          <Icon name="users" className="w-4 h-4 text-brand" />
+          Bulk add candidates (CSV)
+        </p>
+        <p className="text-xs text-muted mb-4">
+          Upload a CSV with columns <code className="bg-surface px-1 rounded">full_name</code>,{" "}
+          <code className="bg-surface px-1 rounded">email</code>, and optional{" "}
+          <code className="bg-surface px-1 rounded">department</code>. Each row is created and invited by email, just
+          like adding one candidate at a time.{" "}
+          <a
+            href="data:text/csv;charset=utf-8,full_name%2Cemail%2Cdepartment%0AJane%20Doe%2Cjane%40example.com%2COperations"
+            download="candidate-upload-template.csv"
+            className="text-brand font-semibold hover:underline"
+          >
+            Download template
+          </a>
+        </p>
+        <form action={bulkAddCandidates} className="flex items-center gap-3">
+          <input
+            name="csv"
+            type="file"
+            accept=".csv,text/csv"
+            required
+            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand file:text-white file:text-sm file:font-semibold file:cursor-pointer"
+          />
+          <button className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0">
+            <Icon name="download" className="w-4 h-4 rotate-180" />
+            Upload & invite all
+          </button>
+        </form>
+      </Card>
 
       <Card className="p-0 overflow-hidden mb-8">
         <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team & decision makers</p>

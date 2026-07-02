@@ -37,7 +37,17 @@ export function AuthPanel({
             ))}
           </ul>
         </div>
-        <p className="relative text-[12px] text-white/40">Azerconnect Group — Internal Use Only · AIAC v1.0</p>
+        <div className="relative flex items-center justify-between gap-3 text-[12px] text-white/40">
+          <p>Azerconnect Group — Internal Use Only · AIAC v1.0</p>
+          <a
+            href="https://linkedin.com/in/kamrankarimli"
+            target="_blank"
+            rel="noreferrer"
+            className="text-white/40 hover:text-white/70 transition-colors whitespace-nowrap"
+          >
+            Developed by Kamran Karimli
+          </a>
+        </div>
       </aside>
 
       <main className="flex items-center justify-center px-5 py-12">

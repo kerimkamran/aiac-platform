@@ -72,6 +72,14 @@ export function NavShell({
             Log out
           </button>
         </form>
+        <a
+          href="https://linkedin.com/in/kamrankarimli"
+          target="_blank"
+          rel="noreferrer"
+          className="block text-center text-[10.5px] text-white/25 hover:text-white/50 transition-colors mt-3"
+        >
+          Developed by Kamran Karimli
+        </a>
       </div>
     </div>
   );

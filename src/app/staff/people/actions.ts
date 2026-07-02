@@ -50,7 +50,7 @@ export async function addCandidate(formData: FormData) {
   await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
-  redirect("/staff/people?added=" + encodeURIComponent(fullName));
+  redirect("/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`));
 }
 
 export async function addDecisionMaker(formData: FormData) {
@@ -76,7 +76,7 @@ export async function addDecisionMaker(formData: FormData) {
   await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
-  redirect("/staff/people?added=" + encodeURIComponent(fullName));
+  redirect("/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`));
 }
 
 export async function resendInvite(email: string) {
@@ -113,4 +113,108 @@ export async function unassignDecisionMaker(candidateAssessmentId: string, profi
     .eq("candidate_assessment_id", candidateAssessmentId)
     .eq("profile_id", profileId);
   revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+}
+
+function parseCsv(text: string): Record<string, string>[] {
+  const lines = text.split(/\r\n|\n|\r/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) return [];
+
+  const parseLine = (line: string): string[] => {
+    const cells: string[] = [];
+    let cur = "";
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (line[i + 1] === '"') {
+            cur += '"';
+            i++;
+          } else {
+            inQuotes = false;
+          }
+        } else {
+          cur += ch;
+        }
+      } else if (ch === '"') {
+        inQuotes = true;
+      } else if (ch === ",") {
+        cells.push(cur);
+        cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    cells.push(cur);
+    return cells.map((c) => c.trim());
+  };
+
+  const header = parseLine(lines[0]).map((h) => h.toLowerCase());
+  return lines.slice(1).map((line) => {
+    const cells = parseLine(line);
+    const row: Record<string, string> = {};
+    header.forEach((h, i) => {
+      row[h] = cells[i] || "";
+    });
+    return row;
+  });
+}
+
+export async function bulkAddCandidates(formData: FormData) {
+  const supabase = await requireAdmin();
+  const file = formData.get("csv") as File | null;
+
+  if (!file || file.size === 0) {
+    redirect("/staff/people?error=" + encodeURIComponent("Choose a CSV file first."));
+  }
+
+  const text = await file!.text();
+  const rows = parseCsv(text);
+
+  if (rows.length === 0) {
+    redirect("/staff/people?error=" + encodeURIComponent("The CSV file has no data rows."));
+  }
+
+  let added = 0;
+  let skipped = 0;
+  const failed: string[] = [];
+
+  for (const row of rows) {
+    const email = (row.email || row["e-mail"] || "").trim().toLowerCase();
+    const fullName = (row.full_name || row.name || row["full name"] || "").trim();
+    const department = (row.department || row.structure || "").trim() || null;
+
+    if (!email || !email.includes("@")) {
+      failed.push(row.email || "(missing email)");
+      continue;
+    }
+
+    const { data: provisioned, error } = await supabase.rpc("admin_provision_user", {
+      p_email: email,
+      p_full_name: fullName || email.split("@")[0],
+      p_role: "candidate",
+      p_department: department,
+    });
+
+    if (error) {
+      failed.push(`${email} (${error.message})`);
+      continue;
+    }
+
+    const wasCreated = provisioned?.[0]?.created as boolean | undefined;
+    if (wasCreated) {
+      await sendInviteEmail(supabase, email);
+      added++;
+    } else {
+      skipped++;
+    }
+  }
+
+  revalidatePath("/staff/people");
+
+  const summary = `${added} added and invited, ${skipped} already existed${
+    failed.length ? `, ${failed.length} failed (${failed.slice(0, 5).join("; ")}${failed.length > 5 ? "…" : ""})` : ""
+  }.`;
+
+  redirect("/staff/people?added=" + encodeURIComponent(summary));
 }
