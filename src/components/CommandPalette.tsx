@@ -51,11 +51,11 @@ export function CommandPalette({ links }: { links: NavLink[] }) {
     return (
       <button
         onClick={openPalette}
-        className="hidden lg:flex items-center gap-2 text-[12.5px] font-medium text-white/50 hover:text-white/80 transition-colors px-3 py-2 rounded-xl border border-white/10 hover:border-white/20 mx-3 mb-2"
+        className="hidden lg:flex items-center gap-2 text-[12.5px] font-medium text-faint hover:text-muted transition-colors px-3 py-2 rounded-xl border border-line bg-surface hover:border-faint/40 mx-3 mt-3 mb-1 w-[calc(100%-1.5rem)]"
       >
         <Icon name="search" className="w-3.5 h-3.5" />
         Quick jump
-        <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-semibold bg-white/10 px-1.5 py-0.5 rounded">
+        <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-semibold bg-line/60 px-1.5 py-0.5 rounded">
           <Icon name="command" className="w-2.5 h-2.5" />K
         </span>
       </button>
