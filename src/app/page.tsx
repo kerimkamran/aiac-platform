@@ -18,21 +18,21 @@ export default async function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* ---------- Header ---------- */}
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-brand-deep/85 border-b border-white/10">
+      <header className="sticky top-0 z-40 backdrop-blur-md bg-background/80 border-b border-line">
         <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <Logo dark />
-          <nav className="hidden md:flex items-center gap-7 text-[13.5px] font-medium text-white/70">
-            <a href="#how" className="hover:text-white transition-colors">How it works</a>
-            <a href="#framework" className="hover:text-white transition-colors">Competency framework</a>
-            <a href="#features" className="hover:text-white transition-colors">Platform</a>
+          <Logo />
+          <nav className="hidden md:flex items-center gap-7 text-[13.5px] font-medium text-muted">
+            <a href="#how" className="hover:text-foreground transition-colors">How it works</a>
+            <a href="#framework" className="hover:text-foreground transition-colors">Competency framework</a>
+            <a href="#features" className="hover:text-foreground transition-colors">Platform</a>
           </nav>
           <div className="flex items-center gap-2.5 text-sm">
-            <Link href="/login" className="px-4 py-2 rounded-xl text-white/85 font-medium hover:bg-white/10 transition-colors">
+            <Link href="/login" className="px-4 py-2 rounded-full text-foreground font-medium hover:bg-line/60 transition-colors">
               Log in
             </Link>
             <Link
               href="/signup"
-              className="px-4 py-2 rounded-xl bg-accent text-white font-semibold hover:bg-accent-dark transition-colors"
+              className="px-4 py-2 rounded-full bg-brand text-white font-semibold hover:bg-brand-light transition-colors"
             >
               Get started
             </Link>
@@ -41,35 +41,34 @@ export default async function Home() {
       </header>
 
       {/* ---------- Hero ---------- */}
-      <section className="relative hero-mesh text-white overflow-hidden">
-        <div className="absolute inset-0 hero-grid-overlay" aria-hidden />
-        <div className="relative max-w-6xl mx-auto px-6 pt-24 pb-20 lg:pt-32 lg:pb-28">
-          <div className="max-w-3xl">
-            <p className="anim-fade-up inline-flex items-center gap-2 text-[12px] font-semibold text-accent bg-accent/10 ring-1 ring-inset ring-accent/30 rounded-full px-3.5 py-1.5 mb-6">
+      <section className="relative hero-warm overflow-hidden">
+        <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 lg:pt-28 lg:pb-20">
+          <div className="max-w-3xl mx-auto text-center">
+            <p className="anim-fade-up inline-flex items-center gap-2 text-[12px] font-semibold text-accent-dark bg-accent-soft ring-1 ring-inset ring-accent/20 rounded-full px-3.5 py-1.5 mb-8">
               <Icon name="sparkles" className="w-3.5 h-3.5" />
               Azerconnect Group · AI Assessment Center
             </p>
-            <h1 className="anim-fade-up delay-1 text-4xl md:text-6xl font-bold tracking-tight leading-[1.05] [font-family:var(--font-display)]">
+            <h1 className="anim-fade-up delay-1 text-[42px] md:text-[64px] font-semibold tracking-tight leading-[1.04] text-foreground [font-family:var(--font-display)]">
               Hire on evidence,
               <br />
-              not <span className="text-gradient">gut feeling.</span>
+              not <em className="text-accent-dark">gut feeling</em>.
             </h1>
-            <p className="anim-fade-up delay-2 text-lg text-white/70 max-w-xl mt-6 leading-relaxed">
+            <p className="anim-fade-up delay-2 text-lg text-muted max-w-xl mx-auto mt-7 leading-relaxed">
               AIAC turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
               AI-assisted scoring, and reviewer-verified hiring decisions — every score traceable back to
               a candidate&apos;s own words.
             </p>
-            <div className="anim-fade-up delay-3 flex flex-wrap gap-3.5 mt-9">
+            <div className="anim-fade-up delay-3 flex flex-wrap justify-center gap-3.5 mt-10">
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl bg-accent font-semibold hover:bg-accent-dark transition-colors shadow-lg shadow-accent/25"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand text-white font-semibold hover:bg-brand-light transition-colors"
               >
                 I&apos;m a candidate
                 <Icon name="arrowRight" className="w-4 h-4" />
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl border border-white/25 font-semibold hover:bg-white/10 transition-colors"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-foreground/15 text-foreground font-semibold hover:border-foreground/40 transition-colors"
               >
                 Recruiter / HR login
               </Link>
@@ -77,14 +76,14 @@ export default async function Home() {
           </div>
 
           {/* Floating product preview */}
-          <div className="anim-fade-up delay-4 mt-16 lg:mt-20">
+          <div className="anim-fade-up delay-4 mt-16 lg:mt-20 flex justify-center">
             <HeroPreview />
           </div>
         </div>
 
         {/* Stat strip */}
-        <div className="relative border-t border-white/10 bg-black/15">
-          <div className="max-w-6xl mx-auto px-6 py-7 grid grid-cols-2 md:grid-cols-4 gap-6">
+        <div className="relative border-t border-line">
+          <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
               ["37", "governed competencies"],
               ["3", "competency categories"],
@@ -92,8 +91,8 @@ export default async function Home() {
               ["100%", "decisions with evidence"],
             ].map(([v, l], i) => (
               <div key={l} className={`anim-fade-up delay-${i + 2}`}>
-                <p className="text-3xl font-bold [font-family:var(--font-display)] text-white">{v}</p>
-                <p className="text-[12.5px] text-white/55 mt-1">{l}</p>
+                <p className="text-[34px] leading-10 font-semibold [font-family:var(--font-display)] text-foreground">{v}</p>
+                <p className="text-[12.5px] text-faint mt-1">{l}</p>
               </div>
             ))}
           </div>
@@ -159,21 +158,21 @@ export default async function Home() {
           />
           <div className="grid md:grid-cols-3 gap-6 mt-12">
             <FrameworkCard
-              color="#1050a8"
+              color="#7fb2f0"
               name="Core · 4"
               blurb="The mandatory behaviours every Azerconnect employee is measured on, with Basic / Skilled / Expert behavioural indicators."
               samples={["Innovating", "Collaborative", "Leading Through Change", "Resourcefulness"]}
               full
             />
             <FrameworkCard
-              color="#b9861a"
+              color="#d9b45e"
               name="Leadership · 2"
               blurb="What we expect from people who set direction — inspiring others and driving a clear, compelling vision of the future."
               samples={["Engages & Inspires", "Drives Vision & Purpose"]}
               full
             />
             <FrameworkCard
-              color="#3a8820"
+              color="#8cc972"
               name="Functional · 31"
               blurb="Role-specific depth — from business acumen to data-driven decision making — assessed with the same rigour as behaviour."
               samples={["Business Acumen", "Strategic Thinking", "Customer Centricity", "Data-Driven Decision Making", "Effective Communication"]}
@@ -336,7 +335,7 @@ function HeroPreview() {
   ] as const;
   const catColor: Record<string, string> = { Core: "#1050a8", Leadership: "#b9861a", Functional: "#3a8820" };
   return (
-    <div className="bg-white/[0.06] backdrop-blur border border-white/15 rounded-2xl p-2 shadow-2xl shadow-black/30 max-w-4xl">
+    <div className="bg-surface border border-line rounded-3xl p-2 shadow-[0_24px_60px_-24px_rgba(10,37,83,0.25)] max-w-4xl">
       <div className="bg-surface rounded-xl overflow-hidden text-foreground">
         <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-line bg-background/60">
           <span className="w-2.5 h-2.5 rounded-full bg-red-300" />

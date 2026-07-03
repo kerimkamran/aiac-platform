@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Nunito, JetBrains_Mono } from "next/font/google";
+import { Nunito, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
 import "./globals.css";
 
 const nunito = Nunito({ subsets: ["latin"], variable: "--font-nunito", weight: ["400", "500", "600", "700", "800", "900"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
+const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif", weight: ["400", "600", "700"], style: ["normal", "italic"] });
 
 export const metadata: Metadata = {
   title: {
@@ -25,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased ${nunito.variable} ${mono.variable}`}>
+    <html lang="en" className={`h-full antialiased ${nunito.variable} ${mono.variable} ${serif.variable}`}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Icon, Logo } from "@/components/ui";
 
-/* Split-screen auth layout: brand panel left, form right. */
+/* Split-screen auth layout: warm brand panel left, form right. */
 export function AuthPanel({
   title,
   subtitle,
@@ -13,23 +13,22 @@ export function AuthPanel({
 }) {
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr] bg-background">
-      <aside className="hidden lg:flex relative hero-mesh text-white flex-col justify-between p-12 overflow-hidden">
-        <div className="absolute inset-0 hero-grid-overlay" aria-hidden />
+      <aside className="hidden lg:flex relative hero-warm border-r border-line flex-col justify-between p-12 overflow-hidden">
         <Link href="/" className="relative">
-          <Logo dark />
+          <Logo />
         </Link>
         <div className="relative max-w-md">
-          <h2 className="text-3xl font-bold tracking-tight leading-tight [font-family:var(--font-display)]">
-            Every score backed by evidence. Every decision confirmed by a human.
+          <h2 className="text-[34px] font-semibold tracking-tight leading-[1.15] text-foreground [font-family:var(--font-display)]">
+            Every score backed by <em className="text-accent-dark">evidence</em>. Every decision confirmed by a human.
           </h2>
-          <ul className="mt-8 space-y-4">
+          <ul className="mt-9 space-y-4">
             {[
               "Structured assessments mapped to 37 governed competencies",
               "AI-assisted scoring with a written rationale per answer",
               "Reviewer-confirmed shortlist, hold, and reject decisions",
             ].map((t) => (
-              <li key={t} className="flex items-start gap-3 text-[14.5px] text-white/75">
-                <span className="w-5 h-5 rounded-full bg-accent/20 text-accent grid place-items-center shrink-0 mt-0.5">
+              <li key={t} className="flex items-start gap-3 text-[14.5px] text-muted">
+                <span className="w-5 h-5 rounded-full bg-accent-soft text-accent-dark grid place-items-center shrink-0 mt-0.5">
                   <Icon name="check" className="w-3 h-3" />
                 </span>
                 {t}
@@ -37,25 +36,25 @@ export function AuthPanel({
             ))}
           </ul>
         </div>
-        <div className="relative flex items-center justify-between gap-3 text-[12px] text-white/40">
+        <div className="relative flex items-center justify-between gap-3 text-[12px] text-faint">
           <p>Azerconnect Group — Internal Use Only · AIAC v1.0</p>
           <a
             href="https://linkedin.com/in/kamrankarimli"
             target="_blank"
             rel="noreferrer"
-            className="text-white/40 hover:text-white/70 transition-colors whitespace-nowrap"
+            className="text-faint hover:text-muted transition-colors whitespace-nowrap"
           >
             Developed by Kamran Karimli
           </a>
         </div>
       </aside>
 
-      <main className="flex items-center justify-center px-5 py-12">
+      <main className="flex items-center justify-center px-5 py-12 bg-surface">
         <div className="w-full max-w-sm anim-fade-up">
           <Link href="/" className="lg:hidden inline-block mb-8">
             <Logo />
           </Link>
-          <h1 className="text-2xl font-bold tracking-tight text-foreground [font-family:var(--font-display)]">{title}</h1>
+          <h1 className="text-[26px] font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">{title}</h1>
           <p className="text-sm text-muted mt-2 mb-8">{subtitle}</p>
           {children}
         </div>
@@ -89,7 +88,7 @@ export function Field({
         required
         minLength={minLength}
         placeholder={placeholder}
-        className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
+        className="w-full bg-background/60 border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
       />
     </div>
   );
