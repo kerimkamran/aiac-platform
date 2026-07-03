@@ -1,13 +1,13 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces & ink */
-  --background: #f2f4f7;
-  --surface: #ffffff;
-  --foreground: #111318;
-  --muted: #424a57;
-  --faint: #7e8797;
-  --line: #e3e8ed;
+  /* Surfaces & ink — warm, calm neutrals */
+  --background: #f4f3ee;
+  --surface: #fdfdfa;
+  --foreground: #16181c;
+  --muted: #55534c;
+  --faint: #8a877d;
+  --line: #e6e4da;
 
   /* Brand — Azerconnect Group design system (navy blue -> forest green) */
   --brand: #0d3d8c;        /* blue-700, primary */
@@ -84,7 +84,7 @@
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --font-sans: var(--font-nunito), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-nunito), system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-serif), Georgia, "Times New Roman", serif;
 }
 
 html {
@@ -149,7 +149,7 @@ body {
 .anim-grow-y { transform-origin: bottom; animation: grow-bar-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .skeleton {
-  background: linear-gradient(90deg, #eceff4 25%, #f6f8fb 50%, #eceff4 75%);
+  background: linear-gradient(90deg, #ecebe3 25%, #f7f6f0 50%, #ecebe3 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -161,26 +161,27 @@ body {
   }
 }
 
-/* ---------- Landing hero mesh (Azerconnect navy -> forest green, 135deg) ---------- */
+/* ---------- Brand panels — flat, calm (Azerconnect navy -> forest green) ---------- */
 .hero-mesh {
   background:
-    radial-gradient(48rem 30rem at 12% -10%, rgba(45, 107, 22, 0.30), transparent 60%),
-    radial-gradient(40rem 28rem at 95% 15%, rgba(23, 103, 196, 0.55), transparent 65%),
-    radial-gradient(30rem 24rem at 60% 110%, rgba(45, 107, 22, 0.20), transparent 60%),
-    linear-gradient(135deg, #0a2553 0%, #0d3d8c 55%, #235213 100%);
+    radial-gradient(50rem 32rem at 88% -20%, rgba(45, 107, 22, 0.22), transparent 65%),
+    linear-gradient(160deg, #0a2553 0%, #0d3d8c 100%);
 }
 .hero-grid-overlay {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-  background-size: 44px 44px;
-  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, black 30%, transparent 75%);
+  background-image: none;
 }
 .text-gradient {
-  background: linear-gradient(92deg, #8fd0f0 0%, #70aaea 45%, #aeda97 100%);
+  background: linear-gradient(92deg, #9cc3f5 0%, #aeda97 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+/* Warm light hero (landing) */
+.hero-warm {
+  background:
+    radial-gradient(44rem 26rem at 85% -15%, rgba(45, 107, 22, 0.07), transparent 60%),
+    radial-gradient(40rem 26rem at 5% 110%, rgba(13, 61, 140, 0.06), transparent 60%),
+    var(--background);
 }
 
 /* ---------- Anti-copy deterrents (assessment runner only) ---------- */
