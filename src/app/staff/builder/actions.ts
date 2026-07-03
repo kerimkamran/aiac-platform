@@ -234,13 +234,16 @@ async function insertGeneratedAssessment(
 ) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
 
+  const totalQuestions = params.generated.sections.reduce((n, s) => n + s.questions.length, 0);
+  const timeLimitMinutes = Math.max(20, totalQuestions * 5);
+
   const { data: assessment, error } = await supabase
     .from("assessments")
     .insert({
       organization_id: org?.id,
       title: params.title,
       description: params.description,
-      time_limit_minutes: 60,
+      time_limit_minutes: timeLimitMinutes,
       created_by: params.generatedBy,
       status: "draft",
       mode: params.mode,
