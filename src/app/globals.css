@@ -33,6 +33,36 @@
   --chart-axis: #c8d0da;
 }
 
+.dark {
+  --background: #0a0c0f;
+  --surface: #111318;
+  --foreground: #f2f4f7;
+  --muted: #a4aebb;
+  --faint: #7e8797;
+  --line: #2d333c;
+
+  --brand: #3d88d8;
+  --brand-light: #70aaea;
+  --brand-deep: #0a2553;
+  --brand-50: #0b3070;
+
+  --accent: #56a83c;
+  --accent-dark: #80c463;
+  --accent-soft: #132d09;
+
+  --good: #56a83c;
+  --warning: #d19a2a;
+  --serious: #e05a5a;
+  --critical: #e05a5a;
+  --info: #3d88d8;
+
+  --chart-1: #3d88d8;
+  --chart-2: #56a83c;
+  --chart-3: #d1a94a;
+  --chart-grid: #2d333c;
+  --chart-axis: #424a57;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -57,11 +87,19 @@
   --font-display: var(--font-nunito), system-ui, -apple-system, sans-serif;
 }
 
+html {
+  color-scheme: light;
+}
+html.dark {
+  color-scheme: dark;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-nunito), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv11";
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 ::selection {

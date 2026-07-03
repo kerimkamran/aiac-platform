@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, Icon } from "@/components/ui";
-import { updateEmailTemplate, uploadEmailImage, removeEmailImage } from "./actions";
+import { updateEmailTemplate, uploadEmailImage, removeEmailImage, updateEngineSettings, clearEngineKey } from "./actions";
 
 export default async function SettingsPage({
   searchParams,
@@ -15,6 +15,11 @@ export default async function SettingsPage({
     .select("subject, body_html, image_url, updated_at")
     .eq("template_key", "candidate_invite")
     .maybeSingle();
+
+  const { data: engines } = await supabase
+    .from("generation_engines")
+    .select("key, display_name, api_key, enabled, updated_at")
+    .order("key");
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
@@ -97,6 +102,56 @@ export default async function SettingsPage({
             <button className="text-xs text-critical hover:underline">Remove image</button>
           </form>
         )}
+      </Card>
+
+      <Card className="p-6 mb-6">
+        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+          <Icon name="wand" className="w-4 h-4 text-brand" />
+          AI generation engines
+        </p>
+        <p className="text-xs text-muted mb-5">
+          Connect Claude and/or Perplexity to generate Korn Ferry / Mercer / WTW / Thomas-caliber situational
+          judgment cases and questions from the competency library. Admin-only — keys are never shown to other
+          staff or candidates.
+        </p>
+        <div className="space-y-5">
+          {(engines || []).map((e) => (
+            <div key={e.key} className="border border-line rounded-xl p-4">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <p className="text-sm font-bold text-foreground">{e.display_name}</p>
+                <span
+                  className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                    e.enabled && e.api_key
+                      ? "bg-green-50 text-green-700 ring-green-600/20"
+                      : "bg-gray-100 text-gray-600 ring-gray-500/20"
+                  }`}
+                >
+                  {e.enabled && e.api_key ? "Active" : "Not configured"}
+                </span>
+              </div>
+              <form action={updateEngineSettings.bind(null, e.key as "claude" | "perplexity")} className="flex flex-wrap items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-xs font-medium cursor-pointer">
+                  <input type="checkbox" name="enabled" defaultChecked={e.enabled} className="w-4 h-4 accent-[color:var(--brand)]" />
+                  Enabled
+                </label>
+                <input
+                  name="api_key"
+                  type="password"
+                  placeholder={e.api_key ? "•••••••••••• (set — leave blank to keep)" : "Paste API key"}
+                  className="flex-1 min-w-48 bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <button className="bg-brand text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand-light transition-colors">
+                  Save
+                </button>
+              </form>
+              {e.api_key && (
+                <form action={clearEngineKey.bind(null, e.key as "claude" | "perplexity")} className="mt-2">
+                  <button className="text-[11px] text-critical hover:underline">Remove key & disable</button>
+                </form>
+              )}
+            </div>
+          ))}
+        </div>
       </Card>
 
       <Card className="p-6 bg-surface/60 border-dashed">

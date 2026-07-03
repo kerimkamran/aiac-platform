@@ -42,6 +42,8 @@ const ICON_PATHS: Record<string, string> = {
   play: "M6 4l14 8-14 8V4z",
   trash: "M4 7h16M9 7V4h6v3m-9 0 1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13",
   command: "M6 9a3 3 0 1 1 3 3H6V9zm0 0v6m0 0a3 3 0 1 0 3 3v-3H6zm6-6a3 3 0 1 1 3-3v3h-3zm0 0h6m-6 0a3 3 0 1 0-3 3h3V9zm6 6a3 3 0 1 1-3 3v-3h3zm0 0h-6m6 0a3 3 0 1 0 3-3h-3v3z",
+  sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v3m0 16v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M1 12h3m16 0h3M4.2 19.8l2.1-2.1m11.4-11.4 2.1-2.1",
+  moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
 };
 
 export function Icon({ name, className = "w-5 h-5" }: { name: string; className?: string }) {

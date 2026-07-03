@@ -86,3 +86,39 @@ export async function removeEmailImage() {
     .eq("template_key", "candidate_invite");
   revalidatePath("/staff/settings");
 }
+
+export async function updateEngineSettings(engineKey: "claude" | "perplexity", formData: FormData) {
+  const { supabase, userId } = await requireAdmin();
+
+  const enabled = formData.get("enabled") === "on";
+  const rawKey = String(formData.get("api_key") || "").trim();
+
+  const update: Record<string, unknown> = {
+    enabled,
+    updated_by: userId,
+    updated_at: new Date().toISOString(),
+  };
+  // Only overwrite the stored key if the admin typed a new one — leaves the existing
+  // key in place when the field is left blank (it renders masked, never the real value).
+  if (rawKey) update.api_key = rawKey;
+
+  const { error } = await supabase.from("generation_engines").update(update).eq("key", engineKey);
+
+  if (error) {
+    redirect("/staff/settings?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/staff/settings");
+  revalidatePath("/staff/builder");
+  redirect("/staff/settings?saved=1");
+}
+
+export async function clearEngineKey(engineKey: "claude" | "perplexity") {
+  const { supabase, userId } = await requireAdmin();
+  await supabase
+    .from("generation_engines")
+    .update({ api_key: null, enabled: false, updated_by: userId, updated_at: new Date().toISOString() })
+    .eq("key", engineKey);
+  revalidatePath("/staff/settings");
+  revalidatePath("/staff/builder");
+}

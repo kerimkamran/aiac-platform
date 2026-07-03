@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Icon, Logo } from "@/components/ui";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 /* Split-screen auth layout: brand panel left, form right. */
 export function AuthPanel({
@@ -39,14 +40,17 @@ export function AuthPanel({
         </div>
         <div className="relative flex items-center justify-between gap-3 text-[12px] text-white/40">
           <p>Azerconnect Group — Internal Use Only · AIAC v1.0</p>
-          <a
-            href="https://linkedin.com/in/kamrankarimli"
-            target="_blank"
-            rel="noreferrer"
-            className="text-white/40 hover:text-white/70 transition-colors whitespace-nowrap"
-          >
-            Developed by Kamran Karimli
-          </a>
+          <div className="flex items-center gap-3">
+            <ThemeToggle className="text-white/40 hover:text-white/70 transition-colors" />
+            <a
+              href="https://linkedin.com/in/kamrankarimli"
+              target="_blank"
+              rel="noreferrer"
+              className="text-white/40 hover:text-white/70 transition-colors whitespace-nowrap"
+            >
+              Developed by Kamran Karimli
+            </a>
+          </div>
         </div>
       </aside>
 

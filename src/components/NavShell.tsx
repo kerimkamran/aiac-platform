@@ -5,6 +5,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Avatar, Icon, LogoMark } from "@/components/ui";
 import { CommandPalette } from "@/components/CommandPalette";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export type NavLink = { href: string; label: string; icon: string; exact?: boolean };
 
@@ -66,6 +67,7 @@ export function NavShell({
             <p className="text-[10px] uppercase tracking-wider text-accent font-semibold">{role.replace(/_/g, " ")}</p>
           </div>
         </div>
+        <ThemeToggle className="w-full px-3 py-2 rounded-xl text-[13px] font-medium text-white/60 hover:bg-white/5 hover:text-white transition-colors" />
         <form action="/logout" method="post">
           <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium text-white/60 hover:bg-white/5 hover:text-white transition-colors">
             <Icon name="logout" className="w-[18px] h-[18px] text-white/40" />

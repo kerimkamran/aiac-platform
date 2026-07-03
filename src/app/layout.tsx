@@ -26,6 +26,18 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`h-full antialiased ${nunito.variable} ${mono.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try {
+              var t = localStorage.getItem("aiac-theme");
+              if (t === "dark" || (!t && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+                document.documentElement.classList.add("dark");
+              }
+            } catch (e) {}`,
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

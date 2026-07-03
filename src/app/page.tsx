@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Icon, Logo, LogoMark } from "@/components/ui";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -265,14 +266,17 @@ export default async function Home() {
             Azerconnect Group — Internal Use Only · AIAC Platform v1.0 · Phase 1 scoring is simulated; the
             production LLM engine ships per SRS Part 4.
           </p>
-          <a
-            href="https://linkedin.com/in/kamrankarimli"
-            target="_blank"
-            rel="noreferrer"
-            className="text-[12.5px] text-faint hover:text-brand transition-colors whitespace-nowrap"
-          >
-            Developed by Kamran Karimli
-          </a>
+          <div className="flex items-center gap-4">
+            <ThemeToggle className="text-[12.5px] text-faint hover:text-brand transition-colors" />
+            <a
+              href="https://linkedin.com/in/kamrankarimli"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[12.5px] text-faint hover:text-brand transition-colors whitespace-nowrap"
+            >
+              Developed by Kamran Karimli
+            </a>
+          </div>
         </div>
       </footer>
     </div>

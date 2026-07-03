@@ -1,7 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { createAssessment } from "./actions";
+import { createAssessment, generateDefaultAssessment, generateCustomAssessment } from "./actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
+
+const MODE_LABEL: Record<string, string> = {
+  default_core: "Default · Core",
+  default_leadership: "Default · Leadership",
+  generated: "Generated",
+};
+
+const ENGINE_LABEL: Record<string, string> = {
+  claude: "Claude",
+  perplexity: "Perplexity",
+};
 
 export default async function BuilderListPage({
   searchParams,
@@ -11,10 +22,30 @@ export default async function BuilderListPage({
   const { error } = await searchParams;
   const supabase = await createClient();
 
-  const { data: assessments } = await supabase
-    .from("assessments")
-    .select("id, title, description, status, time_limit_minutes, created_at, assessment_sections(id)")
-    .order("created_at", { ascending: false });
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
+  const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
+
+  const [{ data: assessments }, { data: competencies }, { data: engines }] = await Promise.all([
+    supabase
+      .from("assessments")
+      .select(
+        "id, title, description, status, time_limit_minutes, created_at, mode, engine, generated_at, assessment_sections(id), generator:profiles!assessments_generated_by_fkey(full_name)"
+      )
+      .order("created_at", { ascending: false }),
+    isAdmin
+      ? supabase.from("competencies").select("id, name, category").order("category").order("name")
+      : Promise.resolve({ data: [] }),
+    isAdmin ? supabase.from("generation_engines").select("key, display_name, enabled, api_key") : Promise.resolve({ data: [] }),
+  ]);
+
+  const availableEngines = (engines || []).filter((e) => e.enabled && e.api_key);
+  const compGroups = ["Core", "Leadership", "Functional"]
+    .map((cat) => ({ cat, items: (competencies || []).filter((c) => c.category === cat) }))
+    .filter((g) => g.items.length > 0);
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -29,28 +60,45 @@ export default async function BuilderListPage({
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
-          {(assessments || []).map((a) => (
-            <Link key={a.id} href={`/staff/builder/${a.id}`} className="block group">
-              <Card className="p-5 group-hover:border-accent transition-colors">
-                <div className="flex items-center justify-between gap-4 mb-1.5">
-                  <p className="font-bold text-foreground truncate">{a.title}</p>
-                  <StatusBadge status={a.status} />
-                </div>
-                {a.description && <p className="text-[13px] text-muted line-clamp-1 mb-2.5">{a.description}</p>}
-                <p className="text-xs text-faint flex items-center gap-4">
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon name="layers" className="w-3.5 h-3.5" />
-                    {(a.assessment_sections || []).length} section{(a.assessment_sections || []).length === 1 ? "" : "s"}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <Icon name="timer" className="w-3.5 h-3.5" />
-                    {a.time_limit_minutes} min
-                  </span>
-                  <span>created {new Date(a.created_at).toLocaleDateString()}</span>
-                </p>
-              </Card>
-            </Link>
-          ))}
+          {(assessments || []).map((a) => {
+            const generator = a.generator as unknown as { full_name: string } | null;
+            return (
+              <Link key={a.id} href={`/staff/builder/${a.id}`} className="block group">
+                <Card className="p-5 group-hover:border-accent transition-colors">
+                  <div className="flex items-center justify-between gap-4 mb-1.5">
+                    <p className="font-bold text-foreground truncate">{a.title}</p>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {a.mode !== "manual" && (
+                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
+                          {MODE_LABEL[a.mode] || a.mode}
+                        </span>
+                      )}
+                      <StatusBadge status={a.status} />
+                    </div>
+                  </div>
+                  {a.description && <p className="text-[13px] text-muted line-clamp-1 mb-2.5">{a.description}</p>}
+                  <p className="text-xs text-faint flex items-center gap-4 flex-wrap">
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon name="layers" className="w-3.5 h-3.5" />
+                      {(a.assessment_sections || []).length} section{(a.assessment_sections || []).length === 1 ? "" : "s"}
+                    </span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <Icon name="timer" className="w-3.5 h-3.5" />
+                      {a.time_limit_minutes} min
+                    </span>
+                    <span>created {new Date(a.created_at).toLocaleDateString()}</span>
+                    {a.mode !== "manual" && generator && (
+                      <span className="inline-flex items-center gap-1.5 text-accent-dark">
+                        <Icon name="wand" className="w-3.5 h-3.5" />
+                        Generated by {generator.full_name} · {new Date(a.generated_at!).toLocaleDateString()} · via{" "}
+                        {ENGINE_LABEL[a.engine || ""] || a.engine}
+                      </span>
+                    )}
+                  </p>
+                </Card>
+              </Link>
+            );
+          })}
           {(!assessments || assessments.length === 0) && (
             <Card className="p-8 text-center">
               <p className="font-semibold text-foreground">No assessments yet</p>
@@ -59,12 +107,12 @@ export default async function BuilderListPage({
           )}
         </div>
 
-        <div>
-          <Card className="p-6 sticky top-6">
+        <div className="space-y-6">
+          <Card className="p-6">
             <form action={createAssessment} className="space-y-4">
               <p className="font-bold text-foreground text-sm flex items-center gap-2">
                 <Icon name="plus" className="w-4 h-4 text-accent-dark" />
-                New assessment
+                New assessment (manual)
               </p>
               <input
                 name="title"
@@ -96,6 +144,93 @@ export default async function BuilderListPage({
               </p>
             </form>
           </Card>
+
+          {isAdmin && (
+            <Card className="p-6">
+              <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
+                <Icon name="wand" className="w-4 h-4 text-accent-dark" />
+                By default
+              </p>
+              <p className="text-xs text-muted mb-4">
+                One-click, Korn Ferry / Mercer / WTW / Thomas-caliber assessments generated from every Core or every
+                Leadership competency in the library.
+              </p>
+              {availableEngines.length === 0 ? (
+                <p className="text-xs text-faint">
+                  No generation engine is configured yet. Add a Claude or Perplexity API key in{" "}
+                  <Link href="/staff/settings" className="text-brand font-semibold hover:underline">
+                    Settings
+                  </Link>
+                  .
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <form action={generateDefaultAssessment.bind(null, "Core")}>
+                    <button className="w-full inline-flex items-center justify-center gap-2 border border-line rounded-xl py-2.5 text-sm font-semibold text-foreground hover:border-brand transition-colors">
+                      <Icon name="layers" className="w-4 h-4 text-brand" />
+                      Generate default Core assessment
+                    </button>
+                  </form>
+                  <form action={generateDefaultAssessment.bind(null, "Leadership")}>
+                    <button className="w-full inline-flex items-center justify-center gap-2 border border-line rounded-xl py-2.5 text-sm font-semibold text-foreground hover:border-brand transition-colors">
+                      <Icon name="award" className="w-4 h-4 text-brand" />
+                      Generate default Leadership assessment
+                    </button>
+                  </form>
+                </div>
+              )}
+            </Card>
+          )}
+
+          {isAdmin && availableEngines.length > 0 && (
+            <Card className="p-6">
+              <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
+                <Icon name="sparkles" className="w-4 h-4 text-accent-dark" />
+                Generated by
+              </p>
+              <p className="text-xs text-muted mb-4">
+                Pick specific competencies and an engine, and generate a custom assessment. It&apos;s saved for every
+                admin to use, with your name and the date recorded.
+              </p>
+              <form action={generateCustomAssessment} className="space-y-3">
+                <input
+                  name="title"
+                  required
+                  placeholder="Assessment title"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                />
+                <select
+                  name="engine"
+                  required
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  {availableEngines.map((e) => (
+                    <option key={e.key} value={e.key}>
+                      {e.display_name}
+                    </option>
+                  ))}
+                </select>
+                <div className="max-h-56 overflow-y-auto border border-line rounded-xl p-3 space-y-3">
+                  {compGroups.map((g) => (
+                    <div key={g.cat}>
+                      <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-1.5">{g.cat}</p>
+                      <div className="space-y-1">
+                        {g.items.map((c) => (
+                          <label key={c.id} className="flex items-center gap-2 text-[13px] cursor-pointer">
+                            <input type="checkbox" name="competency_ids" value={c.id} className="w-3.5 h-3.5 accent-[color:var(--brand)]" />
+                            {c.name}
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <button className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
+                  Generate assessment
+                </button>
+              </form>
+            </Card>
+          )}
         </div>
       </div>
     </div>
