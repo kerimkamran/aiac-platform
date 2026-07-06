@@ -32,6 +32,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     links.push({ href: "/staff/people", label: "People & Access", icon: "shield" });
     links.push({ href: "/staff/settings", label: "Settings", icon: "grid" });
   }
+  if (profile.role === "system_admin") {
+    links.push({ href: "/staff/case-library", label: "Case Library", icon: "brain" });
+  }
 
   return (
     <NavShell role={profile.role} name={profile.full_name} links={links}>

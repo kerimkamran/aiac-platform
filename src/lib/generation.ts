@@ -55,7 +55,7 @@ function buildUserPrompt(competencies: CompetencyForPrompt[]): string {
   return `Generate situational judgment cases and questions for the following governed competencies. Candidates are being assessed for mid-to-senior management roles.\n\n${blocks}\n\nReturn the JSON now.`;
 }
 
-function extractJson(raw: string): unknown {
+export function extractJson(raw: string): unknown {
   let text = raw.trim();
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
   if (fenced) text = fenced[1].trim();
