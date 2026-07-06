@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { generateCaseLibraryEntries } from "@/lib/case-library";
 import type { CompetencyForPrompt } from "@/lib/generation";
-import { parseExcelBuffer, parseStructuredText, type ParsedCaseRow } from "@/lib/case-upload";
+import { parseExcelBuffer, parseStructuredText, extractCasesWithAI, type ParsedCaseRow } from "@/lib/case-upload";
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -187,7 +187,9 @@ export async function uploadCasesFromFile(formData: FormData) {
   }
 
   const buffer = await (file as File).arrayBuffer();
+  const aiEngine = String(formData.get("ai_engine") || "") as "" | "claude" | "fugu" | "kimi";
 
+  let rawText: string | null = null;
   let parsed: { rows: ParsedCaseRow[]; errors: string[] };
   try {
     if (isExcel) {
@@ -195,9 +197,11 @@ export async function uploadCasesFromFile(formData: FormData) {
     } else if (isDocx) {
       const mammoth = await import("mammoth");
       const { value: text } = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
+      rawText = text;
       parsed = parseStructuredText(text);
     } else {
       const text = Buffer.from(buffer).toString("utf-8");
+      rawText = text;
       parsed = parseStructuredText(text);
     }
   } catch (e) {
@@ -205,12 +209,38 @@ export async function uploadCasesFromFile(formData: FormData) {
     redirect("/staff/case-library?upload_error=" + encodeURIComponent(message));
   }
 
-  const { rows, errors } = parsed;
-
   const { data: competencies } = await supabase.from("competencies").select("id, code, name");
   const compList = (competencies || []) as { id: string; code: string; name: string }[];
   const byCode = new Map(compList.map((c) => [c.code.trim().toLowerCase(), c.id]));
   const byName = new Map(compList.map((c) => [c.name.trim().toLowerCase(), c.id]));
+
+  let { rows, errors } = parsed;
+  let usedAiFallback = false;
+
+  // Structured "Key: value" parsing found nothing — if the uploader opted into
+  // AI-assisted extraction and this is a text-based file, try again by asking
+  // the configured engine to read the document freeform.
+  if (rows.length === 0 && rawText && aiEngine) {
+    try {
+      const apiKey = await loadEngineKey(supabase, aiEngine);
+      const { rows: aiRows, truncated } = await extractCasesWithAI(
+        aiEngine,
+        apiKey,
+        rawText,
+        compList.map((c) => ({ code: c.code, name: c.name }))
+      );
+      if (aiRows.length > 0) {
+        rows = aiRows;
+        errors = truncated ? ["Document was long — only the first ~14,000 characters were analyzed."] : [];
+        usedAiFallback = true;
+      } else {
+        errors = [...errors, "AI-assisted extraction didn't find any usable cases in this document either."];
+      }
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "AI-assisted extraction failed.";
+      errors = [...errors, message];
+    }
+  }
 
   const insertRows: Record<string, unknown>[] = [];
   const unresolvable: string[] = [];
@@ -240,7 +270,7 @@ export async function uploadCasesFromFile(formData: FormData) {
       difficulty: row.difficulty,
       methodology_tag: row.methodologyTag,
       methodology_notes: row.methodologyNotes,
-      engine: null,
+      engine: usedAiFallback ? aiEngine : null,
       generated_by: userId,
     });
   }
@@ -259,6 +289,7 @@ export async function uploadCasesFromFile(formData: FormData) {
   revalidatePath("/staff/case-library");
 
   const params = new URLSearchParams({ uploaded: String(insertedCount), upload_errors: String(allErrors.length) });
+  if (usedAiFallback) params.set("upload_ai", "1");
   if (allErrors.length > 0) params.set("upload_error_sample", allErrors.slice(0, 3).join(" | ").slice(0, 400));
   redirect(`/staff/case-library?${params.toString()}`);
 }

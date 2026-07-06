@@ -23,6 +23,7 @@ export default async function CaseLibraryPage({
     upload_errors?: string;
     upload_error_sample?: string;
     upload_error?: string;
+    upload_ai?: string;
   }>;
 }) {
   const {
@@ -33,6 +34,7 @@ export default async function CaseLibraryPage({
     upload_errors: uploadErrors,
     upload_error_sample: uploadErrorSample,
     upload_error: uploadError,
+    upload_ai: uploadAi,
   } = await searchParams;
   const supabase = await createClient();
 
@@ -99,6 +101,7 @@ export default async function CaseLibraryPage({
         <div className="text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 mb-6">
           <p className="font-semibold">
             Imported {uploaded} case{uploaded === "1" ? "" : "s"} from your upload
+            {uploadAi === "1" ? " (via AI-assisted extraction)" : ""}
             {uploadErrors && uploadErrors !== "0" ? `, ${uploadErrors} row(s) skipped` : ""}.
           </p>
           {uploadErrorSample && <p className="text-xs text-emerald-700 mt-1">{uploadErrorSample}</p>}
@@ -273,21 +276,34 @@ export default async function CaseLibraryPage({
               </p>
               <p className="mt-2">
                 <span className="font-semibold text-foreground">Word / text / Markdown:</span> labeled fields per
-                case, separated by a line of <code>---</code>:
+                case, separated by a line of <code>---</code>. Plain or <code>**bold**</code> labels both work, and a
+                heading can stand in for <code>Title:</code>:
               </p>
               <pre className="mt-1.5 bg-background border border-line rounded-lg p-2.5 text-[10.5px] whitespace-pre-wrap">
-{`Title: Handling a missed deadline
-Competency: CF-F09
-Difficulty: mid
-Methodology: Mettl-style SJT
-Scenario: ...
-Question: ...
-Type: mcq
-Options:
-A) ...
-B) ...
+{`## Handling a missed deadline
+**Competency:** CF-F09
+**Difficulty:** mid
+**Methodology:** Mettl-style SJT
+**Scenario:** ...
+**Question:** ...
+**Type:** mcq
+**Options:**
+- A) ...
+- B) ...
 ---`}
               </pre>
+              <a
+                href="/staff/case-library/template"
+                className="inline-flex items-center gap-1.5 mt-2 font-semibold text-accent-dark hover:underline"
+              >
+                <Icon name="file" className="w-3.5 h-3.5" />
+                Download example .md template
+              </a>
+              <p className="mt-3">
+                <span className="font-semibold text-foreground">Freeform document?</span> If your file doesn&apos;t
+                follow this layout — research notes, an existing case bank in its own format — turn on AI-assisted
+                extraction below and pick an engine; it&apos;ll read the document and pull out usable cases itself.
+              </p>
             </details>
             <form action={uploadCasesFromFile} encType="multipart/form-data" className="space-y-3">
               <input
@@ -313,6 +329,26 @@ B) ...
                   ))}
                 </select>
               </div>
+              {availableEngines.length > 0 && (
+                <div>
+                  <label className="text-[11px] font-semibold text-muted block mb-1">
+                    AI-assisted extraction (Word/text/Markdown only, used only if the structured format above finds
+                    nothing)
+                  </label>
+                  <select
+                    name="ai_engine"
+                    defaultValue=""
+                    className="w-full bg-background border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                  >
+                    <option value="">Off — structured format only</option>
+                    {availableEngines.map((e) => (
+                      <option key={e.key} value={e.key}>
+                        Try with {e.display_name} if needed
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <button className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
                 Upload &amp; import
               </button>

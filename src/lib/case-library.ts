@@ -67,7 +67,7 @@ function buildUserPrompt(competency: CompetencyForPrompt): string {
   return `Competency code: ${competency.code}\nName: ${competency.name}\nCategory: ${competency.category}\nDescription: ${competency.description || "(none provided)"}\nBehavioral indicators:\n${indicatorLines}\n\nGenerate the case library entries now as JSON.`;
 }
 
-function validateCases(data: unknown): GeneratedCase[] {
+export function validateCases(data: unknown): GeneratedCase[] {
   if (!data || typeof data !== "object" || !Array.isArray((data as { cases?: unknown }).cases)) {
     throw new Error("Generated content did not match the expected shape (missing cases array).");
   }
@@ -103,7 +103,7 @@ function validateCases(data: unknown): GeneratedCase[] {
   });
 }
 
-async function callEngine(
+export async function callEngine(
   engine: "claude" | "fugu" | "kimi",
   apiKey: string,
   system: string,

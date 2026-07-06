@@ -159,27 +159,57 @@ export async function parseExcelBuffer(buffer: ArrayBuffer): Promise<ParseResult
 }
 
 /* ---------------- Word / plain text / Markdown ---------------- */
+//
+// Real-world markdown varies a lot more than a strict "Key: value" format —
+// bold field labels (**Competency:** ...), a heading used as the case title
+// instead of an explicit "Title:" line, list-style options (- A) ...), and
+// alternate horizontal-rule styles (***, ___ as well as ---). The parser
+// below normalizes all of these before falling back to reporting "no cases
+// recognized".
 
-const FIELD_KEYS = ["title", "competency", "difficulty", "methodology", "methodologynotes", "scenario", "question", "type", "options"];
+const FIELD_KEYS = ["title", "competency", "difficulty", "methodologynotes", "methodology", "scenario", "question", "type", "options"];
 
-function fieldKeyFor(line: string): { key: string; rest: string } | null {
-  const m = line.match(/^#{0,3}\s*(Title|Competency|Difficulty|Methodology Notes|Methodology|Scenario|Question|Type|Options)\s*:\s*(.*)$/i);
+// Strip markdown bold/strong markers (**text** / __text__) so "**Competency:**"
+// and "Competency:" parse identically. Deliberately leaves single */_ (italics)
+// alone since those appear inside ordinary prose far more often.
+function stripBold(line: string): string {
+  return line.replace(/\*\*(.*?)\*\*/g, "$1").replace(/__(.*?)__/g, "$1");
+}
+
+function fieldKeyFor(rawLine: string): { key: string; rest: string } | null {
+  const line = stripBold(rawLine);
+  const m = line.match(/^#{0,6}\s*(Title|Competency|Difficulty|Methodology Notes|Methodology|Scenario|Question|Type|Options)\s*:\s*(.*)$/i);
   if (!m) return null;
   const key = m[1].toLowerCase().replace(/\s+/g, "");
   if (!FIELD_KEYS.includes(key)) return null;
   return { key, rest: m[2] };
 }
 
+function headingTextFor(rawLine: string): string | null {
+  const m = stripBold(rawLine).match(/^#{1,6}\s+(.*\S)\s*$/);
+  return m ? m[1] : null;
+}
+
+// Matches "A) text", "A. text", optionally preceded by a markdown list bullet
+// ("- A) text", "* A) text", "1. A) text") or wrapped in bold.
+function optionLineFor(rawLine: string): { letter: string; text: string } | null {
+  const line = stripBold(rawLine).trim().replace(/^(?:[-*+]\s+|\d+[.)]\s+)/, "");
+  const m = line.match(/^([A-D])[).]\s+(.*)$/);
+  return m ? { letter: m[1], text: m[2] } : null;
+}
+
 export function parseStructuredText(text: string): ParseResult {
   const normalized = text.replace(/\r\n/g, "\n");
   const chunks = normalized
-    .split(/\n\s*-{3,}\s*\n/)
+    .split(/\n\s*(?:-{3,}|\*{3,}|_{3,})\s*\n/)
     .flatMap((chunk) => {
-      // Fallback split: if a chunk contains more than one "Title:" line, treat each as a separate case.
-      const titleLineIdxs: number[] = [];
+      // Fallback split: if a chunk contains more than one "Title:" line (bold or
+      // plain), treat each as a separate case even without an explicit ---.
       const lines = chunk.split("\n");
+      const titleLineIdxs: number[] = [];
       lines.forEach((l, i) => {
-        if (/^#{0,3}\s*Title\s*:/i.test(l)) titleLineIdxs.push(i);
+        const f = fieldKeyFor(l);
+        if (f && f.key === "title") titleLineIdxs.push(i);
       });
       if (titleLineIdxs.length <= 1) return [chunk];
       return titleLineIdxs.map((start, i) => lines.slice(start, titleLineIdxs[i + 1] ?? lines.length).join("\n"));
@@ -194,6 +224,7 @@ export function parseStructuredText(text: string): ParseResult {
     const lines = chunk.split("\n");
     const fields: Record<string, string[]> = {};
     let currentKey: string | null = null;
+    let firstHeading: string | null = null;
 
     for (const line of lines) {
       const match = fieldKeyFor(line);
@@ -203,10 +234,17 @@ export function parseStructuredText(text: string): ParseResult {
         if (match.rest.trim()) fields[currentKey].push(match.rest.trim());
         continue;
       }
-      if (/^[A-D][).]\s+/.test(line.trim())) {
+      const opt = optionLineFor(line);
+      if (opt) {
         currentKey = "options";
         fields.options = fields.options || [];
-        fields.options.push(line.trim());
+        fields.options.push(`${opt.letter}) ${opt.text}`);
+        continue;
+      }
+      const heading = headingTextFor(line);
+      if (heading !== null) {
+        if (firstHeading === null) firstHeading = heading;
+        currentKey = null; // a heading always ends whatever field was accumulating
         continue;
       }
       if (currentKey && line.trim()) {
@@ -215,7 +253,7 @@ export function parseStructuredText(text: string): ParseResult {
       }
     }
 
-    const title = fields.title?.join(" ").trim();
+    const title = (fields.title?.join(" ").trim()) || firstHeading || undefined;
     const scenarioText = fields.scenario?.join(" ").trim();
     const questionStem = fields.question?.join(" ").trim();
     const ref = `Block ${idx + 1}${title ? ` (${title})` : ""}`;
@@ -262,9 +300,59 @@ export function parseStructuredText(text: string): ParseResult {
 
   if (rows.length === 0 && errors.length === 0) {
     errors.push(
-      "No cases recognized. Use labeled fields (Title:, Competency:, Scenario:, Question:, Type:, Options:) separated by a line of ---."
+      "No cases recognized in the structured-field format. Use labeled fields (Title:, Competency:, Scenario:, Question:, Type:, Options:), plain or **bold**, separated by a line of ---. If your document is freeform (research notes, prose, an existing case bank in a different layout), turn on \"Also try AI-assisted extraction\" below."
     );
   }
 
   return { rows, errors };
+}
+
+/* ---------------- AI-assisted extraction (freeform documents) ---------------- */
+//
+// Fallback for documents that don't follow the structured field format at all —
+// e.g. a pasted research note, an existing case bank with its own layout, or
+// prose. Reuses the same generation engines already configured for the Case
+// Library (Claude / Sakana Fugu / Kimi) rather than inventing a new provider.
+
+export type AiExtractedRow = ParsedCaseRow & { competencyGuess?: string };
+
+function aiExtractionSystemPrompt(competencyList: string): string {
+  return `You are helping populate an assessment-center case library from an arbitrary uploaded document. The document may already contain well-formed situational judgment cases in some layout, research notes describing scenarios, or a mix. Extract every distinct, usable assessment case you can find.
+
+For each case, also guess which ONE competency from this list it best fits (by code), or null if none fit well:
+${competencyList}
+
+Do not invent cases that aren't actually supported by the document content. Do not reproduce any copyrighted vendor test content verbatim — paraphrase into original wording grounded in what the document describes.
+
+Return ONLY valid JSON, no markdown fences, no commentary:
+{"cases": [{"title": string, "scenarioText": string, "questionStem": string, "questionType": "mcq" | "text", "options"?: [{"text": string, "correct"?: boolean}], "difficulty": "mid" | "high", "methodologyTag": "Hogan-style derailment" | "Mettl-style SJT" | "WTW/Saville-style situation" | "Korn Ferry-style exercise" | "McLean-style behavioral anchor" | "Blended", "methodologyNotes": string, "competencyCode": string | null}]}`;
+}
+
+export async function extractCasesWithAI(
+  engine: "claude" | "fugu" | "kimi",
+  apiKey: string,
+  text: string,
+  competencies: { code: string; name: string }[]
+): Promise<{ rows: AiExtractedRow[]; truncated: boolean }> {
+  const { callEngine, validateCases } = await import("@/lib/case-library");
+  const { extractJson } = await import("@/lib/generation");
+
+  const MAX_CHARS = 14000;
+  const truncated = text.length > MAX_CHARS;
+  const clipped = truncated ? text.slice(0, MAX_CHARS) : text;
+
+  const competencyList = competencies.map((c) => `${c.code} — ${c.name}`).join("\n");
+  const system = aiExtractionSystemPrompt(competencyList);
+  const raw = await callEngine(engine, apiKey, system, `Document contents:\n\n${clipped}`);
+  const data = extractJson(raw) as { cases?: (Record<string, unknown> & { competencyCode?: unknown })[] };
+  const competencyCodes = (data.cases || []).map((c) => (typeof c.competencyCode === "string" ? c.competencyCode : undefined));
+  const validated = validateCases(data);
+
+  const rows: AiExtractedRow[] = validated.map((c, i) => ({
+    ...c,
+    ref: `AI-extracted case ${i + 1} (${c.title})`,
+    competencyCode: competencyCodes[i] || undefined,
+  }));
+
+  return { rows, truncated };
 }
