@@ -74,7 +74,7 @@ export function NavShell({
           </button>
         </form>
         <a
-          href="https://linkedin.com/in/kamrankarimli"
+          href="https://www.linkedin.com/in/thekmrnkrml/"
           target="_blank"
           rel="noreferrer"
           className="block text-center text-[10.5px] text-faint/70 hover:text-muted transition-colors mt-3"

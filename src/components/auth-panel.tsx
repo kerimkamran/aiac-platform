@@ -42,7 +42,7 @@ export function AuthPanel({
           <div className="flex items-center gap-3">
             <ThemeToggle className="text-faint hover:text-muted transition-colors" />
             <a
-              href="https://linkedin.com/in/kamrankarimli"
+              href="https://www.linkedin.com/in/thekmrnkrml/"
               target="_blank"
               rel="noreferrer"
               className="text-faint hover:text-muted transition-colors whitespace-nowrap"

@@ -268,7 +268,7 @@ export default async function Home() {
           <div className="flex items-center gap-4">
             <ThemeToggle className="text-[12.5px] text-faint hover:text-brand transition-colors" />
             <a
-              href="https://linkedin.com/in/kamrankarimli"
+              href="https://www.linkedin.com/in/thekmrnkrml/"
               target="_blank"
               rel="noreferrer"
               className="text-[12.5px] text-faint hover:text-brand transition-colors whitespace-nowrap"
