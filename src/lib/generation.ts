@@ -146,12 +146,43 @@ async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[
   return validateGenerated(extractJson(text));
 }
 
+async function callKimi(apiKey: string, competencies: CompetencyForPrompt[]): Promise<GeneratedAssessment> {
+  const res = await fetch("https://api.moonshot.ai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: "moonshot-v1-32k",
+      temperature: 0.4,
+      messages: [
+        { role: "system", content: SYSTEM_INSTRUCTIONS },
+        { role: "user", content: buildUserPrompt(competencies) },
+      ],
+    }),
+  });
+
+  if (!res.ok) {
+    const errText = await res.text().catch(() => "");
+    throw new Error(`Kimi API error (${res.status}): ${errText.slice(0, 300)}`);
+  }
+
+  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
+  const text = data.choices?.[0]?.message?.content;
+  if (!text) throw new Error("Kimi returned no message content.");
+  return validateGenerated(extractJson(text));
+}
+
+export type GenerationEngine = "claude" | "perplexity" | "kimi";
+
 export async function generateAssessmentContent(
-  engine: "claude" | "perplexity",
+  engine: GenerationEngine,
   apiKey: string,
   competencies: CompetencyForPrompt[]
 ): Promise<GeneratedAssessment> {
   if (competencies.length === 0) throw new Error("No competencies were selected for generation.");
   if (engine === "claude") return callClaude(apiKey, competencies);
+  if (engine === "kimi") return callKimi(apiKey, competencies);
   return callPerplexity(apiKey, competencies);
 }

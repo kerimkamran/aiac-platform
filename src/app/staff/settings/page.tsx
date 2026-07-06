@@ -129,7 +129,7 @@ export default async function SettingsPage({
                   {e.enabled && e.api_key ? "Active" : "Not configured"}
                 </span>
               </div>
-              <form action={updateEngineSettings.bind(null, e.key as "claude" | "perplexity")} className="flex flex-wrap items-center gap-3">
+              <form action={updateEngineSettings.bind(null, e.key as "claude" | "perplexity" | "kimi")} className="flex flex-wrap items-center gap-3">
                 <label className="inline-flex items-center gap-2 text-xs font-medium cursor-pointer">
                   <input type="checkbox" name="enabled" defaultChecked={e.enabled} className="w-4 h-4 accent-[color:var(--brand)]" />
                   Enabled
@@ -145,7 +145,7 @@ export default async function SettingsPage({
                 </button>
               </form>
               {e.api_key && (
-                <form action={clearEngineKey.bind(null, e.key as "claude" | "perplexity")} className="mt-2">
+                <form action={clearEngineKey.bind(null, e.key as "claude" | "perplexity" | "kimi")} className="mt-2">
                   <button className="text-[11px] text-critical hover:underline">Remove key & disable</button>
                 </form>
               )}

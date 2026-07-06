@@ -12,6 +12,7 @@ const MODE_LABEL: Record<string, string> = {
 const ENGINE_LABEL: Record<string, string> = {
   claude: "Claude",
   perplexity: "Perplexity",
+  kimi: "Kimi",
 };
 
 export default async function BuilderListPage({
