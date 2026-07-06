@@ -201,21 +201,19 @@ async function loadEngine(
   return engine.api_key as string;
 }
 
+// Takes competency rows the caller already fetched (avoids a second round trip
+// to re-fetch the same rows) and attaches their behavioral indicators.
 async function loadCompetenciesForPrompt(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  competencyIds: string[]
+  comps: { id: string; code: string; name: string; category: string; description: string | null }[]
 ): Promise<import("@/lib/generation").CompetencyForPrompt[]> {
-  const { data: comps } = await supabase
-    .from("competencies")
-    .select("id, code, name, category, description")
-    .in("id", competencyIds);
-
+  const competencyIds = comps.map((c) => c.id);
   const { data: indicators } = await supabase
     .from("competency_indicators")
     .select("competency_id, level, indicator_text")
     .in("competency_id", competencyIds);
 
-  return (comps || []).map((c) => ({
+  return comps.map((c) => ({
     code: c.code,
     name: c.name,
     category: c.category,
@@ -262,42 +260,53 @@ async function insertGeneratedAssessment(
 
   if (error || !assessment) throw new Error(error?.message || "Failed to create the generated assessment.");
 
-  let sequence = 0;
-  for (const section of params.generated.sections) {
+  // Bulk-insert every section in a single round trip, then every question in
+  // another single round trip, instead of one insert per row — a generated
+  // assessment with, say, 5 sections and 15 questions used to take 20
+  // sequential network round trips to Supabase; this cuts it to 2.
+  const sectionRowsToInsert = params.generated.sections.map((section, i) => {
     const comp = params.competencies.find((c) => c.code === section.competencyCode);
-    sequence += 1;
+    return {
+      assessment_id: assessment.id,
+      title: comp?.name || section.competencyCode,
+      competency_id: comp?.id || null,
+      sequence: i + 1,
+    };
+  });
 
-    const { data: sectionRow, error: sectionError } = await supabase
-      .from("assessment_sections")
-      .insert({
-        assessment_id: assessment.id,
-        title: comp?.name || section.competencyCode,
-        competency_id: comp?.id || null,
-        sequence,
-      })
-      .select("id")
-      .single();
+  const { data: insertedSections, error: sectionsError } = await supabase
+    .from("assessment_sections")
+    .insert(sectionRowsToInsert)
+    .select("id");
 
-    if (sectionError || !sectionRow) continue;
+  if (sectionsError || !insertedSections) {
+    throw new Error(sectionsError?.message || "Failed to create the assessment's sections.");
+  }
 
-    let qSeq = 0;
-    for (const q of section.questions) {
-      qSeq += 1;
+  const questionRowsToInsert = params.generated.sections.flatMap((section, i) => {
+    const comp = params.competencies.find((c) => c.code === section.competencyCode);
+    const sectionId = insertedSections[i]?.id;
+    if (!sectionId) return [];
+    return section.questions.map((q, qi) => {
       const options =
         q.type === "mcq" && q.options
-          ? q.options.map((o, i) => ({ key: String.fromCharCode(65 + i), text: o.text, correct: !!o.correct }))
+          ? q.options.map((o, oi) => ({ key: String.fromCharCode(65 + oi), text: o.text, correct: !!o.correct }))
           : null;
-
-      await supabase.from("questions").insert({
-        section_id: sectionRow.id,
+      return {
+        section_id: sectionId,
         question_type: q.type,
         prompt: q.prompt,
         options,
         competency_id: comp?.id || null,
         weight: 1,
-        sequence: qSeq,
-      });
-    }
+        sequence: qi + 1,
+      };
+    });
+  });
+
+  if (questionRowsToInsert.length > 0) {
+    const { error: questionsError } = await supabase.from("questions").insert(questionRowsToInsert);
+    if (questionsError) throw new Error(questionsError.message || "Failed to create the assessment's questions.");
   }
 
   return assessment.id as string;
@@ -317,15 +326,18 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
   let newId: string;
   try {
     const categories = category === "Mix" ? ["Core", "Leadership"] : [category];
-    const { data: comps } = await supabase.from("competencies").select("id, code, name").in("category", categories);
+    // Fetch the competency rows and validate/load the engine's API key concurrently —
+    // these two reads don't depend on each other, so there's no reason to serialize them.
+    const [{ data: comps }, apiKey] = await Promise.all([
+      supabase.from("competencies").select("id, code, name, category, description").in("category", categories),
+      loadEngine(supabase, engineKey),
+    ]);
 
     if (!comps || comps.length === 0) {
       throw new Error(`No ${category} competencies found in the library.`);
     }
 
-    const apiKey = await loadEngine(supabase, engineKey);
-    const competencyIds = comps.map((c) => c.id);
-    const competencies = await loadCompetenciesForPrompt(supabase, competencyIds);
+    const competencies = await loadCompetenciesForPrompt(supabase, comps);
     const generated = await generateAssessmentContent(engineKey, apiKey, competencies);
 
     const modeMap = { Core: "default_core", Leadership: "default_leadership", Mix: "default_mix" } as const;
@@ -409,9 +421,11 @@ export async function generateCustomAssessment(formData: FormData) {
 
   let newId: string;
   try {
-    const apiKey = await loadEngine(supabase, engineKey);
-    const { data: comps } = await supabase.from("competencies").select("id, code, name").in("id", competencyIds);
-    const competencies = await loadCompetenciesForPrompt(supabase, competencyIds);
+    const [apiKey, { data: comps }] = await Promise.all([
+      loadEngine(supabase, engineKey),
+      supabase.from("competencies").select("id, code, name, category, description").in("id", competencyIds),
+    ]);
+    const competencies = await loadCompetenciesForPrompt(supabase, comps || []);
     const generated = await generateAssessmentContent(engineKey, apiKey, competencies);
 
     newId = await insertGeneratedAssessment(supabase, {

@@ -1,9 +1,34 @@
 "use client";
 
 import { useState } from "react";
+import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Icon } from "@/components/ui";
 import { generateDefaultAssessment, generateCustomAssessment, createAssessment } from "./actions";
+
+// Generation is a real, multi-step LLM call — it can legitimately take
+// 20-90+ seconds. Without this, the button just sits there with no
+// feedback, which reads as "broken" or "stuck" long before it's actually
+// done. useFormStatus reports the *enclosing* form's pending state, so this
+// must be rendered as a descendant of the <form>, not the form itself.
+function GenerateSubmitButton({ label, disabled }: { label: string; disabled: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      disabled={disabled || pending}
+      className="w-full inline-flex items-center justify-center gap-2 bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+    >
+      {pending ? (
+        <>
+          <Icon name="clock" className="w-4 h-4 animate-spin" />
+          Generating — this can take up to a minute…
+        </>
+      ) : (
+        label
+      )}
+    </button>
+  );
+}
 
 type Engine = { key: string; display_name: string; enabled: boolean; api_key: string | null };
 type Competency = { id: string; name: string; category: string };
@@ -177,12 +202,7 @@ export function CreateAssessmentPanel({
                 ))}
               </div>
             )}
-            <button
-              disabled={!anyConfigured || !engine}
-              className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Generate assessment
-            </button>
+            <GenerateSubmitButton label="Generate assessment" disabled={!anyConfigured || !engine} />
           </form>
         ) : (
           <form action={boundDefaultAction!} className="space-y-3">
@@ -194,12 +214,7 @@ export function CreateAssessmentPanel({
               disabled={!anyConfigured}
               className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             />
-            <button
-              disabled={!anyConfigured || !engine}
-              className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              Generate {activeScope.label} assessment
-            </button>
+            <GenerateSubmitButton label={`Generate ${activeScope.label} assessment`} disabled={!anyConfigured || !engine} />
           </form>
         )}
       </div>

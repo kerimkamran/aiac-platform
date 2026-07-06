@@ -5,6 +5,10 @@ import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { CreateAssessmentPanel } from "./CreateAssessmentPanel";
 
+// AI generation can legitimately take 30-90+ seconds; give the underlying
+// Server Action room to finish instead of racing an unnecessarily tight default.
+export const maxDuration = 120;
+
 const MODE_LABEL: Record<string, string> = {
   default_core: "Default · Core",
   default_leadership: "Default · Leadership",

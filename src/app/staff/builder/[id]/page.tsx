@@ -15,6 +15,10 @@ import {
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
+// AI generation can legitimately take 30-90+ seconds; give the underlying
+// Server Action room to finish instead of racing an unnecessarily tight default.
+export const maxDuration = 120;
+
 function CompetencySelect({
   name,
   competencies,
