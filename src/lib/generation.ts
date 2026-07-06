@@ -22,19 +22,25 @@ export type GeneratedAssessment = {
   sections: GeneratedSection[];
 };
 
-const SYSTEM_INSTRUCTIONS = `You are a senior assessment-center designer with the caliber of practice used at Korn Ferry, Mercer, WTW (Willis Towers Watson), and Thomas International. You write situational judgment cases and competency-based interview-style questions for mid-to-senior management candidates in real organizations.
+const MIN_TOTAL_QUESTIONS = 10;
+
+function systemInstructions(questionsPerCompetency: number): string {
+  return `You are a senior assessment-center designer with the caliber of practice used at Korn Ferry, Mercer, WTW (Willis Towers Watson), and Thomas International. You write situational judgment cases and competency-based interview-style questions for mid-to-senior management candidates in real organizations.
 
 Rules you must follow:
 - Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material.
-- Write realistic, workplace-grounded situational judgment cases (2-5 sentences of context) followed by a clear question, in the register and rigor of a professional assessment center — not generic trivia or textbook questions.
-- For multiple-choice questions, write exactly 4 response options that represent genuinely plausible managerial responses of varying effectiveness (not one obviously-correct and three absurd distractors). Mark exactly one as the most effective/correct response.
-- For open-ended questions, ask the candidate to describe a specific past situation (behavioral/STAR-style) or how they would handle a hypothetical scenario, appropriate for evaluating the competency.
+- Difficulty must be mid-to-high: cases should involve genuine trade-offs, ambiguity, incomplete information, competing stakeholder interests, or time/political pressure — the kind of scenario a mid-to-senior manager would find genuinely hard to reason through, not an obvious right-vs-wrong choice. Avoid simple, entry-level, or textbook-obvious scenarios.
+- Write realistic, workplace-grounded situational judgment cases (3-6 sentences of context, enough to establish real complexity) followed by a clear question, in the register and rigor of a professional assessment center — not generic trivia or textbook questions.
+- For multiple-choice questions, write exactly 4 response options that represent genuinely plausible managerial responses of varying effectiveness (not one obviously-correct and three absurd distractors) — a strong candidate should have to think carefully to pick the best one. Mark exactly one as the most effective/correct response.
+- For open-ended questions, ask the candidate to describe a specific past situation (behavioral/STAR-style) or how they would handle a hypothetical scenario, appropriate for evaluating the competency at a senior level.
 - Vary question format across the set: prefer a mix of situational-judgment multiple-choice and open-ended behavioral questions.
+- Do not repeat the same scenario premise (e.g. the same type of conflict, the same fictional department) across multiple questions — vary the industry context, stakeholders, and situation type across the set.
 - Return ONLY valid JSON matching this exact TypeScript shape, with no markdown fences, no commentary, no leading or trailing text:
 
 {"sections": [{"competencyCode": string, "questions": [{"type": "mcq" | "text", "prompt": string, "options"?: [{"text": string, "correct"?: boolean}]}]}]}
 
-Generate exactly 2 questions per competency provided.`;
+Generate exactly ${questionsPerCompetency} questions per competency provided. The assessment must contain at least ${MIN_TOTAL_QUESTIONS} questions in total across all competencies — this is a hard requirement.`;
+}
 
 function buildUserPrompt(competencies: CompetencyForPrompt[]): string {
   const blocks = competencies
@@ -92,7 +98,7 @@ function validateGenerated(data: unknown): GeneratedAssessment {
   return { sections };
 }
 
-async function callClaude(apiKey: string, competencies: CompetencyForPrompt[]): Promise<GeneratedAssessment> {
+async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -103,7 +109,7 @@ async function callClaude(apiKey: string, competencies: CompetencyForPrompt[]): 
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: 4096,
-      system: SYSTEM_INSTRUCTIONS,
+      system: systemInstructions(qpc),
       messages: [{ role: "user", content: buildUserPrompt(competencies) }],
     }),
   });
@@ -119,7 +125,7 @@ async function callClaude(apiKey: string, competencies: CompetencyForPrompt[]): 
   return validateGenerated(extractJson(text));
 }
 
-async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[]): Promise<GeneratedAssessment> {
+async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
   const res = await fetch("https://api.perplexity.ai/chat/completions", {
     method: "POST",
     headers: {
@@ -129,7 +135,7 @@ async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[
     body: JSON.stringify({
       model: "sonar-pro",
       messages: [
-        { role: "system", content: SYSTEM_INSTRUCTIONS },
+        { role: "system", content: systemInstructions(qpc) },
         { role: "user", content: buildUserPrompt(competencies) },
       ],
     }),
@@ -146,7 +152,7 @@ async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[
   return validateGenerated(extractJson(text));
 }
 
-async function callKimi(apiKey: string, competencies: CompetencyForPrompt[]): Promise<GeneratedAssessment> {
+async function callKimi(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
   const res = await fetch("https://api.moonshot.ai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -157,7 +163,7 @@ async function callKimi(apiKey: string, competencies: CompetencyForPrompt[]): Pr
       model: "moonshot-v1-32k",
       temperature: 0.4,
       messages: [
-        { role: "system", content: SYSTEM_INSTRUCTIONS },
+        { role: "system", content: systemInstructions(qpc) },
         { role: "user", content: buildUserPrompt(competencies) },
       ],
     }),
@@ -182,7 +188,24 @@ export async function generateAssessmentContent(
   competencies: CompetencyForPrompt[]
 ): Promise<GeneratedAssessment> {
   if (competencies.length === 0) throw new Error("No competencies were selected for generation.");
-  if (engine === "claude") return callClaude(apiKey, competencies);
-  if (engine === "kimi") return callKimi(apiKey, competencies);
-  return callPerplexity(apiKey, competencies);
+
+  // Always ask for enough questions per competency to clear the 10-question floor,
+  // regardless of how few or many competencies were selected.
+  const questionsPerCompetency = Math.max(2, Math.ceil(MIN_TOTAL_QUESTIONS / competencies.length));
+
+  const result =
+    engine === "claude"
+      ? await callClaude(apiKey, competencies, questionsPerCompetency)
+      : engine === "kimi"
+        ? await callKimi(apiKey, competencies, questionsPerCompetency)
+        : await callPerplexity(apiKey, competencies, questionsPerCompetency);
+
+  const totalQuestions = result.sections.reduce((n, s) => n + s.questions.length, 0);
+  if (totalQuestions < MIN_TOTAL_QUESTIONS) {
+    throw new Error(
+      `The model only returned ${totalQuestions} questions (need at least ${MIN_TOTAL_QUESTIONS}). Try again, or select more competencies.`
+    );
+  }
+
+  return result;
 }

@@ -157,7 +157,8 @@ export default async function BuilderListPage({
               </p>
               <p className="text-xs text-muted mb-4">
                 One-click, Korn Ferry / Mercer / WTW / Thomas-caliber assessments generated from every Core or every
-                Leadership competency in the library.
+                Leadership competency in the library — at least 10 mid-to-high difficulty situational judgment cases
+                and questions per assessment.
               </p>
               {availableEngines.length === 0 && (
                 <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 mb-3">
@@ -201,8 +202,9 @@ export default async function BuilderListPage({
                 </span>
               </p>
               <p className="text-xs text-muted mb-4">
-                Pick specific competencies and an engine, and generate a custom assessment. It&apos;s saved for every
-                admin to use, with your name and the date recorded.
+                Pick specific competencies and an engine, and generate a custom assessment — at least 10 mid-to-high
+                difficulty questions in total. It&apos;s saved for every admin to use, with your name and the date
+                recorded.
               </p>
               {availableEngines.length === 0 && (
                 <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 mb-3">
