@@ -14,10 +14,10 @@ const ENGINE_INFO: Record<string, { tagline: string; cost: string; quality: stri
     cost: "~$3 / $15 per 1M tokens (in/out)",
     quality: "Highest",
   },
-  perplexity: {
-    tagline: "Web-grounded — pulls in live market context alongside the competency material.",
-    cost: "~$3 / $15 per 1M tokens (in/out)",
-    quality: "High",
+  fugu: {
+    tagline: "Sakana AI's multi-agent orchestrator — routes each request to whichever underlying model performs best on it.",
+    cost: "Pay-as-you-go at the routed model's own rate (no markup)",
+    quality: "Very high — benchmarks at/above frontier models",
   },
   kimi: {
     tagline: "Moonshot AI's K2 model — strong quality at a fraction of the cost. Best value.",
@@ -75,7 +75,7 @@ export function CreateAssessmentPanel({
 
         {!anyConfigured && (
           <p className="text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 mb-4">
-            No generation engine configured yet — add a Claude, Perplexity, or Kimi API key in{" "}
+            No generation engine configured yet — add a Claude, Sakana Fugu, or Kimi API key in{" "}
             <Link href="/staff/settings" className="underline font-semibold">
               Settings
             </Link>{" "}
@@ -107,7 +107,7 @@ export function CreateAssessmentPanel({
         {/* Step 2: engine, with cost/quality info */}
         <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">2. Choose an engine</p>
         <div className="space-y-1.5 mb-3">
-          {(["claude", "perplexity", "kimi"] as const).map((key) => {
+          {(["claude", "fugu", "kimi"] as const).map((key) => {
             const info = ENGINE_INFO[key];
             const meta = engineByKey(key);
             const ready = engineReady(key);

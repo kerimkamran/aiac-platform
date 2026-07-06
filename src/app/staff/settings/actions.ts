@@ -87,7 +87,7 @@ export async function removeEmailImage() {
   revalidatePath("/staff/settings");
 }
 
-export async function updateEngineSettings(engineKey: "claude" | "perplexity" | "kimi", formData: FormData) {
+export async function updateEngineSettings(engineKey: "claude" | "fugu" | "kimi", formData: FormData) {
   const { supabase, userId } = await requireAdmin();
 
   const enabled = formData.get("enabled") === "on";
@@ -113,7 +113,7 @@ export async function updateEngineSettings(engineKey: "claude" | "perplexity" | 
   redirect("/staff/settings?saved=1");
 }
 
-export async function clearEngineKey(engineKey: "claude" | "perplexity" | "kimi") {
+export async function clearEngineKey(engineKey: "claude" | "fugu" | "kimi") {
   const { supabase, userId } = await requireAdmin();
   await supabase
     .from("generation_engines")

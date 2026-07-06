@@ -177,15 +177,15 @@ async function requireAdminForGeneration() {
   return { supabase, userId: user.id, fullName: profile.full_name as string };
 }
 
-function engineDisplayName(engine: "claude" | "perplexity" | "kimi"): string {
+function engineDisplayName(engine: "claude" | "fugu" | "kimi"): string {
   if (engine === "claude") return "Claude";
   if (engine === "kimi") return "Kimi";
-  return "Perplexity";
+  return "Sakana Fugu";
 }
 
 async function loadEngine(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  engineKey: "claude" | "perplexity" | "kimi"
+  engineKey: "claude" | "fugu" | "kimi"
 ) {
   const { data: engine } = await supabase
     .from("generation_engines")
@@ -232,7 +232,7 @@ async function insertGeneratedAssessment(
     title: string;
     description: string;
     mode: "default_core" | "default_leadership" | "default_mix" | "generated";
-    engine: "claude" | "perplexity" | "kimi";
+    engine: "claude" | "fugu" | "kimi";
     generatedBy: string;
     competencies: { id: string; code: string; name: string }[];
     generated: import("@/lib/generation").GeneratedAssessment;
@@ -307,10 +307,10 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
   const { generateAssessmentContent } = await import("@/lib/generation");
   const { supabase, userId, fullName } = await requireAdminForGeneration();
 
-  const engineKey = String(formData.get("engine") || "") as "claude" | "perplexity" | "kimi";
+  const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
   const customTitle = String(formData.get("title") || "").trim();
 
-  if (engineKey !== "claude" && engineKey !== "perplexity" && engineKey !== "kimi") {
+  if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
     redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
   }
 
@@ -396,11 +396,11 @@ export async function generateCustomAssessment(formData: FormData) {
   const { supabase, userId, fullName } = await requireAdminForGeneration();
 
   const title = String(formData.get("title") || "").trim();
-  const engineKey = String(formData.get("engine") || "") as "claude" | "perplexity" | "kimi";
+  const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
   const competencyIds = formData.getAll("competency_ids") as string[];
 
   if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title."));
-  if (engineKey !== "claude" && engineKey !== "perplexity" && engineKey !== "kimi") {
+  if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
     redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
   }
   if (competencyIds.length === 0) {

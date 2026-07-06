@@ -125,15 +125,18 @@ async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], q
   return validateGenerated(extractJson(text));
 }
 
-async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
-  const res = await fetch("https://api.perplexity.ai/chat/completions", {
+async function callFugu(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
+  // Sakana Fugu is an OpenAI-compatible multi-agent orchestration API.
+  // https://console.sakana.ai/models — Chat Completions endpoint.
+  const res = await fetch("https://api.sakana.ai/v1/chat/completions", {
     method: "POST",
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model: "sonar-pro",
+      model: "fugu",
+      reasoning_effort: "high",
       messages: [
         { role: "system", content: systemInstructions(qpc) },
         { role: "user", content: buildUserPrompt(competencies) },
@@ -143,12 +146,12 @@ async function callPerplexity(apiKey: string, competencies: CompetencyForPrompt[
 
   if (!res.ok) {
     const errText = await res.text().catch(() => "");
-    throw new Error(`Perplexity API error (${res.status}): ${errText.slice(0, 300)}`);
+    throw new Error(`Sakana Fugu API error (${res.status}): ${errText.slice(0, 300)}`);
   }
 
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("Perplexity returned no message content.");
+  if (!text) throw new Error("Sakana Fugu returned no message content.");
   return validateGenerated(extractJson(text));
 }
 
@@ -180,7 +183,7 @@ async function callKimi(apiKey: string, competencies: CompetencyForPrompt[], qpc
   return validateGenerated(extractJson(text));
 }
 
-export type GenerationEngine = "claude" | "perplexity" | "kimi";
+export type GenerationEngine = "claude" | "fugu" | "kimi";
 
 export async function generateAssessmentContent(
   engine: GenerationEngine,
@@ -198,7 +201,7 @@ export async function generateAssessmentContent(
       ? await callClaude(apiKey, competencies, questionsPerCompetency)
       : engine === "kimi"
         ? await callKimi(apiKey, competencies, questionsPerCompetency)
-        : await callPerplexity(apiKey, competencies, questionsPerCompetency);
+        : await callFugu(apiKey, competencies, questionsPerCompetency);
 
   const totalQuestions = result.sections.reduce((n, s) => n + s.questions.length, 0);
   if (totalQuestions < MIN_TOTAL_QUESTIONS) {

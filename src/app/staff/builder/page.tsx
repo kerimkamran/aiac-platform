@@ -14,7 +14,7 @@ const MODE_LABEL: Record<string, string> = {
 
 const ENGINE_LABEL: Record<string, string> = {
   claude: "Claude",
-  perplexity: "Perplexity",
+  fugu: "Sakana Fugu",
   kimi: "Kimi",
 };
 
