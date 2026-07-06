@@ -1,8 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { addSection, addQuestion, publishAssessment, inviteCandidate, updateProctoringSettings } from "../actions";
+import {
+  addSection,
+  addQuestion,
+  publishAssessment,
+  inviteCandidate,
+  updateProctoringSettings,
+  deleteAssessment,
+  updateAssessmentMeta,
+  deleteSection,
+  deleteQuestion,
+} from "../actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 
 function CompetencySelect({
   name,
@@ -50,6 +61,12 @@ export default async function BuilderDetailPage({
   const { error } = await searchParams;
   const supabase = await createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
+  const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
+
   const { data: assessment } = await supabase.from("assessments").select("*").eq("id", id).single();
   if (!assessment) notFound();
 
@@ -72,6 +89,7 @@ export default async function BuilderDetailPage({
   const addSectionWithId = addSection.bind(null, id);
   const inviteCandidateWithId = inviteCandidate.bind(null, id);
   const updateProctoringWithId = updateProctoringSettings.bind(null, id);
+  const updateMetaWithId = updateAssessmentMeta.bind(null, id);
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -98,7 +116,54 @@ export default async function BuilderDetailPage({
             </button>
           </form>
         )}
+        {isAdmin && (
+          <form action={deleteAssessment.bind(null, id)}>
+            <ConfirmSubmitButton
+              confirmMessage={`Delete "${assessment.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
+              icon="trash"
+              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
+            >
+              Delete
+            </ConfirmSubmitButton>
+          </form>
+        )}
       </PageHeader>
+
+      <details className="group mb-6">
+        <summary className="cursor-pointer text-sm text-muted hover:text-foreground font-semibold inline-flex items-center gap-1.5 list-none">
+          <Icon name="grid" className="w-4 h-4" />
+          Edit title, description &amp; time limit
+        </summary>
+        <Card className="p-5 mt-3">
+          <form action={updateMetaWithId} className="space-y-3">
+            <input
+              name="title"
+              required
+              defaultValue={assessment.title}
+              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <textarea
+              name="description"
+              defaultValue={assessment.description || ""}
+              rows={2}
+              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <div className="flex items-center gap-3">
+              <label className="text-xs font-semibold text-muted shrink-0">Time limit (minutes)</label>
+              <input
+                name="time_limit_minutes"
+                type="number"
+                min={5}
+                defaultValue={assessment.time_limit_minutes}
+                className="w-32 bg-background border border-line rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+              <button className="ml-auto bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-light transition-colors">
+                Save changes
+              </button>
+            </div>
+          </form>
+        </Card>
+      </details>
 
       {error && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{error}</p>}
 
@@ -158,11 +223,20 @@ export default async function BuilderDetailPage({
                     <span className="text-faint font-semibold mr-2">S{si + 1}</span>
                     {section.title}
                   </p>
-                  {comp && (
-                    <span className="text-[11px] font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-full">
-                      {comp.name}
-                    </span>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {comp && (
+                      <span className="text-[11px] font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-full">
+                        {comp.name}
+                      </span>
+                    )}
+                    <form action={deleteSection.bind(null, section.id, id)}>
+                      <ConfirmSubmitButton
+                        confirmMessage={`Delete section "${section.title}" and all its questions?`}
+                        icon="trash"
+                        className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                      />
+                    </form>
+                  </div>
                 </div>
 
                 <div className="space-y-3 mb-4">
@@ -173,10 +247,19 @@ export default async function BuilderDetailPage({
                           <span className="text-faint font-semibold mr-1.5">{qi + 1}.</span>
                           {q.prompt}
                         </p>
-                        <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-muted bg-background ring-1 ring-inset ring-line px-2 py-1 rounded-full shrink-0">
-                          <Icon name={q.question_type === "mcq" ? "checkCircle" : "file"} className="w-3 h-3" />
-                          {q.question_type === "mcq" ? "MCQ" : "Open"} · w{q.weight}
-                        </span>
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-muted bg-background ring-1 ring-inset ring-line px-2 py-1 rounded-full">
+                            <Icon name={q.question_type === "mcq" ? "checkCircle" : "file"} className="w-3 h-3" />
+                            {q.question_type === "mcq" ? "MCQ" : "Open"} · w{q.weight}
+                          </span>
+                          <form action={deleteQuestion.bind(null, q.id, section.id, id)}>
+                            <ConfirmSubmitButton
+                              confirmMessage="Delete this question?"
+                              icon="trash"
+                              className="p-1 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                            />
+                          </form>
+                        </div>
                       </div>
                       {q.options && q.options.length > 0 && (
                         <ul className="text-xs text-muted mt-2 grid sm:grid-cols-2 gap-1">

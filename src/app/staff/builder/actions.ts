@@ -231,7 +231,7 @@ async function insertGeneratedAssessment(
   params: {
     title: string;
     description: string;
-    mode: "default_core" | "default_leadership" | "generated";
+    mode: "default_core" | "default_leadership" | "default_mix" | "generated";
     engine: "claude" | "perplexity" | "kimi";
     generatedBy: string;
     competencies: { id: string; code: string; name: string }[];
@@ -303,37 +303,38 @@ async function insertGeneratedAssessment(
   return assessment.id as string;
 }
 
-export async function generateDefaultAssessment(category: "Core" | "Leadership") {
+export async function generateDefaultAssessment(category: "Core" | "Leadership" | "Mix", formData: FormData) {
   const { generateAssessmentContent } = await import("@/lib/generation");
   const { supabase, userId, fullName } = await requireAdminForGeneration();
 
+  const engineKey = String(formData.get("engine") || "") as "claude" | "perplexity" | "kimi";
+  const customTitle = String(formData.get("title") || "").trim();
+
+  if (engineKey !== "claude" && engineKey !== "perplexity" && engineKey !== "kimi") {
+    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
+  }
+
   let newId: string;
   try {
-    const { data: comps } = await supabase.from("competencies").select("id, code, name").eq("category", category);
+    const categories = category === "Mix" ? ["Core", "Leadership"] : [category];
+    const { data: comps } = await supabase.from("competencies").select("id, code, name").in("category", categories);
 
     if (!comps || comps.length === 0) {
       throw new Error(`No ${category} competencies found in the library.`);
     }
-
-    const { data: engines } = await supabase.from("generation_engines").select("key, enabled, api_key");
-    const claude = engines?.find((e) => e.key === "claude");
-    const perplexity = engines?.find((e) => e.key === "perplexity");
-    const kimi = engines?.find((e) => e.key === "kimi");
-    let engineKey: "claude" | "perplexity" | "kimi";
-    if (claude?.enabled && claude.api_key) engineKey = "claude";
-    else if (perplexity?.enabled && perplexity.api_key) engineKey = "perplexity";
-    else if (kimi?.enabled && kimi.api_key) engineKey = "kimi";
-    else throw new Error("No generation engine is configured. Add and enable an API key in Settings first.");
 
     const apiKey = await loadEngine(supabase, engineKey);
     const competencyIds = comps.map((c) => c.id);
     const competencies = await loadCompetenciesForPrompt(supabase, competencyIds);
     const generated = await generateAssessmentContent(engineKey, apiKey, competencies);
 
+    const modeMap = { Core: "default_core", Leadership: "default_leadership", Mix: "default_mix" } as const;
+    const labelMap = { Core: "Core", Leadership: "Leadership", Mix: "Core + Leadership (mixed)" } as const;
+
     newId = await insertGeneratedAssessment(supabase, {
-      title: `${category} Competency Assessment (Default) — ${new Date().toLocaleDateString()}`,
-      description: `System-generated default assessment covering all ${category} competencies, by ${fullName}.`,
-      mode: category === "Core" ? "default_core" : "default_leadership",
+      title: customTitle || `${labelMap[category]} Competency Assessment (Default) — ${new Date().toLocaleDateString()}`,
+      description: `System-generated default assessment covering all ${labelMap[category]} competencies, by ${fullName}, via ${engineDisplayName(engineKey)}.`,
+      mode: modeMap[category],
       engine: engineKey,
       generatedBy: userId,
       competencies: comps,
@@ -348,6 +349,48 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership")
   redirect(`/staff/builder/${newId}`);
 }
 
+export async function deleteAssessment(assessmentId: string) {
+  const { supabase } = await requireAdminForGeneration();
+  const { error } = await supabase.from("assessments").delete().eq("id", assessmentId);
+  if (error) redirect("/staff/builder?error=" + encodeURIComponent(error.message));
+  revalidatePath("/staff/builder");
+  redirect("/staff/builder");
+}
+
+export async function updateAssessmentMeta(assessmentId: string, formData: FormData) {
+  const supabase = await createClient();
+  const title = String(formData.get("title") || "").trim();
+  const description = String(formData.get("description") || "").trim();
+  const timeLimit = Number(formData.get("time_limit_minutes") || 60);
+
+  if (!title) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Title can't be empty."));
+
+  const { error } = await supabase
+    .from("assessments")
+    .update({ title, description, time_limit_minutes: timeLimit })
+    .eq("id", assessmentId);
+
+  if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+
+  revalidatePath(`/staff/builder/${assessmentId}`);
+  revalidatePath("/staff/builder");
+}
+
+export async function deleteSection(sectionId: string, assessmentId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("assessment_sections").delete().eq("id", sectionId);
+  if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+  revalidatePath(`/staff/builder/${assessmentId}`);
+}
+
+export async function deleteQuestion(questionId: string, sectionId: string, assessmentId: string) {
+  const supabase = await createClient();
+  const { error } = await supabase.from("questions").delete().eq("id", questionId);
+  if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+  revalidatePath(`/staff/builder/${assessmentId}`);
+  void sectionId;
+}
+
 export async function generateCustomAssessment(formData: FormData) {
   const { generateAssessmentContent } = await import("@/lib/generation");
   const { supabase, userId, fullName } = await requireAdminForGeneration();
@@ -357,7 +400,7 @@ export async function generateCustomAssessment(formData: FormData) {
   const competencyIds = formData.getAll("competency_ids") as string[];
 
   if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title."));
-  if (engineKey !== "claude" && engineKey !== "perplexity") {
+  if (engineKey !== "claude" && engineKey !== "perplexity" && engineKey !== "kimi") {
     redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
   }
   if (competencyIds.length === 0) {
