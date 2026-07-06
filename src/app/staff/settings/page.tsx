@@ -5,7 +5,7 @@ import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
-  { param: "saved", variant: "success", message: () => "Template saved." },
+  { param: "saved", variant: "success", text: "Template saved." },
 ];
 
 export default async function SettingsPage({

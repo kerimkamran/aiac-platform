@@ -13,16 +13,7 @@ const TOAST_SPECS: ToastSpec[] = [
     param: "uploaded",
     variant: "success",
     clearParams: ["uploaded", "upload_ai", "upload_errors", "upload_error_sample"],
-    message: (value, all) => {
-      const ai = all.get("upload_ai") === "1";
-      const errs = all.get("upload_errors");
-      const sample = all.get("upload_error_sample");
-      let msg = `Imported ${value} case${value === "1" ? "" : "s"} from your upload${ai ? " (via AI-assisted extraction)" : ""}`;
-      if (errs && errs !== "0") msg += `, ${errs} row(s) skipped`;
-      msg += ".";
-      if (sample) msg += ` ${decodeURIComponent(sample)}`;
-      return msg;
-    },
+    kind: "case-library-upload",
   },
 ];
 
