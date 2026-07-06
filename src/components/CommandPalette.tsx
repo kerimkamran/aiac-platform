@@ -1,15 +1,89 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@/components/ui";
 import type { NavLink } from "@/components/NavShell";
 
-export function CommandPalette({ links }: { links: NavLink[] }) {
+const RECENTS_KEY = "aiac-recent-nav";
+const MAX_RECENTS = 5;
+const GROUP_ORDER = ["Recent", "Quick actions", "Pages"] as const;
+
+type Group = (typeof GROUP_ORDER)[number];
+type Item = NavLink & { group: Group };
+type ScoredItem = Item & { positions: number[] };
+
+/** Ordered subsequence fuzzy match — every query char must appear in text, in
+ *  order, but not necessarily adjacent. Score rewards early + consecutive hits
+ *  so "peop" beats a scattered match for the same string. */
+function fuzzyMatch(text: string, query: string): { score: number; positions: number[] } | null {
+  if (!query) return { score: 0, positions: [] };
+  const t = text.toLowerCase();
+  const q = query.toLowerCase();
+  let ti = 0;
+  let score = 0;
+  let consecutive = 0;
+  const positions: number[] = [];
+  for (let qi = 0; qi < q.length; qi++) {
+    const idx = t.indexOf(q[qi], ti);
+    if (idx === -1) return null;
+    positions.push(idx);
+    if (idx === ti) {
+      consecutive += 1;
+      score += 3 + consecutive;
+    } else {
+      consecutive = 0;
+      score += 1;
+    }
+    score -= (idx - ti) * 0.05;
+    ti = idx + 1;
+  }
+  if (t.startsWith(q)) score += 10;
+  return { score, positions };
+}
+
+function HighlightMatch({ text, positions }: { text: string; positions: number[] }) {
+  if (positions.length === 0) return <>{text}</>;
+  const marked = new Set(positions);
+  return (
+    <>
+      {text.split("").map((ch, i) =>
+        marked.has(i) ? (
+          <span key={i} className="text-accent-dark font-bold">
+            {ch}
+          </span>
+        ) : (
+          <span key={i}>{ch}</span>
+        )
+      )}
+    </>
+  );
+}
+
+export function CommandPalette({ links, actions = [] }: { links: NavLink[]; actions?: NavLink[] }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
+  const [recents, setRecents] = useState<NavLink[]>([]);
   const router = useRouter();
+  const pathname = usePathname();
+
+  /* Track recently visited nav destinations in localStorage (MRU, deduped). */
+  useEffect(() => {
+    try {
+      const known = [...links, ...actions];
+      const match = known.find((l) => l.href === pathname);
+      const raw = localStorage.getItem(RECENTS_KEY);
+      const stored: NavLink[] = raw ? JSON.parse(raw) : [];
+      const next = match
+        ? [match, ...stored.filter((r) => r.href !== match.href)].slice(0, MAX_RECENTS)
+        : stored.slice(0, MAX_RECENTS);
+      if (match) localStorage.setItem(RECENTS_KEY, JSON.stringify(next));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time sync from localStorage on route change
+      setRecents(next);
+    } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
 
   const openPalette = () => {
     setQuery("");
@@ -36,11 +110,35 @@ export function CommandPalette({ links }: { links: NavLink[] }) {
     return () => document.removeEventListener("keydown", onKeyDown);
   }, []);
 
-  const filtered = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    if (!needle) return links;
-    return links.filter((l) => l.label.toLowerCase().includes(needle));
-  }, [links, query]);
+  const items: Item[] = useMemo(() => {
+    const recentItems: Item[] = recents.map((r) => ({ ...r, group: "Recent" }));
+    const actionItems: Item[] = actions.map((a) => ({ ...a, group: "Quick actions" }));
+    const pageItems: Item[] = links.map((l) => ({ ...l, group: "Pages" }));
+    return [...recentItems, ...actionItems, ...pageItems];
+  }, [recents, actions, links]);
+
+  /** Final flat, group-ordered, deduped, index-stable list — computed once per
+   *  render pass so no state mutation happens inside JSX. */
+  const displayList: ScoredItem[] = useMemo(() => {
+    const needle = query.trim();
+    const seen = new Set<string>();
+    const withScore: (ScoredItem & { score: number })[] = [];
+    for (const it of items) {
+      if (seen.has(it.href)) continue;
+      const m = fuzzyMatch(it.label, needle);
+      if (!m) continue;
+      seen.add(it.href);
+      withScore.push({ ...it, score: m.score, positions: m.positions });
+    }
+    if (!needle) {
+      // Stable group order when browsing with no query.
+      return GROUP_ORDER.flatMap((g) => withScore.filter((it) => it.group === g));
+    }
+    // Best matches first, grouped headers still rendered in GROUP_ORDER below
+    // but relative ranking within a group follows match score.
+    withScore.sort((a, b) => b.score - a.score);
+    return GROUP_ORDER.flatMap((g) => withScore.filter((it) => it.group === g));
+  }, [items, query]);
 
   const go = (href: string) => {
     closePalette();
@@ -62,6 +160,13 @@ export function CommandPalette({ links }: { links: NavLink[] }) {
     );
   }
 
+  const groups = GROUP_ORDER.map((g) => ({
+    label: g,
+    rows: displayList
+      .map((it, i) => ({ ...it, idx: i }))
+      .filter((it) => it.group === g),
+  })).filter((g) => g.rows.length > 0);
+
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 px-4">
       <div className="absolute inset-0 bg-black/50 anim-fade-in" onClick={closePalette} />
@@ -78,36 +183,44 @@ export function CommandPalette({ links }: { links: NavLink[] }) {
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
                 e.preventDefault();
-                setActiveIdx((i) => Math.min(filtered.length - 1, i + 1));
+                setActiveIdx((i) => Math.min(displayList.length - 1, i + 1));
               }
               if (e.key === "ArrowUp") {
                 e.preventDefault();
                 setActiveIdx((i) => Math.max(0, i - 1));
               }
-              if (e.key === "Enter" && filtered[activeIdx]) {
-                go(filtered[activeIdx].href);
+              if (e.key === "Enter" && displayList[activeIdx]) {
+                go(displayList[activeIdx].href);
               }
             }}
-            placeholder="Jump to…"
+            placeholder="Jump to a page or action…"
             className="flex-1 bg-transparent text-sm outline-none placeholder:text-faint"
           />
           <kbd className="text-[10px] text-faint border border-line rounded px-1.5 py-0.5">Esc</kbd>
         </div>
-        <div className="max-h-72 overflow-y-auto p-1.5">
-          {filtered.map((l, i) => (
-            <button
-              key={l.href}
-              onClick={() => go(l.href)}
-              onMouseEnter={() => setActiveIdx(i)}
-              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
-                i === activeIdx ? "bg-accent-soft text-accent-dark" : "text-foreground hover:bg-background"
-              }`}
-            >
-              <Icon name={l.icon} className="w-4 h-4 shrink-0" />
-              {l.label}
-            </button>
+        <div className="max-h-80 overflow-y-auto p-1.5">
+          {groups.map(({ label, rows }) => (
+            <div key={label} className="mb-1.5 last:mb-0">
+              <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint flex items-center gap-1.5">
+                {label === "Recent" && <Icon name="history" className="w-3 h-3" />}
+                {label}
+              </p>
+              {rows.map((l) => (
+                <button
+                  key={l.href}
+                  onClick={() => go(l.href)}
+                  onMouseEnter={() => setActiveIdx(l.idx)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
+                    l.idx === activeIdx ? "bg-accent-soft text-accent-dark" : "text-foreground hover:bg-background"
+                  }`}
+                >
+                  <Icon name={l.icon} className="w-4 h-4 shrink-0" />
+                  <HighlightMatch text={l.label} positions={l.positions} />
+                </button>
+              ))}
+            </div>
           ))}
-          {filtered.length === 0 && <p className="px-3 py-6 text-center text-sm text-faint">No matches.</p>}
+          {displayList.length === 0 && <p className="px-3 py-6 text-center text-sm text-faint">No matches.</p>}
         </div>
       </div>
     </div>

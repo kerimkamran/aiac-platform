@@ -45,6 +45,10 @@ const ICON_PATHS: Record<string, string> = {
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v3m0 16v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M1 12h3m16 0h3M4.2 19.8l2.1-2.1m11.4-11.4 2.1-2.1",
   moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
   trending: "M3 17l6-6 4 4 8-8M15 7h6v6",
+  alertTriangle: "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4m0 4h.01",
+  info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-5m0-3.5h.01",
+  history: "M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2",
+  keyboard: "M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01M8 15h8",
 };
 
 export function Icon({ name, className = "w-5 h-5" }: { name: string; className?: string }) {
@@ -153,9 +157,9 @@ export function ScoreBadge({ score }: { score: number }) {
 
 /* ---------------- Layout primitives ---------------- */
 
-export function Card({ className = "", children }: { className?: string; children: React.ReactNode }) {
+export function Card({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
   return (
-    <div className={`bg-surface border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,28,44,0.04)] print-card ${className}`}>
+    <div id={id} className={`bg-surface border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,28,44,0.04)] print-card ${className}`}>
       {children}
     </div>
   );

@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Avatar, Icon, LogoMark } from "@/components/ui";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ToastProvider } from "@/components/Toaster";
 
 export type NavLink = { href: string; label: string; icon: string; exact?: boolean };
 
@@ -13,11 +14,13 @@ export function NavShell({
   role,
   name,
   links,
+  actions,
   children,
 }: {
   role: string;
   name: string;
   links: NavLink[];
+  actions?: NavLink[];
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -37,7 +40,7 @@ export function NavShell({
         </Link>
       </div>
 
-      <CommandPalette links={links} />
+      <CommandPalette links={links} actions={actions} />
       <nav className="flex-1 px-3 py-5 space-y-0.5 overflow-y-auto">
         <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-faint">Workspace</p>
         {links.map((l) => {
@@ -86,6 +89,7 @@ export function NavShell({
   );
 
   return (
+    <ToastProvider>
     <div className="min-h-screen flex bg-background">
       {/* Desktop sidebar */}
       <aside className="hidden lg:block w-[264px] shrink-0 sticky top-0 h-screen no-print">{sidebar}</aside>
@@ -116,5 +120,6 @@ export function NavShell({
 
       <main className="flex-1 min-w-0 pt-12 lg:pt-0">{children}</main>
     </div>
+    </ToastProvider>
   );
 }

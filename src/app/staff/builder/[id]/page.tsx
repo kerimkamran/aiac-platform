@@ -14,6 +14,9 @@ import {
 } from "../actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+
+const TOAST_SPECS: ToastSpec[] = [{ param: "error", variant: "error" }];
 
 // AI generation can legitimately take 30-90+ seconds; give the underlying
 // Server Action room to finish instead of racing an unnecessarily tight default.
@@ -62,7 +65,7 @@ export default async function BuilderDetailPage({
   searchParams: Promise<{ error?: string }>;
 }) {
   const { id } = await params;
-  const { error } = await searchParams;
+  await searchParams;
   const supabase = await createClient();
 
   const {
@@ -169,7 +172,7 @@ export default async function BuilderDetailPage({
         </Card>
       </details>
 
-      {error && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{error}</p>}
+      <ToastFromParams specs={TOAST_SPECS} />
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">

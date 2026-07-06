@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageHeader, Card, Icon, Avatar, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { SelectAllCheckbox } from "@/components/SelectAllCheckbox";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import {
   addCandidate,
   addDecisionMaker,
@@ -24,6 +25,11 @@ const ROLE_LABEL: Record<string, string> = {
   candidate: "Candidate",
 };
 
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "added", variant: "success" },
+];
+
 const STAFF_ROLE_OPTIONS = ["recruiter", "hiring_manager", "hr_admin", "system_admin"] as const;
 const ALL_ROLE_OPTIONS = ["candidate", "decision_maker", ...STAFF_ROLE_OPTIONS] as const;
 
@@ -42,7 +48,7 @@ export default async function PeoplePage({
 }: {
   searchParams: Promise<{ error?: string; added?: string; q?: string; role?: string; status?: string; edit?: string }>;
 }) {
-  const { error, added, q = "", role: roleFilter = "", status: statusFilter = "", edit } = await searchParams;
+  const { q = "", role: roleFilter = "", status: statusFilter = "", edit } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -117,14 +123,7 @@ export default async function PeoplePage({
         subtitle="Manage every account — candidates, staff, and decision makers — with role changes, deactivation, and a full activity log. Accounts are invite-only."
       />
 
-      {error && (
-        <div className="mb-6 text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3">{decodeURIComponent(error)}</div>
-      )}
-      {added && (
-        <div className="mb-6 text-sm text-accent-dark bg-accent-soft border border-accent/20 rounded-xl px-4 py-3">
-          {decodeURIComponent(added)}
-        </div>
-      )}
+      <ToastFromParams specs={TOAST_SPECS} />
 
       {editingUser && (
         <Card className="p-6 mb-8 border-brand/20">
@@ -182,7 +181,7 @@ export default async function PeoplePage({
       )}
 
       <div className="grid md:grid-cols-2 gap-5 mb-5">
-        <Card className="p-6">
+        <Card id="add-candidate" className="p-6 scroll-mt-6">
           <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
             <Icon name="users" className="w-4 h-4 text-brand" />
             Add a candidate
@@ -219,7 +218,7 @@ export default async function PeoplePage({
         </Card>
       </div>
 
-      <Card className="p-6 mb-5">
+      <Card id="add-staff" className="p-6 mb-5 scroll-mt-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
           <Icon name="building" className="w-4 h-4 text-brand" />
           Add a staff member
@@ -246,7 +245,7 @@ export default async function PeoplePage({
         </form>
       </Card>
 
-      <Card className="p-6 mb-8">
+      <Card id="bulk-upload" className="p-6 mb-8 scroll-mt-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
           <Icon name="users" className="w-4 h-4 text-brand" />
           Bulk add candidates (CSV)

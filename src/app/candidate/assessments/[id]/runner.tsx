@@ -122,6 +122,53 @@ export function AssessmentRunner({
   const answered = steps.filter((s) => (answers[s.q.id] || "").trim().length > 0).length;
   const current = steps[idx];
   const set = (qid: string, val: string) => setAnswers((a) => ({ ...a, [qid]: val }));
+
+  /* Keyboard-first navigation: A-D (or 1-4) selects an MCQ option, Enter
+     advances (or opens review on the last question), Left/Right steps
+     between questions. Disabled while typing in a free-text answer so it
+     never fights with normal text entry. */
+  useEffect(() => {
+    if (reviewing || !current) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isTyping =
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLInputElement && !["radio", "checkbox"].includes(target.type));
+      if (isTyping) return;
+
+      if (current.q.type === "mcq") {
+        const key = e.key.toUpperCase();
+        const optIdx = current.q.options.findIndex((o) => o.key.toUpperCase() === key);
+        if (optIdx !== -1) {
+          e.preventDefault();
+          set(current.q.id, current.q.options[optIdx].key);
+          return;
+        }
+        const numIdx = Number(e.key) - 1;
+        if (Number.isInteger(numIdx) && current.q.options[numIdx]) {
+          e.preventDefault();
+          set(current.q.id, current.q.options[numIdx].key);
+          return;
+        }
+      }
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (idx < steps.length - 1) setIdx((i) => Math.min(steps.length - 1, i + 1));
+        else setReviewing(true);
+        return;
+      }
+      if (e.key === "ArrowRight") {
+        e.preventDefault();
+        setIdx((i) => Math.min(steps.length - 1, i + 1));
+      }
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        setIdx((i) => Math.max(0, i - 1));
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [current, idx, steps.length, reviewing]);
   const mins = Math.floor(secondsLeft / 60);
   const secs = secondsLeft % 60;
   const low = secondsLeft < 300;
@@ -339,7 +386,14 @@ export function AssessmentRunner({
             )}
           </div>
 
-          {description && idx === 0 && <p className="text-xs text-faint mt-6 max-w-lg">{description}</p>}
+          <p className="text-[11px] text-faint mt-4 flex items-center gap-1.5">
+            <Icon name="keyboard" className="w-3 h-3 shrink-0" />
+            {current.q.type === "mcq"
+              ? "Press A\u2013D to choose an answer, Enter for next, \u2190 \u2192 to navigate."
+              : "Press Enter to continue, \u2190 \u2192 to navigate between questions."}
+          </p>
+
+          {description && idx === 0 && <p className="text-xs text-faint mt-3 max-w-lg">{description}</p>}
         </div>
       )}
     </div>

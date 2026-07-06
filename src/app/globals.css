@@ -186,10 +186,23 @@ body {
   animation: confetti-fall 2.6s cubic-bezier(0.34, 0, 0.64, 1) both;
 }
 
+/* ---------- Toasts ---------- */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-bar {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+.anim-toast-in { animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-toast-bar { animation: toast-bar linear forwards; }
+
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-up, .anim-fade-in, .anim-float, .anim-grow, .anim-grow-y,
   .anim-ring circle.ring-value, .skeleton,
-  .anim-seal-pop, .anim-seal-draw, .anim-seal-ring, .confetti-piece {
+  .anim-seal-pop, .anim-seal-draw, .anim-seal-ring, .confetti-piece,
+  .anim-toast-in, .anim-toast-bar {
     animation: none;
   }
   .anim-seal-draw { stroke-dashoffset: 0; }

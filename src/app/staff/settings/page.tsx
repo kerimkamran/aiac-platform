@@ -1,13 +1,19 @@
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader, Card, Icon } from "@/components/ui";
 import { updateEmailTemplate, uploadEmailImage, removeEmailImage, updateEngineSettings, clearEngineKey } from "./actions";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "saved", variant: "success", message: () => "Template saved." },
+];
 
 export default async function SettingsPage({
   searchParams,
 }: {
   searchParams: Promise<{ error?: string; saved?: string }>;
 }) {
-  const { error, saved } = await searchParams;
+  await searchParams;
   const supabase = await createClient();
 
   const { data: template } = await supabase
@@ -28,14 +34,7 @@ export default async function SettingsPage({
         subtitle="Manage the invite email candidates and decision makers receive when they're added to the system."
       />
 
-      {error && (
-        <div className="mb-6 text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3">{decodeURIComponent(error)}</div>
-      )}
-      {saved && (
-        <div className="mb-6 text-sm text-accent-dark bg-accent-soft border border-accent/20 rounded-xl px-4 py-3">
-          Template saved.
-        </div>
-      )}
+      <ToastFromParams specs={TOAST_SPECS} />
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">

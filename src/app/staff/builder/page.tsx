@@ -4,6 +4,9 @@ import { createAssessment, deleteAssessment } from "./actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { CreateAssessmentPanel } from "./CreateAssessmentPanel";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+
+const TOAST_SPECS: ToastSpec[] = [{ param: "error", variant: "error" }];
 
 // AI generation can legitimately take 30-90+ seconds; give the underlying
 // Server Action room to finish instead of racing an unnecessarily tight default.
@@ -27,7 +30,7 @@ export default async function BuilderListPage({
 }: {
   searchParams: Promise<{ error?: string }>;
 }) {
-  const { error } = await searchParams;
+  await searchParams;
   const supabase = await createClient();
 
   const {
@@ -61,9 +64,7 @@ export default async function BuilderListPage({
         subtitle="Compose assessments from the governed competency library, publish them, and invite candidates."
       />
 
-      {error && (
-        <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{error}</p>
-      )}
+      <ToastFromParams specs={TOAST_SPECS} />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">

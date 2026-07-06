@@ -4,6 +4,27 @@ import Link from "next/link";
 import { Card, Icon, PageHeader, categoryStyle } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { generateCasesForCompetency, generateCasesForAllCompetencies, deleteCase, uploadCasesFromFile } from "./actions";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "upload_error", variant: "error" },
+  {
+    param: "uploaded",
+    variant: "success",
+    clearParams: ["uploaded", "upload_ai", "upload_errors", "upload_error_sample"],
+    message: (value, all) => {
+      const ai = all.get("upload_ai") === "1";
+      const errs = all.get("upload_errors");
+      const sample = all.get("upload_error_sample");
+      let msg = `Imported ${value} case${value === "1" ? "" : "s"} from your upload${ai ? " (via AI-assisted extraction)" : ""}`;
+      if (errs && errs !== "0") msg += `, ${errs} row(s) skipped`;
+      msg += ".";
+      if (sample) msg += ` ${decodeURIComponent(sample)}`;
+      return msg;
+    },
+  },
+];
 
 // A single bulk "generate for all 37 competencies" run makes many sequential
 // LLM calls in batches — comfortably longer than a single-assessment
@@ -26,16 +47,7 @@ export default async function CaseLibraryPage({
     upload_ai?: string;
   }>;
 }) {
-  const {
-    error,
-    competency: competencyFilter,
-    tag: tagFilter,
-    uploaded,
-    upload_errors: uploadErrors,
-    upload_error_sample: uploadErrorSample,
-    upload_error: uploadError,
-    upload_ai: uploadAi,
-  } = await searchParams;
+  const { competency: competencyFilter, tag: tagFilter } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -93,20 +105,7 @@ export default async function CaseLibraryPage({
         subtitle="A large, original bank of situational judgment cases, grounded in research on Hogan Assessments, Mercer | Mettl, WTW/Saville, Korn Ferry, and McLean & Company's publicly documented methodology. Visible only to the super admin."
       />
 
-      {error && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{error}</p>}
-      {uploadError && (
-        <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{uploadError}</p>
-      )}
-      {uploaded !== undefined && (
-        <div className="text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 mb-6">
-          <p className="font-semibold">
-            Imported {uploaded} case{uploaded === "1" ? "" : "s"} from your upload
-            {uploadAi === "1" ? " (via AI-assisted extraction)" : ""}
-            {uploadErrors && uploadErrors !== "0" ? `, ${uploadErrors} row(s) skipped` : ""}.
-          </p>
-          {uploadErrorSample && <p className="text-xs text-emerald-700 mt-1">{uploadErrorSample}</p>}
-        </div>
-      )}
+      <ToastFromParams specs={TOAST_SPECS} />
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">

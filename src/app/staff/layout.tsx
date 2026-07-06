@@ -41,8 +41,15 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     links.push({ href: "/staff/case-library", label: "Case Library", icon: "brain" });
   }
 
+  const actions: NavLink[] = [{ href: "/staff/builder", label: "New assessment", icon: "plus" }];
+  if (isAdmin) {
+    actions.push({ href: "/staff/people#add-candidate", label: "Add a candidate", icon: "plus" });
+    actions.push({ href: "/staff/people#add-staff", label: "Add a staff member", icon: "plus" });
+    actions.push({ href: "/staff/people#bulk-upload", label: "Bulk-add candidates (CSV)", icon: "download" });
+  }
+
   return (
-    <NavShell role={profile.role} name={profile.full_name} links={links}>
+    <NavShell role={profile.role} name={profile.full_name} links={links} actions={actions}>
       {children}
     </NavShell>
   );
