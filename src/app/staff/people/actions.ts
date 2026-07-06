@@ -218,3 +218,79 @@ export async function bulkAddCandidates(formData: FormData) {
 
   redirect("/staff/people?added=" + encodeURIComponent(summary));
 }
+
+/* ---------------- Advanced user management ---------------- */
+
+const STAFF_ROLES = ["recruiter", "hiring_manager", "hr_admin", "system_admin"] as const;
+const ALL_ROLES = ["candidate", "decision_maker", ...STAFF_ROLES] as const;
+
+export async function addStaffMember(formData: FormData) {
+  const supabase = await requireAdmin();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
+  const fullName = String(formData.get("full_name") || "").trim();
+  const role = String(formData.get("role") || "");
+  const department = String(formData.get("department") || "").trim() || null;
+
+  if (!email || !fullName) {
+    redirect("/staff/people?error=" + encodeURIComponent("Name and email are required."));
+  }
+  if (!(STAFF_ROLES as readonly string[]).includes(role)) {
+    redirect("/staff/people?error=" + encodeURIComponent("Choose a valid role."));
+  }
+
+  const { error } = await supabase.rpc("admin_provision_user", {
+    p_email: email,
+    p_full_name: fullName,
+    p_role: role,
+    p_department: department,
+  });
+
+  if (error) {
+    redirect("/staff/people?error=" + encodeURIComponent(error.message));
+  }
+
+  await sendInviteEmail(supabase, email);
+
+  revalidatePath("/staff/people");
+  redirect("/staff/people?added=" + encodeURIComponent(`${fullName} was added as ${role.replace(/_/g, " ")} and invited by email.`));
+}
+
+export async function updateUserRole(formData: FormData) {
+  const supabase = await requireAdmin();
+  const userId = String(formData.get("user_id") || "");
+  const role = String(formData.get("role") || "");
+  const department = String(formData.get("department") || "").trim();
+
+  if (!userId || !(ALL_ROLES as readonly string[]).includes(role)) {
+    redirect("/staff/people?error=" + encodeURIComponent("Invalid role update."));
+  }
+
+  const { error } = await supabase.rpc("admin_update_user_role", {
+    p_user_id: userId,
+    p_role: role,
+    p_department: department || null,
+  });
+
+  if (error) {
+    redirect("/staff/people?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/staff/people");
+  redirect("/staff/people?added=" + encodeURIComponent("User updated."));
+}
+
+export async function setUserStatus(userId: string, status: "active" | "deactivated") {
+  "use server";
+  const supabase = await requireAdmin();
+
+  const { error } = await supabase.rpc("admin_set_user_status", { p_user_id: userId, p_status: status });
+
+  if (error) {
+    redirect("/staff/people?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/staff/people");
+  redirect(
+    "/staff/people?added=" + encodeURIComponent(status === "deactivated" ? "User deactivated." : "User reactivated.")
+  );
+}

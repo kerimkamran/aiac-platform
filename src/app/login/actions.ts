@@ -21,9 +21,14 @@ export async function login(formData: FormData) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("role, status")
     .eq("id", user!.id)
     .single();
+
+  if (profile?.status === "deactivated") {
+    await supabase.auth.signOut();
+    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+  }
 
   if (profile?.role === "candidate") redirect("/candidate");
   if (profile?.role === "decision_maker") redirect("/decision");

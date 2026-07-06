@@ -12,11 +12,15 @@ export default async function CandidateLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("full_name, role")
+    .select("full_name, role, status")
     .eq("id", user.id)
     .single();
 
   if (!profile) redirect("/login");
+  if (profile.status === "deactivated") {
+    await supabase.auth.signOut();
+    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+  }
   if (profile.role !== "candidate") redirect("/staff");
 
   return (

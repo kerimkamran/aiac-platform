@@ -129,6 +129,8 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   shortlist: { label: "Shortlisted", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
   hold: { label: "On hold", cls: "bg-amber-50 text-amber-700 ring-amber-600/20" },
   reject: { label: "Rejected", cls: "bg-red-50 text-red-700 ring-red-600/20" },
+  active: { label: "Active", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
+  deactivated: { label: "Deactivated", cls: "bg-gray-100 text-gray-600 ring-gray-500/20" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
