@@ -2,12 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Card, EmptyState, Icon, JourneyTracker, PageHeader, StatusBadge } from "@/components/ui";
 
-export default async function CandidateAssessmentsPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ submitted?: string }>;
-}) {
-  const { submitted } = await searchParams;
+export default async function CandidateAssessmentsPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -29,16 +24,6 @@ export default async function CandidateAssessmentsPage({
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
       <PageHeader title="My assessments" subtitle="Everything you've been invited to, from first invitation to final review." />
-
-      {submitted && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm rounded-2xl px-5 py-4 mb-6 anim-fade-up">
-          <Icon name="checkCircle" className="w-5 h-5 shrink-0" />
-          <p>
-            <span className="font-semibold">Assessment submitted.</span> Your answers have been scored by the AI engine
-            and are now with a human reviewer — you&apos;ll find your results here once the review is complete.
-          </p>
-        </div>
-      )}
 
       {list.length === 0 && (
         <EmptyState

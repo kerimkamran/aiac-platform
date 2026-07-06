@@ -154,11 +154,46 @@ body {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* ---------- Celebration (assessment-submitted moment) ---------- */
+@keyframes seal-pop {
+  0% { transform: scale(0.6); opacity: 0; }
+  60% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes seal-draw {
+  from { stroke-dashoffset: var(--seal-len, 160); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes seal-ring-pulse {
+  0% { transform: scale(0.9); opacity: 0.55; }
+  100% { transform: scale(1.55); opacity: 0; }
+}
+@keyframes confetti-fall {
+  0% { transform: translate3d(0, -12px, 0) rotate(0deg); opacity: 0; }
+  8% { opacity: 1; }
+  100% { transform: translate3d(var(--drift, 0px), 340px, 0) rotate(var(--spin, 300deg)); opacity: 0; }
+}
+
+.anim-seal-pop { animation: seal-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-seal-draw {
+  stroke-dasharray: var(--seal-len, 160);
+  animation: seal-draw 0.6s 0.5s cubic-bezier(0.65, 0, 0.35, 1) both;
+}
+.anim-seal-ring {
+  animation: seal-ring-pulse 1.8s ease-out 0.15s infinite;
+}
+.confetti-piece {
+  animation: confetti-fall 2.6s cubic-bezier(0.34, 0, 0.64, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-up, .anim-fade-in, .anim-float, .anim-grow, .anim-grow-y,
-  .anim-ring circle.ring-value, .skeleton {
+  .anim-ring circle.ring-value, .skeleton,
+  .anim-seal-pop, .anim-seal-draw, .anim-seal-ring, .confetti-piece {
     animation: none;
   }
+  .anim-seal-draw { stroke-dashoffset: 0; }
+  .confetti-piece { display: none; }
 }
 
 /* ---------- Brand panels — flat, calm (Azerconnect navy -> forest green) ---------- */

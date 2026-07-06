@@ -101,5 +101,5 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
     })
     .eq("id", candidateAssessmentId);
 
-  redirect("/candidate/assessments?submitted=1");
+  redirect(`/candidate/assessments/${candidateAssessmentId}/submitted`);
 }
