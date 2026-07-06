@@ -294,3 +294,84 @@ export async function setUserStatus(userId: string, status: "active" | "deactiva
     "/staff/people?added=" + encodeURIComponent(status === "deactivated" ? "User deactivated." : "User reactivated.")
   );
 }
+
+type BulkAction = "set_role" | "activate" | "deactivate" | "resend_invite";
+
+export async function bulkPeopleAction(formData: FormData) {
+  const supabase = await requireAdmin();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const action = String(formData.get("bulk_action") || "") as BulkAction;
+  const bulkRole = String(formData.get("bulk_role") || "");
+  const userIds = formData
+    .getAll("user_ids")
+    .map((v) => String(v))
+    .filter((id) => id && id !== user?.id);
+
+  if (userIds.length === 0) {
+    redirect("/staff/people?error=" + encodeURIComponent("Select at least one person first."));
+  }
+
+  if (!["set_role", "activate", "deactivate", "resend_invite"].includes(action)) {
+    redirect("/staff/people?error=" + encodeURIComponent("Choose a bulk action."));
+  }
+
+  if (action === "set_role" && !(ALL_ROLES as readonly string[]).includes(bulkRole)) {
+    redirect("/staff/people?error=" + encodeURIComponent("Choose a valid role for the bulk update."));
+  }
+
+  let currentDepartments = new Map<string, string | null>();
+  if (action === "set_role") {
+    const { data: rows } = await supabase.from("profiles").select("id, department").in("id", userIds);
+    currentDepartments = new Map((rows || []).map((r) => [r.id, r.department as string | null]));
+  }
+
+  let succeeded = 0;
+  let failed = 0;
+
+  for (const id of userIds) {
+    try {
+      if (action === "set_role") {
+        const { error } = await supabase.rpc("admin_update_user_role", {
+          p_user_id: id,
+          p_role: bulkRole,
+          p_department: currentDepartments.get(id) || null,
+        });
+        if (error) throw error;
+      } else if (action === "activate" || action === "deactivate") {
+        const { error } = await supabase.rpc("admin_set_user_status", {
+          p_user_id: id,
+          p_status: action === "activate" ? "active" : "deactivated",
+        });
+        if (error) throw error;
+      } else if (action === "resend_invite") {
+        const { data: row } = await supabase.from("profiles").select("email").eq("id", id).single();
+        if (!row?.email) throw new Error("No email on file.");
+        await sendInviteEmail(supabase, row.email);
+      }
+      succeeded++;
+    } catch {
+      failed++;
+    }
+  }
+
+  revalidatePath("/staff/people");
+
+  const actionLabel =
+    action === "set_role"
+      ? `role changed to ${bulkRole.replace(/_/g, " ")}`
+      : action === "activate"
+        ? "activated"
+        : action === "deactivate"
+          ? "deactivated"
+          : "re-invited";
+
+  const summary =
+    failed === 0
+      ? `${succeeded} ${succeeded === 1 ? "person" : "people"} ${actionLabel}.`
+      : `${succeeded} ${actionLabel}, ${failed} failed.`;
+
+  redirect("/staff/people?added=" + encodeURIComponent(summary));
+}

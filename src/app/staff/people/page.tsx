@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PageHeader, Card, Icon, Avatar, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { SelectAllCheckbox } from "@/components/SelectAllCheckbox";
 import {
   addCandidate,
   addDecisionMaker,
@@ -11,6 +12,7 @@ import {
   bulkAddCandidates,
   updateUserRole,
   setUserStatus,
+  bulkPeopleAction,
 } from "./actions";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -312,9 +314,45 @@ export default async function PeoplePage({
 
       <Card className="p-0 overflow-hidden mb-8">
         <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team & decision makers ({staffRows.length})</p>
+        <form
+          id="bulk-staff-form"
+          action={bulkPeopleAction}
+          className="flex flex-wrap items-center gap-2.5 px-6 py-3 border-y border-line bg-surface/60"
+        >
+          <span className="text-xs font-semibold text-muted">Bulk action:</span>
+          <select
+            name="bulk_action"
+            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            <option value="set_role">Change role to…</option>
+            <option value="activate">Activate</option>
+            <option value="deactivate">Deactivate</option>
+            <option value="resend_invite">Resend invite</option>
+          </select>
+          <select
+            name="bulk_role"
+            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            {grantableAllRoles.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
+          <ConfirmSubmitButton
+            confirmMessage="Apply this bulk action to everyone selected below?"
+            className="bg-brand text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-light transition-colors"
+          >
+            Apply to selected
+          </ConfirmSubmitButton>
+          <span className="text-[11px] text-faint">Select people in the table below, then apply.</span>
+        </form>
         <table className="w-full text-sm">
           <thead className="text-faint text-[11px] uppercase tracking-wider border-y border-line">
             <tr>
+              <th className="px-6 py-3 w-8">
+                <SelectAllCheckbox formId="bulk-staff-form" name="user_ids" />
+              </th>
               <th className="text-left px-6 py-3 font-semibold">Name</th>
               <th className="text-left px-6 py-3 font-semibold">Role</th>
               <th className="text-left px-6 py-3 font-semibold">Department</th>
@@ -328,6 +366,17 @@ export default async function PeoplePage({
               const isSelf = p.id === user.id;
               return (
                 <tr key={p.id}>
+                  <td className="px-6 py-3">
+                    {!isSelf && (
+                      <input
+                        type="checkbox"
+                        name="user_ids"
+                        value={p.id}
+                        form="bulk-staff-form"
+                        className="w-3.5 h-3.5 rounded border-line accent-brand"
+                      />
+                    )}
+                  </td>
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
                       <Avatar name={p.full_name} className="w-8 h-8 text-[11px]" />
@@ -370,7 +419,7 @@ export default async function PeoplePage({
             })}
             {staffRows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-faint text-sm">
+                <td colSpan={7} className="px-6 py-8 text-center text-faint text-sm">
                   No matching staff members.
                 </td>
               </tr>
@@ -381,9 +430,45 @@ export default async function PeoplePage({
 
       <Card className="p-0 overflow-hidden mb-8">
         <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Candidates ({candidateRows.length})</p>
+        <form
+          id="bulk-candidates-form"
+          action={bulkPeopleAction}
+          className="flex flex-wrap items-center gap-2.5 px-6 py-3 border-y border-line bg-surface/60"
+        >
+          <span className="text-xs font-semibold text-muted">Bulk action:</span>
+          <select
+            name="bulk_action"
+            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            <option value="activate">Activate</option>
+            <option value="deactivate">Deactivate</option>
+            <option value="resend_invite">Resend invite</option>
+            <option value="set_role">Change role to…</option>
+          </select>
+          <select
+            name="bulk_role"
+            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+          >
+            {grantableAllRoles.map((r) => (
+              <option key={r} value={r}>
+                {ROLE_LABEL[r]}
+              </option>
+            ))}
+          </select>
+          <ConfirmSubmitButton
+            confirmMessage="Apply this bulk action to everyone selected below?"
+            className="bg-brand text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-light transition-colors"
+          >
+            Apply to selected
+          </ConfirmSubmitButton>
+          <span className="text-[11px] text-faint">Select candidates in the table below, then apply.</span>
+        </form>
         <table className="w-full text-sm">
           <thead className="text-faint text-[11px] uppercase tracking-wider border-y border-line">
             <tr>
+              <th className="px-6 py-3 w-8">
+                <SelectAllCheckbox formId="bulk-candidates-form" name="user_ids" />
+              </th>
               <th className="text-left px-6 py-3 font-semibold">Name</th>
               <th className="text-left px-6 py-3 font-semibold">Department</th>
               <th className="text-left px-6 py-3 font-semibold">Status</th>
@@ -394,6 +479,15 @@ export default async function PeoplePage({
           <tbody className="divide-y divide-line">
             {candidateRows.map((p) => (
               <tr key={p.id}>
+                <td className="px-6 py-3">
+                  <input
+                    type="checkbox"
+                    name="user_ids"
+                    value={p.id}
+                    form="bulk-candidates-form"
+                    className="w-3.5 h-3.5 rounded border-line accent-brand"
+                  />
+                </td>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-3">
                     <Avatar name={p.full_name} className="w-8 h-8 text-[11px]" />
@@ -432,7 +526,7 @@ export default async function PeoplePage({
             ))}
             {candidateRows.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-faint text-sm">
+                <td colSpan={6} className="px-6 py-8 text-center text-faint text-sm">
                   No matching candidates.
                 </td>
               </tr>
