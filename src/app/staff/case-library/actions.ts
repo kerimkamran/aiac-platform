@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { generateCaseLibraryEntries } from "@/lib/case-library";
 import type { CompetencyForPrompt } from "@/lib/generation";
+import { parseExcelBuffer, parseStructuredText, type ParsedCaseRow } from "@/lib/case-upload";
 
 async function requireSuperAdmin() {
   const supabase = await createClient();
@@ -156,4 +157,108 @@ export async function deleteCase(caseId: string) {
   const { error } = await supabase.from("case_library").delete().eq("id", caseId);
   if (error) redirect("/staff/case-library?error=" + encodeURIComponent(error.message));
   revalidatePath("/staff/case-library");
+}
+
+
+/* ---------------- Manual upload (Excel / Word / plain text / Markdown) ---------------- */
+
+const EXCEL_EXTENSIONS = [".xlsx", ".xls"];
+const DOCX_EXTENSIONS = [".docx"];
+const TEXT_EXTENSIONS = [".txt", ".md", ".markdown"];
+
+export async function uploadCasesFromFile(formData: FormData) {
+  const { supabase, userId } = await requireSuperAdmin();
+
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) {
+    redirect("/staff/case-library?upload_error=" + encodeURIComponent("Choose a file to upload."));
+  }
+  const fallbackCompetencyId = String(formData.get("default_competency_id") || "");
+
+  const name = (file as File).name.toLowerCase();
+  const isExcel = EXCEL_EXTENSIONS.some((ext) => name.endsWith(ext));
+  const isDocx = DOCX_EXTENSIONS.some((ext) => name.endsWith(ext));
+  const isText = TEXT_EXTENSIONS.some((ext) => name.endsWith(ext));
+
+  if (!isExcel && !isDocx && !isText) {
+    redirect(
+      "/staff/case-library?upload_error=" + encodeURIComponent("Unsupported file type. Use .xlsx, .docx, .txt, or .md.")
+    );
+  }
+
+  const buffer = await (file as File).arrayBuffer();
+
+  let parsed: { rows: ParsedCaseRow[]; errors: string[] };
+  try {
+    if (isExcel) {
+      parsed = await parseExcelBuffer(buffer);
+    } else if (isDocx) {
+      const mammoth = await import("mammoth");
+      const { value: text } = await mammoth.extractRawText({ buffer: Buffer.from(buffer) });
+      parsed = parseStructuredText(text);
+    } else {
+      const text = Buffer.from(buffer).toString("utf-8");
+      parsed = parseStructuredText(text);
+    }
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Could not read that file.";
+    redirect("/staff/case-library?upload_error=" + encodeURIComponent(message));
+  }
+
+  const { rows, errors } = parsed;
+
+  const { data: competencies } = await supabase.from("competencies").select("id, code, name");
+  const compList = (competencies || []) as { id: string; code: string; name: string }[];
+  const byCode = new Map(compList.map((c) => [c.code.trim().toLowerCase(), c.id]));
+  const byName = new Map(compList.map((c) => [c.name.trim().toLowerCase(), c.id]));
+
+  const insertRows: Record<string, unknown>[] = [];
+  const unresolvable: string[] = [];
+
+  for (const row of rows) {
+    let competencyId: string | undefined;
+    if (row.competencyCode) competencyId = byCode.get(row.competencyCode.trim().toLowerCase());
+    if (!competencyId && row.competencyName) competencyId = byName.get(row.competencyName.trim().toLowerCase());
+    if (!competencyId && row.competencyCode) {
+      // Excel "Competency" column sometimes holds a name rather than a code — try both maps.
+      competencyId = byName.get(row.competencyCode.trim().toLowerCase());
+    }
+    if (!competencyId) competencyId = fallbackCompetencyId || undefined;
+
+    if (!competencyId) {
+      unresolvable.push(`${row.ref}: couldn't match a competency (got "${row.competencyCode || row.competencyName || "none"}") — skipped.`);
+      continue;
+    }
+
+    insertRows.push({
+      competency_id: competencyId,
+      title: row.title,
+      scenario_text: row.scenarioText,
+      question_stem: row.questionStem,
+      question_type: row.questionType,
+      options: row.questionType === "mcq" ? row.options : null,
+      difficulty: row.difficulty,
+      methodology_tag: row.methodologyTag,
+      methodology_notes: row.methodologyNotes,
+      engine: null,
+      generated_by: userId,
+    });
+  }
+
+  const allErrors = [...errors, ...unresolvable];
+
+  let insertedCount = 0;
+  if (insertRows.length > 0) {
+    const { error } = await supabase.from("case_library").insert(insertRows);
+    if (error) {
+      redirect("/staff/case-library?upload_error=" + encodeURIComponent(`Insert failed: ${error.message}`));
+    }
+    insertedCount = insertRows.length;
+  }
+
+  revalidatePath("/staff/case-library");
+
+  const params = new URLSearchParams({ uploaded: String(insertedCount), upload_errors: String(allErrors.length) });
+  if (allErrors.length > 0) params.set("upload_error_sample", allErrors.slice(0, 3).join(" | ").slice(0, 400));
+  redirect(`/staff/case-library?${params.toString()}`);
 }

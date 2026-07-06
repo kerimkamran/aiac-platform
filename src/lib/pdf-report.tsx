@@ -38,6 +38,14 @@ const styles = StyleSheet.create({
   decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: "#fff" },
   footer: { position: "absolute", bottom: 24, left: 40, right: 40, borderTop: `1 solid ${LINE}`, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: MUTED },
+  execCard: { border: `1 solid ${LINE}`, borderRadius: 8, padding: 14, marginBottom: 14 },
+  execHeadlineRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+  execRecBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: "#fff" },
+  execHeadline: { fontSize: 9, color: INK, lineHeight: 1.5, marginBottom: 8 },
+  execCols: { flexDirection: "row", gap: 16, marginBottom: 6 },
+  execColTitle: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+  execLine: { fontSize: 8, color: MUTED, marginBottom: 2 },
+  execComparison: { fontSize: 7.5, color: MUTED, borderTop: `1 solid ${LINE}`, paddingTop: 6, marginTop: 4 },
 });
 
 function bandInfo(score: number) {
@@ -45,6 +53,13 @@ function bandInfo(score: number) {
   if (score >= 70) return { label: "Fully Meets Expectations", color: ACCENT };
   if (score >= 50) return { label: "Partially Meets Expectations", color: "#b9861a" };
   return { label: "Does Not Meet Expectations", color: "#d03b3b" };
+}
+
+function recColor(label: string) {
+  if (label === "Strong fit") return "#0e9f6e";
+  if (label === "Fit with reservations") return ACCENT;
+  if (label === "Borderline") return "#d97706";
+  return "#dc2626";
 }
 
 function decisionColor(d: string) {
@@ -62,7 +77,16 @@ export type ReportData = {
   department?: string | null;
   overallScore: number | null;
   percentile?: number | null;
+  peerAvg?: number | null;
   peerCount?: number;
+  boxLabel?: string | null;
+  executiveSummary?: {
+    headline: string;
+    recommendationLabel: string;
+    strengths: string[];
+    developmentAreas: string[];
+    comparisonSentence: string | null;
+  } | null;
   submittedAt: string | null;
   tabSwitchCount?: number;
   competencies: { name: string; category: string; score: number; level: string }[];
@@ -128,6 +152,44 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         </View>
 
         <Text style={styles.sectionTitle}>Executive Summary</Text>
+
+        {data.executiveSummary && (
+          <View style={styles.execCard} wrap={false}>
+            <View style={styles.execHeadlineRow}>
+              <Text style={{ fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK }}>AI-Assisted Synthesis</Text>
+              <Text style={{ ...styles.execRecBadge, backgroundColor: recColor(data.executiveSummary.recommendationLabel) }}>
+                {data.executiveSummary.recommendationLabel.toUpperCase()}
+              </Text>
+            </View>
+            <Text style={styles.execHeadline}>{data.executiveSummary.headline}</Text>
+            <View style={styles.execCols}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.execColTitle}>Strengths</Text>
+                {data.executiveSummary.strengths.length > 0 ? (
+                  data.executiveSummary.strengths.map((s, i) => (
+                    <Text key={i} style={styles.execLine}>• {s}</Text>
+                  ))
+                ) : (
+                  <Text style={styles.execLine}>No standout competencies above 60 yet.</Text>
+                )}
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.execColTitle}>Development areas</Text>
+                {data.executiveSummary.developmentAreas.length > 0 ? (
+                  data.executiveSummary.developmentAreas.map((s, i) => (
+                    <Text key={i} style={styles.execLine}>• {s}</Text>
+                  ))
+                ) : (
+                  <Text style={styles.execLine}>No competencies below 70 — solid across the board.</Text>
+                )}
+              </View>
+            </View>
+            {data.executiveSummary.comparisonSentence && (
+              <Text style={styles.execComparison}>{data.executiveSummary.comparisonSentence}</Text>
+            )}
+          </View>
+        )}
+
         <View style={styles.scoreCard}>
           <View style={styles.scoreBig}>
             <Text style={styles.scoreBigNum}>{data.overallScore !== null ? Math.round(data.overallScore) : "—"}</Text>
@@ -142,8 +204,11 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
               behavioral responses. This assessment is designed to be reviewed alongside interview evidence and
               is not intended as a sole basis for a hiring or promotion decision.
               {data.percentile !== null && data.percentile !== undefined
-                ? ` Scored higher than ${data.percentile}% of the ${data.peerCount} candidate(s) assessed for this role.`
+                ? ` Scored higher than ${data.percentile}% of the ${data.peerCount} candidate(s) assessed for this role${
+                    data.peerAvg !== null && data.peerAvg !== undefined ? ` (peer average: ${data.peerAvg})` : ""
+                  }.`
                 : ""}
+              {data.boxLabel ? ` Talent Matrix placement: ${data.boxLabel}.` : ""}
               {data.tabSwitchCount ? ` Integrity note: the candidate left the assessment tab ${data.tabSwitchCount} time(s) during the session.` : ""}
             </Text>
           </View>
@@ -152,9 +217,12 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         <Text style={styles.sectionTitle}>Competency Breakdown</Text>
         {byCategory.map((group) => (
           <View key={group.cat} wrap={false}>
-            <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: BRAND, marginBottom: 6, marginTop: 6 }}>
-              {group.cat.toUpperCase()}
-            </Text>
+            <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, marginTop: 6 }}>
+              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: BRAND }}>{group.cat.toUpperCase()}</Text>
+              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: MUTED }}>
+                avg {Math.round(group.rows.reduce((a, c) => a + c.score, 0) / group.rows.length)}
+              </Text>
+            </View>
             {group.rows.map((c, i) => (
               <View key={i} style={styles.competencyRow}>
                 <View style={styles.competencyLabelRow}>

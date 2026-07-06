@@ -44,6 +44,7 @@ const ICON_PATHS: Record<string, string> = {
   command: "M6 9a3 3 0 1 1 3 3H6V9zm0 0v6m0 0a3 3 0 1 0 3 3v-3H6zm6-6a3 3 0 1 1 3-3v3h-3zm0 0h6m-6 0a3 3 0 1 0-3 3h3V9zm6 6a3 3 0 1 1-3 3v-3h3zm0 0h-6m6 0a3 3 0 1 0 3-3h-3v3z",
   sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v3m0 16v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M1 12h3m16 0h3M4.2 19.8l2.1-2.1m11.4-11.4 2.1-2.1",
   moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
+  trending: "M3 17l6-6 4 4 8-8M15 7h6v6",
 };
 
 export function Icon({ name, className = "w-5 h-5" }: { name: string; className?: string }) {
@@ -348,5 +349,137 @@ export function JourneyTracker({ status }: { status: string }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/* ---------------- Executive summary & benchmarking (advanced reporting) ---------------- */
+
+import type { ExecutiveSummary, Benchmark } from "@/lib/reporting";
+
+const RECOMMENDATION_TONE_CLS: Record<ExecutiveSummary["recommendationTone"], string> = {
+  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+  accent: "bg-green-50 text-green-700 ring-green-600/20",
+  amber: "bg-amber-50 text-amber-700 ring-amber-600/20",
+  red: "bg-red-50 text-red-700 ring-red-600/20",
+};
+
+export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary }) {
+  return (
+    <Card className="p-6 mb-6 border-brand/15 bg-gradient-to-br from-brand/[0.03] to-transparent">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <p className="flex items-center gap-2 text-sm font-bold text-foreground">
+          <Icon name="sparkles" className="w-4 h-4 text-accent-dark" />
+          Executive summary
+        </p>
+        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ring-1 ring-inset ${RECOMMENDATION_TONE_CLS[summary.recommendationTone]}`}>
+          {summary.recommendationLabel}
+        </span>
+      </div>
+      <p className="text-[13.5px] text-foreground leading-relaxed mb-4">{summary.headline}</p>
+      <div className="grid sm:grid-cols-2 gap-4 mb-3">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-faint mb-2">Strengths</p>
+          {summary.strengths.length > 0 ? (
+            <ul className="space-y-1.5">
+              {summary.strengths.map((s, i) => (
+                <li key={i} className="text-[12.5px] text-muted flex items-start gap-1.5">
+                  <Icon name="checkCircle" className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  {s}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[12.5px] text-faint">No standout competencies above 60 yet.</p>
+          )}
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-faint mb-2">Development areas</p>
+          {summary.developmentAreas.length > 0 ? (
+            <ul className="space-y-1.5">
+              {summary.developmentAreas.map((s, i) => (
+                <li key={i} className="text-[12.5px] text-muted flex items-start gap-1.5">
+                  <Icon name="target" className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  {s}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[12.5px] text-faint">No competencies below 70 — solid across the board.</p>
+          )}
+        </div>
+      </div>
+      {summary.comparisonSentence && (
+        <p className="text-[12px] text-faint border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
+      )}
+      <p className="text-[10.5px] text-faint/80 mt-3 italic">
+        AI-assisted synthesis, human review required — not a sole basis for a hiring decision.
+      </p>
+    </Card>
+  );
+}
+
+export function BenchmarkCard({
+  benchmark,
+  assessmentTitle,
+  boxLabel,
+  boxHref,
+}: {
+  benchmark: Benchmark;
+  assessmentTitle?: string;
+  boxLabel?: string | null;
+  boxHref?: string;
+}) {
+  if (benchmark.percentile === null || benchmark.peerAvg === null) return null;
+  const deltaPositive = (benchmark.delta ?? 0) >= 0;
+  return (
+    <Card className="p-6 mb-6">
+      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-3">Benchmark vs. other candidates</p>
+      <div className="flex flex-wrap items-center gap-4">
+        <p className="text-2xl font-bold text-brand tabular-nums shrink-0">
+          {benchmark.percentile}
+          <span className="text-sm font-semibold text-faint">th pct</span>
+        </p>
+        <div className="flex-1 min-w-[160px]">
+          <div className="h-2.5 rounded-full bg-line/70 overflow-hidden relative">
+            <div className="h-full rounded-full bg-brand anim-grow" style={{ width: `${benchmark.percentile}%` }} />
+          </div>
+          <p className="text-xs text-muted mt-2">
+            Scored higher than {benchmark.percentile}% of {benchmark.peerCount} candidate{benchmark.peerCount === 1 ? "" : "s"}
+            {assessmentTitle ? (
+              <>
+                {" "}
+                assessed for <span className="font-medium text-foreground">{assessmentTitle}</span>
+              </>
+            ) : (
+              ""
+            )}
+            .
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-[10px] font-bold uppercase tracking-wider text-faint">Peer avg</p>
+          <p className="text-sm font-bold text-foreground tabular-nums">{benchmark.peerAvg}</p>
+          <p className={`text-[11px] font-semibold ${deltaPositive ? "text-emerald-600" : "text-critical"}`}>
+            {deltaPositive ? "+" : ""}
+            {benchmark.delta}
+          </p>
+        </div>
+      </div>
+      {boxLabel && (
+        <div className="mt-4 pt-4 border-t border-line/70 flex items-center gap-2.5">
+          <Icon name="chart" className="w-4 h-4 text-brand shrink-0" />
+          <p className="text-xs text-muted">
+            Talent Matrix placement:{" "}
+            {boxHref ? (
+              <Link href={boxHref} className="font-semibold text-brand hover:underline">
+                {boxLabel}
+              </Link>
+            ) : (
+              <span className="font-semibold text-foreground">{boxLabel}</span>
+            )}
+          </p>
+        </div>
+      )}
+    </Card>
   );
 }

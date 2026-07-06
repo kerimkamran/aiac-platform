@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { CandidateReportDocument, type ReportData } from "@/lib/pdf-report";
+import { buildExecutiveSummary, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 
 export const runtime = "nodejs";
 
@@ -34,11 +35,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .eq("assessment_id", ca.assessment_id)
     .not("overall_score", "is", null);
   const peerScores = ((peerScoresRaw || []) as { overall_score: number }[]).map((p) => p.overall_score);
-  const peerCount = peerScores.length;
-  const percentile =
-    ca.overall_score !== null && peerCount > 1
-      ? Math.round((peerScores.filter((s) => s < ca.overall_score!).length / (peerCount - 1)) * 100)
-      : null;
+  const benchmark = computeBenchmark(ca.overall_score, peerScores);
+  const percentile = benchmark.percentile;
+  const peerCount = benchmark.peerCount;
 
   const [{ data: competencyScores }, { data: responses }, { data: reviews }] = await Promise.all([
     supabase
@@ -56,6 +55,28 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       .order("created_at", { ascending: false }),
   ]);
 
+  const competencyLines = ((competencyScores || []) as unknown as { score: number; level: string; competencies: { name: string; category: string } | null }[])
+    .filter((c) => c.competencies)
+    .map((c) => ({ name: c.competencies!.name, category: c.competencies!.category, score: c.score, level: c.level }))
+    .sort((a, b) => b.score - a.score);
+
+  let boxLabel: string | null = null;
+  if (ca.overall_score !== null && competencyLines.length > 0) {
+    const { potential } = potentialFromCompetencies(ca.overall_score, competencyLines);
+    boxLabel = talentBoxFor(ca.overall_score, potential).label;
+  }
+
+  const executiveSummary =
+    ca.overall_score !== null && competencyLines.length > 0
+      ? buildExecutiveSummary({
+          candidateName: candidate?.full_name || "Candidate",
+          overallScore: ca.overall_score,
+          competencies: competencyLines,
+          benchmark,
+          boxLabel,
+        })
+      : null;
+
   type QOpt = { key: string; text: string };
   const data: ReportData = {
     candidateName: candidate?.full_name || "Candidate",
@@ -65,13 +86,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     department: candidate?.department || null,
     overallScore: ca.overall_score,
     percentile,
+    peerAvg: benchmark.peerAvg,
     peerCount,
+    boxLabel,
+    executiveSummary,
     submittedAt: ca.submitted_at,
     tabSwitchCount: ca.tab_switch_count || 0,
-    competencies: ((competencyScores || []) as unknown as { score: number; level: string; competencies: { name: string; category: string } | null }[])
-      .filter((c) => c.competencies)
-      .map((c) => ({ name: c.competencies!.name, category: c.competencies!.category, score: c.score, level: c.level }))
-      .sort((a, b) => b.score - a.score),
+    competencies: competencyLines,
     responses: ((responses || []) as unknown as {
       response_text: string | null;
       selected_option: string | null;

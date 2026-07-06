@@ -1,32 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Avatar, Card, Icon, PageHeader } from "@/components/ui";
-
-type Bucket = "Low" | "Medium" | "High";
-
-function bucketFor(score: number): Bucket {
-  if (score >= 80) return "High";
-  if (score >= 60) return "Medium";
-  return "Low";
-}
-
-const BOX_META: Record<Bucket, Record<Bucket, { label: string; tone: string }>> = {
-  High: {
-    Low: { label: "Enigma", tone: "bg-amber-50 border-amber-200" },
-    Medium: { label: "Growth Employee", tone: "bg-accent-soft border-accent/30" },
-    High: { label: "Future Leader", tone: "bg-emerald-50 border-emerald-300" },
-  },
-  Medium: {
-    Low: { label: "Inconsistent Player", tone: "bg-amber-50 border-amber-200" },
-    Medium: { label: "Core Player", tone: "bg-accent-soft border-accent/20" },
-    High: { label: "High Performer", tone: "bg-emerald-50 border-emerald-200" },
-  },
-  Low: {
-    Low: { label: "Risk", tone: "bg-red-50 border-red-200" },
-    Medium: { label: "Trusted Professional", tone: "bg-accent-soft border-line" },
-    High: { label: "Solid Performer", tone: "bg-accent-soft border-line" },
-  },
-};
+import { TALENT_BOX_META as BOX_META, scoreBucket as bucketFor, type Bucket } from "@/lib/reporting";
 
 const POTENTIAL_ROWS: Bucket[] = ["High", "Medium", "Low"];
 const PERFORMANCE_COLS: Bucket[] = ["Low", "Medium", "High"];

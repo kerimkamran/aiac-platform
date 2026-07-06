@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Card, Icon, PageHeader, categoryStyle } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
-import { generateCasesForCompetency, generateCasesForAllCompetencies, deleteCase } from "./actions";
+import { generateCasesForCompetency, generateCasesForAllCompetencies, deleteCase, uploadCasesFromFile } from "./actions";
 
 // A single bulk "generate for all 37 competencies" run makes many sequential
 // LLM calls in batches — comfortably longer than a single-assessment
@@ -15,9 +15,25 @@ const ENGINE_LABEL: Record<string, string> = { claude: "Claude", fugu: "Sakana F
 export default async function CaseLibraryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; competency?: string; tag?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    competency?: string;
+    tag?: string;
+    uploaded?: string;
+    upload_errors?: string;
+    upload_error_sample?: string;
+    upload_error?: string;
+  }>;
 }) {
-  const { error, competency: competencyFilter, tag: tagFilter } = await searchParams;
+  const {
+    error,
+    competency: competencyFilter,
+    tag: tagFilter,
+    uploaded,
+    upload_errors: uploadErrors,
+    upload_error_sample: uploadErrorSample,
+    upload_error: uploadError,
+  } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -76,6 +92,18 @@ export default async function CaseLibraryPage({
       />
 
       {error && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{error}</p>}
+      {uploadError && (
+        <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-6">{uploadError}</p>
+      )}
+      {uploaded !== undefined && (
+        <div className="text-sm bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl px-4 py-3 mb-6">
+          <p className="font-semibold">
+            Imported {uploaded} case{uploaded === "1" ? "" : "s"} from your upload
+            {uploadErrors && uploadErrors !== "0" ? `, ${uploadErrors} row(s) skipped` : ""}.
+          </p>
+          {uploadErrorSample && <p className="text-xs text-emerald-700 mt-1">{uploadErrorSample}</p>}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
@@ -228,7 +256,70 @@ export default async function CaseLibraryPage({
             )}
           </Card>
 
-          {methodologyTags.length > 0 && (
+          <Card className="p-6">
+            <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
+              <Icon name="download" className="w-4 h-4 text-accent-dark" />
+              Upload cases
+            </p>
+            <p className="text-xs text-muted mb-4">
+              Add cases from an existing file instead of (or alongside) AI generation. Accepts Excel (.xlsx), Word
+              (.docx), plain text (.txt), or Markdown (.md).
+            </p>
+            <details className="mb-4 text-xs text-muted">
+              <summary className="cursor-pointer font-semibold text-accent-dark">Expected format</summary>
+              <p className="mt-2">
+                <span className="font-semibold text-foreground">Excel:</span> one row per case with headers like
+                Competency, Title, Scenario, Question, Type, Option A–D, Difficulty, Methodology.
+              </p>
+              <p className="mt-2">
+                <span className="font-semibold text-foreground">Word / text / Markdown:</span> labeled fields per
+                case, separated by a line of <code>---</code>:
+              </p>
+              <pre className="mt-1.5 bg-background border border-line rounded-lg p-2.5 text-[10.5px] whitespace-pre-wrap">
+{`Title: Handling a missed deadline
+Competency: CF-F09
+Difficulty: mid
+Methodology: Mettl-style SJT
+Scenario: ...
+Question: ...
+Type: mcq
+Options:
+A) ...
+B) ...
+---`}
+              </pre>
+            </details>
+            <form action={uploadCasesFromFile} encType="multipart/form-data" className="space-y-3">
+              <input
+                type="file"
+                name="file"
+                accept=".xlsx,.xls,.docx,.txt,.md,.markdown"
+                required
+                className="w-full text-xs file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-accent-soft file:text-accent-dark file:font-semibold file:text-xs bg-background border border-line rounded-xl px-2 py-1.5"
+              />
+              <div>
+                <label className="text-[11px] font-semibold text-muted block mb-1">
+                  Default competency (used when a case doesn&apos;t specify one)
+                </label>
+                <select
+                  name="default_competency_id"
+                  className="w-full bg-background border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                >
+                  <option value="">None — skip unmatched rows</option>
+                  {compList.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} ({c.category})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <button className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
+                Upload &amp; import
+              </button>
+            </form>
+          </Card>
+
+                    {methodologyTags.length > 0 && (
             <Card className="p-5">
               <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">Filter by methodology</p>
               <div className="flex flex-wrap gap-1.5">

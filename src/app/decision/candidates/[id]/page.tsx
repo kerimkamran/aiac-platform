@@ -2,9 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitReview } from "./actions";
-import { Avatar, Card, Icon, ScoreRing, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
+import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -53,15 +54,32 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     .filter((s) => s.competencies)
     .sort((a, b) => b.score - a.score);
 
-  const byCategory = ["Core", "Leadership", "Functional"]
-    .map((cat) => ({ cat, rows: scores.filter((s) => s.competencies!.category === cat) }))
-    .filter((g) => g.rows.length > 0);
+  const competencyLines = scores.map((s) => ({
+    name: s.competencies!.name,
+    category: s.competencies!.category,
+    score: s.score,
+    level: s.level,
+  }));
+  const byCategory = categoryRollups(competencyLines);
 
   const peerScores = ((peerScoresRaw || []) as { id: string; overall_score: number }[]).map((p) => p.overall_score);
-  const peerCount = peerScores.filter((s) => s !== null).length;
-  const percentile =
-    ca.overall_score !== null && peerCount > 1
-      ? Math.round((peerScores.filter((s) => s < ca.overall_score!).length / (peerCount - 1)) * 100)
+  const benchmark = computeBenchmark(ca.overall_score, peerScores);
+
+  let boxLabel: string | null = null;
+  if (ca.overall_score !== null && competencyLines.length > 0) {
+    const { potential } = potentialFromCompetencies(ca.overall_score, competencyLines);
+    boxLabel = talentBoxFor(ca.overall_score, potential).label;
+  }
+
+  const executiveSummary =
+    ca.overall_score !== null && competencyLines.length > 0
+      ? buildExecutiveSummary({
+          candidateName: candidate?.full_name || "This candidate",
+          overallScore: ca.overall_score,
+          competencies: competencyLines,
+          benchmark,
+          boxLabel,
+        })
       : null;
 
   const submitReviewWithId = submitReview.bind(null, id);
@@ -105,6 +123,8 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
 
       {ca.overall_score !== null ? (
         <>
+          {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} />}
+
           {/* Score + radar */}
           <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
             <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
@@ -124,35 +144,17 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             </Card>
           </div>
 
-          {percentile !== null && (
-            <Card className="p-6 mb-6">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-3">Benchmark vs. other candidates</p>
-              <div className="flex items-center gap-4">
-                <p className="text-2xl font-bold text-brand tabular-nums shrink-0">
-                  {percentile}
-                  <span className="text-sm font-semibold text-faint">th pct</span>
-                </p>
-                <div className="flex-1">
-                  <div className="h-2.5 rounded-full bg-line/70 overflow-hidden relative">
-                    <div className="h-full rounded-full bg-brand anim-grow" style={{ width: `${percentile}%` }} />
-                  </div>
-                  <p className="text-xs text-muted mt-2">
-                    Scored higher than {percentile}% of the {peerCount} candidate{peerCount === 1 ? "" : "s"} assessed for{" "}
-                    <span className="font-medium text-foreground">{assessment?.title}</span>.
-                  </p>
-                </div>
-              </div>
-            </Card>
-          )}
+          <BenchmarkCard benchmark={benchmark} assessmentTitle={assessment?.title} boxLabel={boxLabel} />
 
           {/* Competency bars by category */}
-          {byCategory.map(({ cat, rows }) => {
+          {byCategory.map(({ cat, rows, avg }) => {
             const style = categoryStyle(cat);
             return (
               <Card key={cat} className="p-6 mb-5">
                 <p className="flex items-center gap-2 text-sm font-bold text-foreground mb-5">
                   <span className={`w-2 h-2 rounded-full ${style.dot}`} />
                   {cat} competencies
+                  {avg !== null && <span className="ml-auto text-xs font-bold text-muted tabular-nums">avg {avg}</span>}
                 </p>
                 <div className="space-y-4">
                   {rows.map((s, i) => {
@@ -160,7 +162,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     return (
                       <div key={i}>
                         <div className="flex items-center justify-between text-[13px] mb-1.5">
-                          <span className="font-medium text-foreground">{s.competencies!.name}</span>
+                          <span className="font-medium text-foreground">{s.name}</span>
                           <span className="flex items-center gap-2.5">
                             <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
                               {s.level}
