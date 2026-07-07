@@ -64,7 +64,7 @@ export default async function PeoplePage({
   const grantableStaffRoles = isSuperAdmin ? STAFF_ROLE_OPTIONS : (["recruiter", "hiring_manager"] as const);
   const grantableAllRoles = isSuperAdmin ? ALL_ROLE_OPTIONS : (["candidate", "decision_maker", "recruiter", "hiring_manager"] as const);
 
-  const [{ data: profiles }, { data: auditRows }] = await Promise.all([
+  const [{ data: profiles }, { data: auditRows }, { data: assessmentOptions }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, role, department, status, created_at")
@@ -76,6 +76,7 @@ export default async function PeoplePage({
       )
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase.from("assessments").select("id, title").eq("status", "published").order("title"),
   ]);
 
   const allRows = (profiles || []) as unknown as ProfileRow[];
@@ -444,6 +445,7 @@ export default async function PeoplePage({
             <option value="deactivate">Deactivate</option>
             <option value="resend_invite">Resend invite</option>
             <option value="set_role">Change role to…</option>
+            {(assessmentOptions || []).length > 0 && <option value="assign_assessment">Assign assessment…</option>}
           </select>
           <select
             name="bulk_role"
@@ -455,6 +457,19 @@ export default async function PeoplePage({
               </option>
             ))}
           </select>
+          {(assessmentOptions || []).length > 0 && (
+            <select
+              name="bulk_assessment_id"
+              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+              aria-label="Assessment to assign"
+            >
+              {(assessmentOptions || []).map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.title}
+                </option>
+              ))}
+            </select>
+          )}
           <ConfirmSubmitButton
             confirmMessage="Apply this bulk action to everyone selected below?"
             className="bg-brand text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-light transition-colors"

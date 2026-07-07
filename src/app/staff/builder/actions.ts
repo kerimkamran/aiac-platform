@@ -98,6 +98,8 @@ export async function inviteCandidate(assessmentId: string, formData: FormData) 
   const supabase = await createClient();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const fullName = String(formData.get("full_name") || "").trim();
+  const department = String(formData.get("department") || "").trim() || null;
+  const jobTitle = String(formData.get("job_title") || "").trim() || null;
 
   if (!email) {
     redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Email is required."));
@@ -109,7 +111,7 @@ export async function inviteCandidate(assessmentId: string, formData: FormData) 
     p_email: email,
     p_full_name: fullName || email.split("@")[0],
     p_role: "candidate",
-    p_department: null,
+    p_department: department,
   });
 
   if (provisionError) {
@@ -123,6 +125,16 @@ export async function inviteCandidate(assessmentId: string, formData: FormData) 
     redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Could not provision candidate."));
   }
 
+  // Division/position apply to the person's profile itself (shared across all
+  // their assessments), so keep them in sync here regardless of whether this
+  // call created a brand-new profile or matched an existing one.
+  if (department || jobTitle) {
+    await supabase
+      .from("profiles")
+      .update({ ...(department ? { department } : {}), ...(jobTitle ? { job_title: jobTitle } : {}) })
+      .eq("id", candidateId as string);
+  }
+
   const { error: linkError } = await supabase.from("candidate_assessments").insert({
     assessment_id: assessmentId,
     candidate_id: candidateId,
@@ -134,11 +146,60 @@ export async function inviteCandidate(assessmentId: string, formData: FormData) 
   }
 
   const site = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://insight-azerconnect.vercel.app";
-  await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${site}/invite/callback` });
+  const { error: mailError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${site}/invite/callback` });
 
   revalidatePath(`/staff/builder/${assessmentId}`);
   revalidatePath("/staff/people");
   void wasCreated;
+
+  if (mailError) {
+    redirect(
+      `/staff/builder/${assessmentId}?error=` +
+        encodeURIComponent(`${fullName || email} was added to the assessment, but the invite email failed to send (${mailError.message}). Resend it from People & Access.`)
+    );
+  }
+  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${fullName || email} was invited.`));
+}
+
+// Assigns an already-existing profile (any role) to this assessment without
+// creating a new account or sending an auth email -- they already have one.
+// Notified in-app instead, since that doesn't depend on outbound mail at all.
+export async function assignExistingCandidate(assessmentId: string, formData: FormData) {
+  const supabase = await createClient();
+  const profileId = String(formData.get("profile_id") || "").trim();
+
+  if (!profileId) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Choose a person first."));
+  }
+
+  const { error: linkError } = await supabase.from("candidate_assessments").insert({
+    assessment_id: assessmentId,
+    candidate_id: profileId,
+    status: "invited",
+  });
+
+  if (linkError) {
+    redirect(
+      `/staff/builder/${assessmentId}?error=` +
+        encodeURIComponent(linkError.message.includes("duplicate") ? "This person is already assigned to this assessment." : linkError.message)
+    );
+  }
+
+  const [{ data: assessment }, { data: profile }] = await Promise.all([
+    supabase.from("assessments").select("title").eq("id", assessmentId).single(),
+    supabase.from("profiles").select("full_name").eq("id", profileId).single(),
+  ]);
+
+  await supabase.from("notifications").insert({
+    user_id: profileId,
+    title: "New assessment assigned",
+    body: `You've been assigned "${assessment?.title || "an assessment"}". Log in to take it.`,
+    link: "/candidate/assessments",
+  });
+
+  revalidatePath(`/staff/builder/${assessmentId}`);
+  revalidatePath("/staff/people");
+  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${profile?.full_name || "Person"} was assigned this assessment.`));
 }
 
 export async function updateProctoringSettings(assessmentId: string, formData: FormData) {

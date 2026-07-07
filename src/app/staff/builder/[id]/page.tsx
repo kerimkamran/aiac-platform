@@ -6,6 +6,7 @@ import {
   addQuestion,
   publishAssessment,
   inviteCandidate,
+  assignExistingCandidate,
   updateProctoringSettings,
   deleteAssessment,
   updateAssessmentMeta,
@@ -16,7 +17,10 @@ import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 
-const TOAST_SPECS: ToastSpec[] = [{ param: "error", variant: "error" }];
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "added", variant: "success" },
+];
 
 // AI generation can legitimately take 30-90+ seconds; give the underlying
 // Server Action room to finish instead of racing an unnecessarily tight default.
@@ -62,7 +66,7 @@ export default async function BuilderDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; added?: string }>;
 }) {
   const { id } = await params;
   await searchParams;
@@ -86,7 +90,7 @@ export default async function BuilderDetailPage({
     supabase.from("competencies").select("id, name, category").order("category").order("name"),
     supabase
       .from("candidate_assessments")
-      .select("id, status, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email)")
+      .select("id, status, candidate_id, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email)")
       .eq("assessment_id", id),
     supabase.from("proctoring_settings").select("camera_enabled, storage_backend").eq("assessment_id", id).maybeSingle(),
   ]);
@@ -95,8 +99,25 @@ export default async function BuilderDetailPage({
   const questionCount = (sections || []).reduce((n, s) => n + ((s.questions as unknown[]) || []).length, 0);
   const addSectionWithId = addSection.bind(null, id);
   const inviteCandidateWithId = inviteCandidate.bind(null, id);
+  const assignExistingWithId = assignExistingCandidate.bind(null, id);
   const updateProctoringWithId = updateProctoringSettings.bind(null, id);
   const updateMetaWithId = updateAssessmentMeta.bind(null, id);
+
+  const alreadyInvitedIds = new Set((invitees || []).map((iv) => iv.candidate_id as string));
+  const { data: assignableProfiles } = await supabase
+    .from("profiles")
+    .select("id, full_name, email, role")
+    .eq("status", "active")
+    .order("full_name");
+  const ROLE_LABEL: Record<string, string> = {
+    system_admin: "Super Admin",
+    hr_admin: "Admin",
+    recruiter: "Recruiter",
+    hiring_manager: "Hiring Manager",
+    decision_maker: "Decision Maker",
+    candidate: "Candidate",
+  };
+  const assignableList = (assignableProfiles || []).filter((p) => !alreadyInvitedIds.has(p.id));
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -369,27 +390,69 @@ export default async function BuilderDetailPage({
             Invite candidates
           </p>
           <p className="text-xs text-muted mb-4">
-            Candidates don&apos;t need an existing account — we&apos;ll create one and email them a link to set their password.
+            New person: we&apos;ll create their account and email them a link to set a password. Existing person:
+            assign the assessment directly — no email needed, they&apos;ll see it next time they sign in.
           </p>
-          <form action={inviteCandidateWithId} className="flex flex-col gap-2 mb-5">
+
+          {assignableList.length > 0 && (
+            <form action={assignExistingWithId} className="flex flex-col gap-2 mb-4 pb-4 border-b border-line">
+              <label className="text-[11px] font-semibold text-muted uppercase tracking-wide">Existing person</label>
+              <div className="flex gap-2">
+                <select
+                  name="profile_id"
+                  required
+                  defaultValue=""
+                  className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                  aria-label="Select an existing person"
+                >
+                  <option value="" disabled>
+                    Type a name…
+                  </option>
+                  {assignableList.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.full_name} — {p.email} ({ROLE_LABEL[p.role] || p.role})
+                    </option>
+                  ))}
+                </select>
+                <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0">
+                  Assign
+                </button>
+              </div>
+            </form>
+          )}
+
+          <label className="text-[11px] font-semibold text-muted uppercase tracking-wide">New person</label>
+          <form action={inviteCandidateWithId} className="flex flex-col gap-2 mt-1.5 mb-5">
             <input
               name="full_name"
               type="text"
               placeholder="Full name"
               className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
             />
+            <input
+              name="email"
+              type="email"
+              required
+              placeholder="candidate@email.com"
+              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+            />
             <div className="flex gap-2">
               <input
-                name="email"
-                type="email"
-                required
-                placeholder="candidate@email.com"
+                name="department"
+                type="text"
+                placeholder="Division"
                 className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <button className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors shrink-0">
-                Invite
-              </button>
+              <input
+                name="job_title"
+                type="text"
+                placeholder="Vacancy / position"
+                className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              />
             </div>
+            <button className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors">
+              Invite
+            </button>
           </form>
           <div className="space-y-2.5 max-h-72 overflow-y-auto">
             {(invitees || []).map((iv) => {

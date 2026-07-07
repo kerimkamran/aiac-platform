@@ -325,7 +325,7 @@ export async function setUserStatus(userId: string, status: "active" | "deactiva
   );
 }
 
-type BulkAction = "set_role" | "activate" | "deactivate" | "resend_invite";
+type BulkAction = "set_role" | "activate" | "deactivate" | "resend_invite" | "assign_assessment";
 
 export async function bulkPeopleAction(formData: FormData) {
   const supabase = await requireAdmin();
@@ -335,6 +335,7 @@ export async function bulkPeopleAction(formData: FormData) {
 
   const action = String(formData.get("bulk_action") || "") as BulkAction;
   const bulkRole = String(formData.get("bulk_role") || "");
+  const bulkAssessmentId = String(formData.get("bulk_assessment_id") || "");
   const userIds = formData
     .getAll("user_ids")
     .map((v) => String(v))
@@ -344,7 +345,7 @@ export async function bulkPeopleAction(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent("Select at least one person first."));
   }
 
-  if (!["set_role", "activate", "deactivate", "resend_invite"].includes(action)) {
+  if (!["set_role", "activate", "deactivate", "resend_invite", "assign_assessment"].includes(action)) {
     redirect("/staff/people?error=" + encodeURIComponent("Choose a bulk action."));
   }
 
@@ -352,10 +353,20 @@ export async function bulkPeopleAction(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent("Choose a valid role for the bulk update."));
   }
 
+  if (action === "assign_assessment" && !bulkAssessmentId) {
+    redirect("/staff/people?error=" + encodeURIComponent("Choose an assessment to assign."));
+  }
+
   let currentDepartments = new Map<string, string | null>();
   if (action === "set_role") {
     const { data: rows } = await supabase.from("profiles").select("id, department").in("id", userIds);
     currentDepartments = new Map((rows || []).map((r) => [r.id, r.department as string | null]));
+  }
+
+  let assessmentTitle = "an assessment";
+  if (action === "assign_assessment") {
+    const { data: assessment } = await supabase.from("assessments").select("title").eq("id", bulkAssessmentId).single();
+    if (assessment?.title) assessmentTitle = assessment.title;
   }
 
   let succeeded = 0;
@@ -381,6 +392,21 @@ export async function bulkPeopleAction(formData: FormData) {
         if (!row?.email) throw new Error("No email on file.");
         const inviteError = await sendInviteEmail(supabase, row.email);
         if (inviteError) throw new Error(inviteError);
+      } else if (action === "assign_assessment") {
+        const { error } = await supabase
+          .from("candidate_assessments")
+          .insert({ assessment_id: bulkAssessmentId, candidate_id: id, status: "invited" });
+        if (error) {
+          if (!error.message.includes("duplicate")) throw error;
+          // Already assigned -- count it a no-op success, but don't re-notify.
+        } else {
+          await supabase.from("notifications").insert({
+            user_id: id,
+            title: "New assessment assigned",
+            body: `You've been assigned "${assessmentTitle}". Log in to take it.`,
+            link: "/candidate/assessments",
+          });
+        }
       }
       succeeded++;
     } catch {
@@ -397,7 +423,9 @@ export async function bulkPeopleAction(formData: FormData) {
         ? "activated"
         : action === "deactivate"
           ? "deactivated"
-          : "re-invited";
+          : action === "assign_assessment"
+            ? `assigned "${assessmentTitle}"`
+            : "re-invited";
 
   const summary =
     failed === 0
