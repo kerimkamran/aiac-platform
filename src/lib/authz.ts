@@ -11,7 +11,9 @@ export type SessionProfile = {
   organization_id: string | null;
 };
 
-export const ADMIN_ROLES = ["system_admin", "org_admin", "hr_admin"] as const;
+// The enterprise Admin Panel (/admin) is Super Admin only. Staff-level admin
+// tools (People & Access, Settings) remain gated separately in the staff layout.
+export const ADMIN_ROLES = ["system_admin"] as const;
 
 /** Load the signed-in user's profile, or null. */
 export async function getSessionProfile(): Promise<SessionProfile | null> {

@@ -46,14 +46,17 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (profile.role === "system_admin") {
     links.push({ href: "/staff/case-library", label: "Case Library", icon: "brain" });
   }
-  if (isAdmin) {
+  if (profile.role === "system_admin") {
     links.push({ href: "/admin", label: "Admin Panel", icon: "command" });
   }
   if ((myInvites ?? 0) > 0) {
     links.push({ href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" });
   }
 
-  const actions: NavLink[] = [{ href: "/staff/builder", label: "New assessment", icon: "plus" }];
+  const actions: NavLink[] = [
+    { href: "/staff/builder", label: "New assessment", icon: "plus" },
+    { href: "/staff/compare", label: "Compare candidates", icon: "chart" },
+  ];
   if (isAdmin) {
     actions.push({ href: "/staff/people#add-candidate", label: "Add a candidate", icon: "plus" });
     actions.push({ href: "/staff/people#add-staff", label: "Add a staff member", icon: "plus" });

@@ -7,11 +7,12 @@ import type { NavLink } from "@/components/NavShell";
 
 const RECENTS_KEY = "aiac-recent-nav";
 const MAX_RECENTS = 5;
-const GROUP_ORDER = ["Recent", "Quick actions", "Pages"] as const;
+const GROUP_ORDER = ["Recent", "Quick actions", "Pages", "People & assessments"] as const;
 
 type Group = (typeof GROUP_ORDER)[number];
-type Item = NavLink & { group: Group };
+type Item = NavLink & { group: Group; sublabel?: string };
 type ScoredItem = Item & { positions: number[] };
+type RemoteItem = { label: string; sublabel?: string; href: string; icon: string };
 
 /** Ordered subsequence fuzzy match — every query char must appear in text, in
  *  order, but not necessarily adjacent. Score rewards early + consecutive hits
@@ -65,8 +66,34 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
   const [recents, setRecents] = useState<NavLink[]>([]);
+  const [remote, setRemote] = useState<RemoteItem[]>([]);
+  const [searching, setSearching] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+
+  /* Debounced entity search (candidates, assessments) while the palette is
+   * open. Cleanup cancels both the pending timer and any in-flight request,
+   * so stale responses can never overwrite newer ones. */
+  useEffect(() => {
+    const needle = query.trim();
+    if (!open || needle.length < 2) return;
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(needle)}`, { signal: controller.signal });
+        const json = res.ok ? await res.json() : { results: [] };
+        setRemote(Array.isArray(json.results) ? json.results : []);
+      } catch {
+        if (!controller.signal.aborted) setRemote([]);
+      } finally {
+        if (!controller.signal.aborted) setSearching(false);
+      }
+    }, 200);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [query, open]);
 
   /* Track recently visited nav destinations in localStorage (MRU, deduped). */
   useEffect(() => {
@@ -88,6 +115,8 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
   const openPalette = () => {
     setQuery("");
     setActiveIdx(0);
+    setRemote([]);
+    setSearching(false);
     setOpen(true);
   };
   const closePalette = () => setOpen(false);
@@ -100,6 +129,8 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
           if (!o) {
             setQuery("");
             setActiveIdx(0);
+            setRemote([]);
+            setSearching(false);
           }
           return !o;
         });
@@ -130,20 +161,28 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
       seen.add(it.href);
       withScore.push({ ...it, score: m.score, positions: m.positions });
     }
-    if (!needle) {
-      // Stable group order when browsing with no query.
-      return GROUP_ORDER.flatMap((g) => withScore.filter((it) => it.group === g));
+    if (needle) {
+      // Best matches first, grouped headers still rendered in GROUP_ORDER below
+      // but relative ranking within a group follows match score.
+      withScore.sort((a, b) => b.score - a.score);
     }
-    // Best matches first, grouped headers still rendered in GROUP_ORDER below
-    // but relative ranking within a group follows match score.
-    withScore.sort((a, b) => b.score - a.score);
+    // Remote entities keep server order — the server already ranked them, and
+    // they matched on fields (email) that aren't in the visible label.
+    for (const r of remote) {
+      if (seen.has(r.href)) continue;
+      seen.add(r.href);
+      withScore.push({ ...r, group: "People & assessments", score: 0, positions: [] });
+    }
     return GROUP_ORDER.flatMap((g) => withScore.filter((it) => it.group === g));
-  }, [items, query]);
+  }, [items, query, remote]);
 
   const go = (href: string) => {
     closePalette();
     router.push(href);
   };
+
+  // Async results can shrink the list under the cursor — keep the highlight valid.
+  const active = Math.min(activeIdx, Math.max(0, displayList.length - 1));
 
   if (!open) {
     return (
@@ -179,6 +218,12 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
             onChange={(e) => {
               setQuery(e.target.value);
               setActiveIdx(0);
+              if (e.target.value.trim().length >= 2) {
+                setSearching(true);
+              } else {
+                setSearching(false);
+                setRemote([]);
+              }
             }}
             onKeyDown={(e) => {
               if (e.key === "ArrowDown") {
@@ -189,8 +234,8 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
                 e.preventDefault();
                 setActiveIdx((i) => Math.max(0, i - 1));
               }
-              if (e.key === "Enter" && displayList[activeIdx]) {
-                go(displayList[activeIdx].href);
+              if (e.key === "Enter" && displayList[active]) {
+                go(displayList[active].href);
               }
             }}
             placeholder="Jump to a page or action…"
@@ -211,16 +256,25 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
                   onClick={() => go(l.href)}
                   onMouseEnter={() => setActiveIdx(l.idx)}
                   className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
-                    l.idx === activeIdx ? "bg-accent-soft text-accent-dark" : "text-foreground hover:bg-background"
+                    l.idx === active ? "bg-accent-soft text-accent-dark" : "text-foreground hover:bg-background"
                   }`}
                 >
                   <Icon name={l.icon} className="w-4 h-4 shrink-0" />
-                  <HighlightMatch text={l.label} positions={l.positions} />
+                  <span className="truncate">
+                    <HighlightMatch text={l.label} positions={l.positions} />
+                  </span>
+                  {l.sublabel && <span className="ml-auto text-xs text-faint truncate max-w-48">{l.sublabel}</span>}
                 </button>
               ))}
             </div>
           ))}
-          {displayList.length === 0 && <p className="px-3 py-6 text-center text-sm text-faint">No matches.</p>}
+          {searching && (
+            <p className="px-3 py-2.5 text-xs text-faint flex items-center gap-2">
+              <span className="w-3 h-3 rounded-full border-2 border-line border-t-accent-dark animate-spin" />
+              Searching people &amp; assessments…
+            </p>
+          )}
+          {displayList.length === 0 && !searching && <p className="px-3 py-6 text-center text-sm text-faint">No matches.</p>}
         </div>
       </div>
     </div>
