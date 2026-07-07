@@ -17,13 +17,21 @@ async function requireAdmin() {
   return supabase;
 }
 
-async function sendInviteEmail(supabase: Awaited<ReturnType<typeof createClient>>, email: string) {
-  const site = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "https://insight-azerconnect.vercel.app";
-  await supabase.auth.resetPasswordForEmail(email, {
+// Returns a short, admin-facing reason when the invite email could not be
+// queued (e.g. Supabase's shared default mailer rate limit), or null on
+// success. Every caller must check this instead of assuming the email went
+// out -- resetPasswordForEmail() can fail silently (rate limit, provider
+// error) and previously that failure was dropped on the floor, so admins
+// were told "invited by email" even when nothing was sent.
+async function sendInviteEmail(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  email: string
+): Promise<string | null> {
+  const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://insight-azerconnect.vercel.app");
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${site}/invite/callback`,
   });
+  return error ? error.message : null;
 }
 
 export async function addCandidate(formData: FormData) {
@@ -47,10 +55,15 @@ export async function addCandidate(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent(error.message));
   }
 
-  await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
-  redirect("/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`));
+  redirect(
+    inviteError
+      ? "/staff/people?error=" +
+          encodeURIComponent(`${fullName} was added, but the invite email failed to send (${inviteError}). Use "Resend invite" once the issue clears.`)
+      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`)
+  );
 }
 
 export async function addDecisionMaker(formData: FormData) {
@@ -73,17 +86,27 @@ export async function addDecisionMaker(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent(error.message));
   }
 
-  await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
-  redirect("/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`));
+  redirect(
+    inviteError
+      ? "/staff/people?error=" +
+          encodeURIComponent(`${fullName} was added, but the invite email failed to send (${inviteError}). Use "Resend invite" once the issue clears.`)
+      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`)
+  );
 }
 
 export async function resendInvite(email: string) {
   "use server";
   const supabase = await requireAdmin();
-  await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(supabase, email);
   revalidatePath("/staff/people");
+  redirect(
+    inviteError
+      ? "/staff/people?error=" + encodeURIComponent(`Couldn't resend the invite: ${inviteError}`)
+      : "/staff/people?added=" + encodeURIComponent("Invite email resent.")
+  );
 }
 
 export async function assignDecisionMaker(candidateAssessmentId: string, formData: FormData) {
@@ -178,6 +201,7 @@ export async function bulkAddCandidates(formData: FormData) {
   let added = 0;
   let skipped = 0;
   const failed: string[] = [];
+  const inviteFailed: string[] = [];
 
   for (const row of rows) {
     const email = (row.email || row["e-mail"] || "").trim().toLowerCase();
@@ -203,7 +227,8 @@ export async function bulkAddCandidates(formData: FormData) {
 
     const wasCreated = provisioned?.[0]?.created as boolean | undefined;
     if (wasCreated) {
-      await sendInviteEmail(supabase, email);
+      const inviteError = await sendInviteEmail(supabase, email);
+      if (inviteError) inviteFailed.push(email);
       added++;
     } else {
       skipped++;
@@ -213,8 +238,8 @@ export async function bulkAddCandidates(formData: FormData) {
   revalidatePath("/staff/people");
 
   const summary = `${added} added and invited, ${skipped} already existed${
-    failed.length ? `, ${failed.length} failed (${failed.slice(0, 5).join("; ")}${failed.length > 5 ? "…" : ""})` : ""
-  }.`;
+    inviteFailed.length ? `, ${inviteFailed.length} invite email(s) failed to send (${inviteFailed.slice(0, 5).join(", ")}${inviteFailed.length > 5 ? "…" : ""}) — use "Resend invite"` : ""
+  }${failed.length ? `, ${failed.length} failed (${failed.slice(0, 5).join("; ")}${failed.length > 5 ? "…" : ""})` : ""}.`;
 
   redirect("/staff/people?added=" + encodeURIComponent(summary));
 }
@@ -249,10 +274,15 @@ export async function addStaffMember(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent(error.message));
   }
 
-  await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
-  redirect("/staff/people?added=" + encodeURIComponent(`${fullName} was added as ${role.replace(/_/g, " ")} and invited by email.`));
+  redirect(
+    inviteError
+      ? "/staff/people?error=" +
+          encodeURIComponent(`${fullName} was added, but the invite email failed to send (${inviteError}). Use "Resend invite" once the issue clears.`)
+      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added as ${role.replace(/_/g, " ")} and invited by email.`)
+  );
 }
 
 export async function updateUserRole(formData: FormData) {
@@ -349,7 +379,8 @@ export async function bulkPeopleAction(formData: FormData) {
       } else if (action === "resend_invite") {
         const { data: row } = await supabase.from("profiles").select("email").eq("id", id).single();
         if (!row?.email) throw new Error("No email on file.");
-        await sendInviteEmail(supabase, row.email);
+        const inviteError = await sendInviteEmail(supabase, row.email);
+        if (inviteError) throw new Error(inviteError);
       }
       succeeded++;
     } catch {
