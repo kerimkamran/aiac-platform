@@ -121,6 +121,31 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
           </tbody>
         </table>
       </Card>
+
+      {selected.size >= 2 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 no-print anim-fade-up">
+          <div className="flex items-center gap-3 bg-foreground text-white rounded-2xl shadow-2xl px-4 py-2.5">
+            <span className="text-sm font-semibold tabular-nums whitespace-nowrap">{selected.size} selected</span>
+            {selected.size <= 4 ? (
+              <Link
+                href={`/staff/compare?ids=${Array.from(selected).join(",")}`}
+                className="inline-flex items-center gap-1.5 bg-white/15 hover:bg-white/25 transition-colors text-sm font-bold px-3.5 py-1.5 rounded-xl whitespace-nowrap"
+              >
+                <Icon name="chart" className="w-4 h-4" />
+                Compare
+              </Link>
+            ) : (
+              <span className="text-xs text-white/60 whitespace-nowrap">Compare supports up to 4</span>
+            )}
+            <button
+              onClick={() => setSelected(new Set())}
+              className="text-xs font-semibold text-white/60 hover:text-white transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 }
