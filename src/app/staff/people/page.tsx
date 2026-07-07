@@ -406,6 +406,7 @@ export default async function PeoplePage({
                               p.status === "active" ? `Deactivate ${p.full_name}? They won't be able to sign in.` : `Reactivate ${p.full_name}?`
                             }
                             className={`text-xs font-semibold hover:underline ${p.status === "active" ? "text-critical" : "text-accent-dark"}`}
+                            compact
                           >
                             {p.status === "active" ? "Deactivate" : "Reactivate"}
                           </ConfirmSubmitButton>
@@ -515,6 +516,7 @@ export default async function PeoplePage({
                           p.status === "active" ? `Deactivate ${p.full_name}? They won't be able to sign in.` : `Reactivate ${p.full_name}?`
                         }
                         className={`text-xs font-semibold hover:underline ${p.status === "active" ? "text-critical" : "text-accent-dark"}`}
+                        compact
                       >
                         {p.status === "active" ? "Deactivate" : "Reactivate"}
                       </ConfirmSubmitButton>

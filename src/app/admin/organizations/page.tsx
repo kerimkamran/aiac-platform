@@ -30,6 +30,7 @@ function UnitTree({ units, parentId, depth }: { units: Unit[]; parentId: string 
                 confirmMessage={`Delete "${u.name}" and all units beneath it? Users keep their accounts but lose this assignment.`}
                 icon="trash"
                 className="p-1 rounded text-faint hover:text-critical"
+                compact
               />
             </form>
           </div>

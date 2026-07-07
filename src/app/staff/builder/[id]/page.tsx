@@ -241,6 +241,7 @@ export default async function BuilderDetailPage({
                         confirmMessage={`Delete section "${section.title}" and all its questions?`}
                         icon="trash"
                         className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                        compact
                       />
                     </form>
                   </div>
@@ -264,6 +265,7 @@ export default async function BuilderDetailPage({
                               confirmMessage="Delete this question?"
                               icon="trash"
                               className="p-1 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                              compact
                             />
                           </form>
                         </div>

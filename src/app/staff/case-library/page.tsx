@@ -139,6 +139,7 @@ export default async function CaseLibraryPage({
                       confirmMessage="Delete this case from the library?"
                       icon="trash"
                       className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                      compact
                     />
                   </form>
                 </div>
