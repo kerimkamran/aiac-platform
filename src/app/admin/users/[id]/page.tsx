@@ -65,13 +65,25 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
         <StatusBadge status={user.status} />
         {user.status !== "active" && (
           <form action={setUserStatus.bind(null, id, "active")}>
-            <button className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors">Restore</button>
+            <ConfirmSubmitButton
+              confirmMessage={`Restore ${user.full_name}'s access? They will be able to sign in again.`}
+              tone="accent"
+              className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
+            >
+              Restore
+            </ConfirmSubmitButton>
           </form>
         )}
         {user.status === "active" && (
           <>
             <form action={setUserStatus.bind(null, id, "suspended")}>
-              <button className="border border-line text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-warning transition-colors">Suspend</button>
+              <ConfirmSubmitButton
+                confirmMessage={`Suspend ${user.full_name}? They will be temporarily blocked from logging in.`}
+                tone="critical"
+                className="border border-line text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-warning transition-colors"
+              >
+                Suspend
+              </ConfirmSubmitButton>
             </form>
             <form action={setUserStatus.bind(null, id, "deactivated")}>
               <ConfirmSubmitButton

@@ -25,17 +25,21 @@ export function ConfirmSubmitButton({
   icon,
   children,
   compact = false,
+  tone: toneProp,
+  disabled = false,
 }: {
   confirmMessage: string;
   className?: string;
   icon?: string;
   children?: React.ReactNode;
   compact?: boolean;
+  tone?: SwipeTone;
+  disabled?: boolean;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
-  const tone = inferTone(className);
+  const tone = toneProp ?? inferTone(className);
 
   const submitForm = () => {
     const form = anchorRef.current?.closest("form");
@@ -74,6 +78,7 @@ export function ConfirmSubmitButton({
           onConfirm={submitForm}
           tone={tone}
           icon={icon || "arrowRight"}
+          disabled={disabled}
           className={fullWidth ? "w-full" : "w-full max-w-[190px]"}
         />
       </span>
@@ -82,7 +87,7 @@ export function ConfirmSubmitButton({
 
   return (
     <span ref={anchorRef} className="relative inline-block">
-      <button type="button" onClick={() => setOpen((o) => !o)} className={className} aria-expanded={open}>
+      <button type="button" onClick={() => setOpen((o) => !o)} className={className} aria-expanded={open} disabled={disabled}>
         {icon && <Icon name={icon} className="w-3.5 h-3.5" />}
         {children}
       </button>
@@ -102,6 +107,7 @@ export function ConfirmSubmitButton({
             onConfirm={submitForm}
             tone={tone}
             icon={icon || "arrowRight"}
+            disabled={disabled}
             height={38}
             className="w-full"
           />
