@@ -114,13 +114,15 @@ export default async function BuilderDetailPage({
               await publishAssessment(id);
             }}
           >
-            <button
-              className="inline-flex items-center gap-2 bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-50"
+            <ConfirmSubmitButton
+              confirmMessage={`Publish "${assessment.title}"? Candidates will be able to start taking it.`}
+              icon="zap"
+              tone="accent"
               disabled={questionCount === 0}
+              className="inline-flex items-center gap-2 bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-50"
             >
-              <Icon name="zap" className="w-4 h-4" />
               Publish
-            </button>
+            </ConfirmSubmitButton>
           </form>
         )}
         {isAdmin && (

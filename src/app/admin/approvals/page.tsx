@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { createApprovalRequest, decideApproval } from "../actions";
 
 const TOASTS: ToastSpec[] = [
@@ -53,14 +54,26 @@ export default async function AdminApprovalsPage() {
                   <div className="flex flex-wrap items-center gap-2.5 mt-3">
                     <form action={decideApproval.bind(null, r.id, "approved")} className="flex items-center gap-2">
                       <input name="comment" placeholder="Comment (optional)" className="bg-surface border border-line rounded-xl px-3 py-2 text-xs w-44" aria-label="Approval comment" />
-                      <button className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-accent-dark transition-colors">
-                        <Icon name="check" className="w-3.5 h-3.5" /> Approve & execute
-                      </button>
+                      <ConfirmSubmitButton
+                        compact
+                        icon="check"
+                        tone="accent"
+                        confirmMessage="Approve this request and execute it immediately?"
+                        className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-accent-dark transition-colors"
+                      >
+                        Approve & execute
+                      </ConfirmSubmitButton>
                     </form>
                     <form action={decideApproval.bind(null, r.id, "rejected")}>
-                      <button className="inline-flex items-center gap-1.5 border border-line text-critical text-xs font-bold px-3.5 py-2 rounded-xl hover:border-critical transition-colors">
-                        <Icon name="x" className="w-3.5 h-3.5" /> Reject
-                      </button>
+                      <ConfirmSubmitButton
+                        compact
+                        icon="x"
+                        tone="critical"
+                        confirmMessage="Reject this request?"
+                        className="inline-flex items-center gap-1.5 border border-line text-critical text-xs font-bold px-3.5 py-2 rounded-xl hover:border-critical transition-colors"
+                      >
+                        Reject
+                      </ConfirmSubmitButton>
                     </form>
                   </div>
                 )}
@@ -91,7 +104,13 @@ export default async function AdminApprovalsPage() {
               ))}
             </select>
             <textarea name="note" rows={2} placeholder="Business justification…" className={input} aria-label="Justification" />
-            <button className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors">Submit for approval</button>
+            <ConfirmSubmitButton
+              confirmMessage="Submit this request for approval?"
+              tone="brand"
+              className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors"
+            >
+              Submit for approval
+            </ConfirmSubmitButton>
           </form>
         </Card>
       </div>
