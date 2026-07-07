@@ -72,55 +72,95 @@ export function PipelineFunnel({ stages }: { stages: { label: string; count: num
   );
 }
 
-/* Radar / spider chart for one candidate's competency profile (0–100). */
+/* Distinct series hues for overlaid radars: navy, gold, green, violet. */
+export const RADAR_SERIES_COLORS = ["#0d3d8c", "#b9861a", "#2d6b16", "#8b5cf6"];
+
+export type RadarSeries = { name: string; color: string; values: number[] };
+
+/* Radar / spider chart of competency profiles (0–100). Single-series via
+ * `items`/`color` (original API), or 1–4 overlaid series via `labels`+`series`. */
 export function RadarChart({
   items,
   size = 320,
   color = "#0d3d8c",
+  labels,
+  series,
+  showLegend = false,
 }: {
-  items: { label: string; value: number }[];
+  items?: { label: string; value: number }[];
   size?: number;
   color?: string;
+  labels?: string[];
+  series?: RadarSeries[];
+  showLegend?: boolean;
 }) {
-  const n = items.length;
-  if (n < 3) return null;
+  const axes = labels ?? items?.map((i) => i.label) ?? [];
+  const allSeries: RadarSeries[] =
+    series ?? (items ? [{ name: "", color, values: items.map((i) => i.value) }] : []);
+  const n = axes.length;
+  if (n < 3 || allSeries.length === 0) return null;
   const cx = size / 2;
   const cy = size / 2;
   const R = size / 2 - 46;
+  const fillOpacity = allSeries.length > 1 ? 0.1 : 0.14;
   const angle = (i: number) => (Math.PI * 2 * i) / n - Math.PI / 2;
   const pt = (i: number, r: number) => [cx + r * Math.cos(angle(i)), cy + r * Math.sin(angle(i))];
   const ringPath = (f: number) =>
-    items.map((_, i) => pt(i, R * f).map((v) => v.toFixed(1)).join(",")).join(" ");
-  const valuePts = items.map((it, i) => pt(i, (R * Math.min(100, it.value)) / 100).map((v) => v.toFixed(1)).join(",")).join(" ");
+    axes.map((_, i) => pt(i, R * f).map((v) => v.toFixed(1)).join(",")).join(" ");
+  const valueR = (v: number) => (R * Math.max(0, Math.min(100, v))) / 100;
 
   return (
-    <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-sm mx-auto" role="img" aria-label="Competency radar profile">
-      {[0.25, 0.5, 0.75, 1].map((f) => (
-        <polygon key={f} points={ringPath(f)} fill="none" stroke={GRID} strokeWidth={1} />
-      ))}
-      {items.map((_, i) => {
-        const [x, y] = pt(i, R);
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke={GRID} strokeWidth={1} />;
-      })}
-      <polygon points={valuePts} fill={color} fillOpacity={0.14} stroke={color} strokeWidth={2} strokeLinejoin="round" />
-      {items.map((it, i) => {
-        const [x, y] = pt(i, (R * Math.min(100, it.value)) / 100);
-        return (
-          <circle key={i} cx={x} cy={y} r={3.5} fill={color} stroke="#fff" strokeWidth={2}>
-            <title>{`${it.label}: ${it.value}`}</title>
-          </circle>
-        );
-      })}
-      {items.map((it, i) => {
-        const [x, y] = pt(i, R + 22);
-        const anchor = Math.abs(x - cx) < 10 ? "middle" : x > cx ? "start" : "end";
-        const words = it.label.length > 16 ? `${it.label.slice(0, 15)}…` : it.label;
-        return (
-          <text key={i} x={x} y={y} textAnchor={anchor} dominantBaseline="middle" fontSize={10} fontWeight={500} fill={MUTED}>
-            {words}
-          </text>
-        );
-      })}
-    </svg>
+    <div>
+      <svg viewBox={`0 0 ${size} ${size}`} className="w-full max-w-sm mx-auto" role="img" aria-label="Competency radar profile">
+        {[0.25, 0.5, 0.75, 1].map((f) => (
+          <polygon key={f} points={ringPath(f)} fill="none" stroke={GRID} strokeWidth={1} />
+        ))}
+        {axes.map((_, i) => {
+          const [x, y] = pt(i, R);
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke={GRID} strokeWidth={1} />;
+        })}
+        {allSeries.map((s) => (
+          <polygon
+            key={s.name}
+            points={s.values.map((v, i) => pt(i, valueR(v)).map((c) => c.toFixed(1)).join(",")).join(" ")}
+            fill={s.color}
+            fillOpacity={fillOpacity}
+            stroke={s.color}
+            strokeWidth={2}
+            strokeLinejoin="round"
+          />
+        ))}
+        {allSeries.map((s) =>
+          s.values.map((v, i) => {
+            const [x, y] = pt(i, valueR(v));
+            return (
+              <circle key={`${s.name}-${i}`} cx={x} cy={y} r={allSeries.length > 1 ? 3 : 3.5} fill={s.color} stroke="#fff" strokeWidth={2}>
+                <title>{s.name ? `${s.name} — ${axes[i]}: ${v}` : `${axes[i]}: ${v}`}</title>
+              </circle>
+            );
+          })
+        )}
+        {axes.map((label, i) => {
+          const [x, y] = pt(i, R + 22);
+          const anchor = Math.abs(x - cx) < 10 ? "middle" : x > cx ? "start" : "end";
+          const words = label.length > 16 ? `${label.slice(0, 15)}…` : label;
+          return (
+            <text key={i} x={x} y={y} textAnchor={anchor} dominantBaseline="middle" fontSize={10} fontWeight={500} fill={MUTED}>
+              {words}
+            </text>
+          );
+        })}
+      </svg>
+      {showLegend && allSeries.length > 1 && (
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 mt-3">
+          {allSeries.map((s) => (
+            <span key={s.name} className="flex items-center gap-1.5 text-xs font-medium text-muted">
+              <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: s.color }} />
+              <span className="truncate max-w-32">{s.name}</span>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
