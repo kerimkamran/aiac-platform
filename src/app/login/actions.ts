@@ -30,6 +30,18 @@ export async function login(formData: FormData) {
     redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
   }
 
+  try {
+    await supabase.rpc("log_admin_event", {
+      p_module: "auth",
+      p_action: "login",
+      p_target_type: "user",
+      p_target_id: user!.id,
+      p_details: null,
+      p_ip: null,
+      p_result: "success",
+    });
+  } catch {}
+
   if (profile?.role === "candidate") redirect("/candidate");
   if (profile?.role === "decision_maker") redirect("/decision");
   redirect("/staff");
