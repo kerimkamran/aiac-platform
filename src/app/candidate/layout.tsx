@@ -21,7 +21,15 @@ export default async function CandidateLayout({ children }: { children: React.Re
     await supabase.auth.signOut();
     redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
   }
-  if (profile.role !== "candidate") redirect("/staff");
+  if (profile.role !== "candidate") {
+    // Dual audience: internal employees (any role) may take promotion/development
+    // assessments they were invited to; without invitations, back to the workspace.
+    const { count } = await supabase
+      .from("candidate_assessments")
+      .select("id", { count: "exact", head: true })
+      .eq("candidate_id", user.id);
+    if ((count ?? 0) === 0) redirect("/staff");
+  }
 
   return (
     <NavShell

@@ -1,0 +1,74 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "AIAC Admin API",
+    "version": "1.0.0",
+    "description": "REST API for the AI Assessment Center admin platform. Authentication uses the same Supabase session cookies as the web app; every endpoint enforces the RBAC permission noted in its description and is rate-limited to 60 requests/minute per IP. List endpoints support `page`, `per_page` (max 100), `sort`, and `order` query parameters and return `{ data, meta: { page, per_page, total, total_pages } }`."
+  },
+  "paths": {
+    "/api/v1/users": {
+      "get": {
+        "summary": "List users (permission: users.view)",
+        "parameters": [
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Search name/email" },
+          { "name": "role", "in": "query", "schema": { "type": "string" } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["active", "suspended", "deactivated"] } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "per_page", "in": "query", "schema": { "type": "integer", "default": 25, "maximum": 100 } },
+          { "name": "sort", "in": "query", "schema": { "type": "string", "enum": ["full_name", "email", "role", "status", "last_login_at", "created_at"] } },
+          { "name": "order", "in": "query", "schema": { "type": "string", "enum": ["asc", "desc"] } }
+        ],
+        "responses": { "200": { "description": "Paginated users" }, "401": { "description": "Not authorized" }, "429": { "description": "Rate limited" } }
+      },
+      "post": {
+        "summary": "Provision a user (permission: users.create)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "full_name"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "full_name": { "type": "string" },
+                  "role": { "type": "string", "default": "candidate" },
+                  "department": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Created (or already existed)" }, "422": { "description": "Missing fields" } }
+      }
+    },
+    "/api/v1/users/{id}": {
+      "get": { "summary": "Get one user (permission: users.view; access is PII-audited)", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "User" }, "404": { "description": "Not found" } } },
+      "patch": { "summary": "Update profile fields, role, or status (permission: users.update)", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Updated user" } } },
+      "delete": { "summary": "Soft-delete = deactivate (permission: users.delete). GDPR erasure is a separate anonymize operation in the Admin UI.", "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }], "responses": { "200": { "description": "Deactivated" } } }
+    },
+    "/api/v1/roles": { "get": { "summary": "Role → permissions matrix (permission: roles.view)", "responses": { "200": { "description": "Map of role to permission strings" } } } },
+    "/api/v1/permissions": { "get": { "summary": "All permission definitions (permission: roles.view)", "responses": { "200": { "description": "Permissions" } } } },
+    "/api/v1/organizations": {
+      "get": { "summary": "Organizations and org-unit tree (permission: organizations.view)", "responses": { "200": { "description": "Organizations + units" } } },
+      "post": { "summary": "Create an org unit (permission: organizations.update)", "responses": { "201": { "description": "Created unit" } } }
+    },
+    "/api/v1/audit-logs": {
+      "get": {
+        "summary": "Query the append-only audit log (permission: audit.view)",
+        "parameters": [
+          { "name": "module", "in": "query", "schema": { "type": "string" } },
+          { "name": "actor_id", "in": "query", "schema": { "type": "string", "format": "uuid" } },
+          { "name": "from", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "to", "in": "query", "schema": { "type": "string", "format": "date-time" } }
+        ],
+        "responses": { "200": { "description": "Paginated audit events" } }
+      }
+    },
+    "/api/v1/notifications": {
+      "get": { "summary": "Current user's notifications (any authenticated user)", "responses": { "200": { "description": "Paginated notifications" } } },
+      "post": { "summary": "Mark notifications read ({ ids?: uuid[] }; empty = all)", "responses": { "200": { "description": "Marked" } } }
+    },
+    "/api/health": { "get": { "summary": "Liveness + DB reachability (public)", "responses": { "200": { "description": "ok" }, "503": { "description": "degraded" } } } }
+  }
+}

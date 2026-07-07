@@ -24,7 +24,13 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (profile.role === "candidate") redirect("/candidate");
   if (profile.role === "decision_maker") redirect("/decision");
 
-  const isAdmin = profile.role === "hr_admin" || profile.role === "system_admin";
+  const isAdmin =
+    profile.role === "hr_admin" || profile.role === "system_admin" || profile.role === "org_admin";
+
+  const { count: myInvites } = await supabase
+    .from("candidate_assessments")
+    .select("id", { count: "exact", head: true })
+    .eq("candidate_id", user.id);
 
   const links: NavLink[] = [
     { href: "/staff", label: "Home", icon: "home", exact: true },
@@ -39,6 +45,12 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
   if (profile.role === "system_admin") {
     links.push({ href: "/staff/case-library", label: "Case Library", icon: "brain" });
+  }
+  if (isAdmin) {
+    links.push({ href: "/admin", label: "Admin Panel", icon: "command" });
+  }
+  if ((myInvites ?? 0) > 0) {
+    links.push({ href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" });
   }
 
   const actions: NavLink[] = [{ href: "/staff/builder", label: "New assessment", icon: "plus" }];
