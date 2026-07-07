@@ -46,7 +46,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (profile.role === "system_admin") {
     links.push({ href: "/staff/case-library", label: "Case Library", icon: "brain" });
   }
-  if (isAdmin) {
+  if (profile.role === "system_admin") {
     links.push({ href: "/admin", label: "Admin Panel", icon: "command" });
   }
   if ((myInvites ?? 0) > 0) {
