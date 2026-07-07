@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Card, Icon, ProgressBar } from "@/components/ui";
+import { SwipeToConfirm } from "@/components/SwipeToConfirm";
 
 export type RunnerSection = {
   id: string;
@@ -271,14 +272,23 @@ export function AssessmentRunner({
               <Icon name="arrowLeft" className="w-4 h-4" />
               Keep editing
             </button>
-            <button
-              onClick={doSubmit}
-              disabled={answered < steps.length || isPending}
-              className="flex-1 inline-flex items-center justify-center gap-2 bg-brand text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Icon name="send" className="w-4 h-4" />
-              {isPending ? "Submitting…" : answered < steps.length ? `Answer ${steps.length - answered} more to submit` : "Submit assessment"}
-            </button>
+            <div className="flex-1">
+              <SwipeToConfirm
+                label={
+                  isPending
+                    ? "Submitting…"
+                    : answered < steps.length
+                      ? `Answer ${steps.length - answered} more to submit`
+                      : "Slide to submit assessment"
+                }
+                onConfirm={doSubmit}
+                disabled={answered < steps.length || isPending}
+                tone="brand"
+                icon="send"
+                height={52}
+                className="w-full"
+              />
+            </div>
           </div>
         </div>
       ) : (

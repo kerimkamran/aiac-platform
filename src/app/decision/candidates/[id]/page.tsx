@@ -5,6 +5,7 @@ import { submitReview } from "./actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
+import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -275,10 +276,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             placeholder="Reviewer notes — what stood out, what to probe in interview…"
             className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <button className="inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
-            <Icon name="send" className="w-4 h-4" />
+          <ConfirmSubmitButton
+            confirmMessage="Submit your decision for this candidate?"
+            icon="send"
+            className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
+          >
             Submit decision
-          </button>
+          </ConfirmSubmitButton>
         </form>
 
         {reviews && reviews.length > 0 && (
