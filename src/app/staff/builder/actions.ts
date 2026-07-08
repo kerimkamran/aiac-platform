@@ -4,6 +4,21 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
+// Mirrors the same friendly-messaging in staff/people/actions.ts: Supabase's
+// per-email cooldown and its project-wide send-volume cap are both normal,
+// expected conditions, not app failures -- and "Copy invite link" (People &
+// Access) sidesteps both since it never touches the mailer.
+function friendlyInviteError(raw: string): string {
+  const cooldown = raw.match(/after (\d+) seconds?/i);
+  if (cooldown) {
+    return `Supabase's per-email cooldown is still active (wait ${cooldown[1]}s to resend by email) — or use "Copy invite link" in People & Access to skip the wait.`;
+  }
+  if (/rate limit/i.test(raw)) {
+    return `Supabase's shared email sending limit is temporarily exhausted — use "Copy invite link" in People & Access instead of waiting it out.`;
+  }
+  return raw;
+}
+
 export async function createAssessment(formData: FormData) {
   const supabase = await createClient();
   const {
@@ -155,7 +170,7 @@ export async function inviteCandidate(assessmentId: string, formData: FormData) 
   if (mailError) {
     redirect(
       `/staff/builder/${assessmentId}?error=` +
-        encodeURIComponent(`${fullName || email} was added to the assessment, but the invite email failed to send (${mailError.message}). Resend it from People & Access.`)
+        encodeURIComponent(`${fullName || email} was added to the assessment, but the invite email failed to send. ${friendlyInviteError(mailError.message)}`)
     );
   }
   redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${fullName || email} was invited.`));

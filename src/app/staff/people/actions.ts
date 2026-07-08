@@ -34,6 +34,23 @@ async function sendInviteEmail(
   return error ? error.message : null;
 }
 
+// Supabase returns two distinct, unrelated errors here and admins shouldn't
+// have to know the difference: a per-email cooldown ("you can only request
+// this after N seconds" -- a normal anti-spam throttle, not a failure) and
+// a project-wide send-volume cap ("email rate limit exceeded"). Both have
+// the same real fix available right now: "Copy invite link" generates the
+// link directly and never touches the mailer, so it's unaffected by either.
+function friendlyInviteError(raw: string): string {
+  const cooldown = raw.match(/after (\d+) seconds?/i);
+  if (cooldown) {
+    return `Supabase's per-email cooldown is still active (wait ${cooldown[1]}s to resend by email) — or use "Copy invite link" now to skip the wait.`;
+  }
+  if (/rate limit/i.test(raw)) {
+    return `Supabase's shared email sending limit is temporarily exhausted — use "Copy invite link" now instead of waiting it out.`;
+  }
+  return raw;
+}
+
 export async function addCandidate(formData: FormData) {
   const supabase = await requireAdmin();
   const email = String(formData.get("email") || "").trim().toLowerCase();
@@ -61,7 +78,7 @@ export async function addCandidate(formData: FormData) {
   redirect(
     inviteError
       ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added, but the invite email failed to send (${inviteError}). Use "Resend invite" once the issue clears.`)
+          encodeURIComponent(`${fullName} was added, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
       : "/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`)
   );
 }
@@ -92,7 +109,7 @@ export async function addDecisionMaker(formData: FormData) {
   redirect(
     inviteError
       ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added, but the invite email failed to send (${inviteError}). Use "Resend invite" once the issue clears.`)
+          encodeURIComponent(`${fullName} was added, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
       : "/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`)
   );
 }
@@ -104,7 +121,7 @@ export async function resendInvite(email: string) {
   revalidatePath("/staff/people");
   redirect(
     inviteError
-      ? "/staff/people?error=" + encodeURIComponent(`Couldn't resend the invite: ${inviteError}`)
+      ? "/staff/people?error=" + encodeURIComponent(friendlyInviteError(inviteError))
       : "/staff/people?added=" + encodeURIComponent("Invite email resent.")
   );
 }
@@ -280,7 +297,7 @@ export async function addStaffMember(formData: FormData) {
   redirect(
     inviteError
       ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added, but the invite email failed to send (${inviteError}). Use "Resend invite" once the issue clears.`)
+          encodeURIComponent(`${fullName} was added, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
       : "/staff/people?added=" + encodeURIComponent(`${fullName} was added as ${role.replace(/_/g, " ")} and invited by email.`)
   );
 }
