@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { PageHeader, Card, Icon, Avatar, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { CopyInviteLinkButton } from "@/components/CopyInviteLinkButton";
 import { SelectAllCheckbox } from "@/components/SelectAllCheckbox";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import {
@@ -525,6 +526,7 @@ export default async function PeoplePage({
                     <form action={resendInvite.bind(null, p.email)}>
                       <button className="text-accent-dark text-xs font-semibold hover:underline">Resend invite</button>
                     </form>
+                    <CopyInviteLinkButton email={p.email} />
                     <form action={setUserStatus.bind(null, p.id, p.status === "active" ? "deactivated" : "active")}>
                       <ConfirmSubmitButton
                         confirmMessage={
