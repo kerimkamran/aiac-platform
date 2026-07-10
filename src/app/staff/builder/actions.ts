@@ -20,6 +20,12 @@ function friendlyInviteError(raw: string): string {
   return raw;
 }
 
+export type AssessmentPurpose = "hiring" | "promotion" | "development";
+
+function normalizePurpose(raw: FormDataEntryValue | null): AssessmentPurpose {
+  return raw === "promotion" || raw === "development" ? raw : "hiring";
+}
+
 export async function createAssessment(formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
@@ -32,6 +38,7 @@ export async function createAssessment(formData: FormData) {
   const title = String(formData.get("title") || "");
   const description = String(formData.get("description") || "");
   const timeLimit = Number(formData.get("time_limit_minutes") || 60);
+  const purpose = normalizePurpose(formData.get("purpose"));
 
   const { data, error } = await supabase
     .from("assessments")
@@ -42,6 +49,7 @@ export async function createAssessment(formData: FormData) {
       time_limit_minutes: timeLimit,
       created_by: user!.id,
       status: "draft",
+      purpose,
     })
     .select("id")
     .single();
@@ -323,6 +331,7 @@ async function insertGeneratedAssessment(
     generatedBy: string;
     competencies: { id: string; code: string; name: string }[];
     generated: import("@/lib/generation").GeneratedAssessment;
+    purpose: AssessmentPurpose;
   }
 ) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
@@ -343,6 +352,7 @@ async function insertGeneratedAssessment(
       engine: params.engine,
       generated_by: params.generatedBy,
       generated_at: new Date().toISOString(),
+      purpose: params.purpose,
     })
     .select("id")
     .single();
@@ -407,6 +417,7 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
 
   const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
   const customTitle = String(formData.get("title") || "").trim();
+  const purpose = normalizePurpose(formData.get("purpose"));
 
   if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
     redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
@@ -440,6 +451,7 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
       generatedBy: userId,
       competencies: comps,
       generated,
+      purpose,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
@@ -502,6 +514,7 @@ export async function generateCustomAssessment(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
   const competencyIds = formData.getAll("competency_ids") as string[];
+  const purpose = normalizePurpose(formData.get("purpose"));
 
   if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title."));
   if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
@@ -528,6 +541,7 @@ export async function generateCustomAssessment(formData: FormData) {
       generatedBy: userId,
       competencies: comps || [],
       generated,
+      purpose,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";

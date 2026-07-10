@@ -58,6 +58,29 @@ const SCOPES = [
   { key: "Custom", label: "Manual", icon: "target", blurb: "Hand-pick the exact competencies to generate from." },
 ] as const;
 
+const PURPOSES = [
+  {
+    key: "hiring",
+    label: "Hiring",
+    icon: "users",
+    blurb: "External or internal candidates being evaluated for an open role.",
+  },
+  {
+    key: "promotion",
+    label: "Promotion",
+    icon: "trending",
+    blurb: "Existing employees being evaluated for advancement into a higher role.",
+  },
+  {
+    key: "development",
+    label: "Development",
+    icon: "sparkles",
+    blurb: "Existing employees building a growth plan — no hire/promote decision attached.",
+  },
+] as const;
+
+type PurposeKey = (typeof PURPOSES)[number]["key"];
+
 type ScopeKey = (typeof SCOPES)[number]["key"];
 
 export function CreateAssessmentPanel({
@@ -68,11 +91,14 @@ export function CreateAssessmentPanel({
   engines: Engine[];
 }) {
   const [scope, setScope] = useState<ScopeKey>("Core");
+  const [purpose, setPurpose] = useState<PurposeKey>("hiring");
   const [engine, setEngine] = useState<string>(() => engines.find((e) => e.enabled && e.configured)?.key || "");
   const [showBlank, setShowBlank] = useState(false);
 
   const anyConfigured = engines.some((e) => e.enabled && e.configured);
   const activeScope = SCOPES.find((s) => s.key === scope)!;
+  const activePurpose = PURPOSES.find((p) => p.key === purpose)!;
+
 
   const engineByKey = (key: string) => engines.find((e) => e.key === key);
   const engineReady = (key: string) => {
@@ -85,6 +111,35 @@ export function CreateAssessmentPanel({
 
   return (
     <div className="space-y-6">
+      <div className="bg-surface border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,28,44,0.04)] p-6">
+        <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
+          <Icon name="target" className="w-4 h-4 text-accent-dark" />
+          What is this assessment for?
+        </p>
+        <p className="text-xs text-muted mb-4">
+          This shapes the language candidates see, the decision options reviewers get, and the default proctoring
+          settings — throughout the whole assessment lifecycle.
+        </p>
+        <div className="grid grid-cols-3 gap-2 mb-1.5">
+          {PURPOSES.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              onClick={() => setPurpose(p.key)}
+              className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-[12.5px] font-semibold transition-colors text-center ${
+                purpose === p.key
+                  ? "border-brand bg-brand/5 text-brand"
+                  : "border-line text-muted hover:border-brand/40 hover:text-foreground"
+              }`}
+            >
+              <Icon name={p.icon} className={`w-4 h-4 ${purpose === p.key ? "text-brand" : "text-faint"}`} />
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11.5px] text-faint">{activePurpose.blurb}</p>
+      </div>
+
       <div className="bg-surface border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,28,44,0.04)] p-6">
         <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
           <Icon name="wand" className="w-4 h-4 text-accent-dark" />
@@ -169,6 +224,7 @@ export function CreateAssessmentPanel({
         {scope === "Custom" ? (
           <form action={generateCustomAssessment} className="space-y-3">
             <input type="hidden" name="engine" value={engine} />
+            <input type="hidden" name="purpose" value={purpose} />
             <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">3. Title &amp; competencies</p>
             <input
               name="title"
@@ -207,6 +263,7 @@ export function CreateAssessmentPanel({
         ) : (
           <form action={boundDefaultAction!} className="space-y-3">
             <input type="hidden" name="engine" value={engine} />
+            <input type="hidden" name="purpose" value={purpose} />
             <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">3. Optional title</p>
             <input
               name="title"
@@ -230,6 +287,7 @@ export function CreateAssessmentPanel({
         </button>
         {showBlank && (
           <form action={createAssessment} className="space-y-3 mt-4">
+            <input type="hidden" name="purpose" value={purpose} />
             <input
               name="title"
               required
