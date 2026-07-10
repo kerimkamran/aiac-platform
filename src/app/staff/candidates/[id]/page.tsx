@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitReview, deleteProctoringRecording } from "./actions";
 import { assignDecisionMaker, unassignDecisionMaker } from "../../people/actions";
-import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
@@ -155,6 +155,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
 
       {ca.overall_score !== null ? (
         <>
+          <ScoringDisclosure className="mb-6 no-print" />
           {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} />}
 
           {/* Score + radar */}

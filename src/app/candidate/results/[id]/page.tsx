@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, Icon, PageHeader, ScoreRing, bandFor, categoryStyle } from "@/components/ui";
+import { Card, Icon, PageHeader, ScoreRing, ScoringDisclosure, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 
 export default async function CandidateResultDetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -52,6 +52,8 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
           Download PDF
         </a>
       </div>
+
+      <ScoringDisclosure className="mb-6" />
 
       <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
         <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
@@ -114,8 +116,8 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
       })}
 
       <p className="text-xs text-faint mt-6 max-w-lg">
-        Scores are AI-assisted against Azerconnect&apos;s competency behavioural anchors and confirmed by a human
-        reviewer. Bands: Exceeds ≥85 · Fully Meets ≥70 · Partially Meets ≥50.
+        Scores are confirmed by a human reviewer against Azerconnect&apos;s competency behavioural anchors. Bands:
+        Exceeds ≥85 · Fully Meets ≥70 · Partially Meets ≥50.
       </p>
     </div>
   );

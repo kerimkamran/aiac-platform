@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitReview } from "./actions";
-import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -128,6 +128,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
 
       {ca.overall_score !== null ? (
         <>
+          <ScoringDisclosure className="mb-6 no-print" />
           {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} />}
 
           {/* Score + radar */}

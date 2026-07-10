@@ -160,6 +160,25 @@ export function ScoreBadge({ score }: { score: number }) {
   );
 }
 
+// Visible, plain-language disclosure that free-text answer scores come from a
+// deterministic rule-based heuristic (word count + keyword signals), not a
+// real LLM grading the substance of what was written -- MCQ scores are exact
+// and unaffected. Shown wherever a reviewer or candidate sees a score, so the
+// limitation is never learned only by reading fine print in a rationale string.
+export function ScoringDisclosure({ className = "" }: { className?: string }) {
+  return (
+    <div className={`flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 ${className}`}>
+      <Icon name="info" className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+      <p className="text-[12px] leading-relaxed text-amber-800">
+        <span className="font-bold">How scores are calculated:</span> Multiple-choice questions are scored exactly
+        (correct/incorrect). Free-text answers use a rule-based heuristic — word count and keyword signals, not a
+        model reading for substance — so treat those scores as directional and weigh the written answers yourself
+        before deciding.
+      </p>
+    </div>
+  );
+}
+
 /* ---------------- Layout primitives ---------------- */
 
 export function Card({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
