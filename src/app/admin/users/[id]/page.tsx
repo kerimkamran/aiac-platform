@@ -19,8 +19,14 @@ const TOASTS: ToastSpec[] = [
   { param: "error", variant: "error" },
 ];
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function AdminUserDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  // id comes from the URL path; validate it's a real UUID before using it in
+  // any query (defense in depth for the .or() filter below, which would
+  // otherwise reinterpret unexpected characters as filter syntax).
+  if (!UUID_RE.test(id)) notFound();
   const supabase = await createClient();
 
   const [{ data: user }, { data: managers }, { data: units }, { data: perms }, { data: overrides }, { data: audit }] =

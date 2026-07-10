@@ -13,7 +13,10 @@ export async function GET(request: NextRequest) {
   let query = supabase
     .from("profiles")
     .select("id, full_name, email, phone, job_title, department, business_unit, location, role, status, is_employee, manager_id, org_unit_id, last_login_at, created_at", { count: "exact" });
-  if (sp.get("q")) query = query.or(`full_name.ilike.%${sp.get("q")}%,email.ilike.%${sp.get("q")}%`);
+  // PostgREST filter values are comma/paren-sensitive; strip them (and %) so
+  // user input can't alter the .or() expression.
+  const q = sp.get("q")?.trim().replace(/[,%()]/g, "");
+  if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%`);
   if (sp.get("role")) query = query.eq("role", sp.get("role")!);
   if (sp.get("status")) query = query.eq("status", sp.get("status")!);
   const sort = sp.get("sort") || "created_at";

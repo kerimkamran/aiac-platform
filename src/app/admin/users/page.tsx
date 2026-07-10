@@ -24,7 +24,10 @@ export default async function AdminUsersPage({
     .from("profiles")
     .select("id, full_name, email, role, status, department, job_title, is_employee, last_login_at, created_at", { count: "exact" });
 
-  if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%,department.ilike.%${q}%`);
+  // PostgREST filter values are comma/paren-sensitive; strip them (and %) so
+  // user input can't alter the .or() expression.
+  const qSafe = q.trim().replace(/[,%()]/g, "");
+  if (qSafe) query = query.or(`full_name.ilike.%${qSafe}%,email.ilike.%${qSafe}%,department.ilike.%${qSafe}%`);
   if (role) query = query.eq("role", role);
   if (status) query = query.eq("status", status);
   if (type === "employee") query = query.eq("is_employee", true);

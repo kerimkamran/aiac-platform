@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
     .select("id, full_name, email, phone, job_title, department, business_unit, location, role, status, is_employee, employee_id, last_login_at, created_at")
     .order("created_at", { ascending: false })
     .limit(10000);
-  const q = sp.get("q");
+  // PostgREST filter values are comma/paren-sensitive; strip them (and %) so
+  // user input can't alter the .or() expression.
+  const q = sp.get("q")?.trim().replace(/[,%()]/g, "");
   if (q) query = query.or(`full_name.ilike.%${q}%,email.ilike.%${q}%,department.ilike.%${q}%`);
   if (sp.get("role")) query = query.eq("role", sp.get("role")!);
   if (sp.get("status")) query = query.eq("status", sp.get("status")!);
