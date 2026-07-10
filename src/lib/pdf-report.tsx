@@ -63,9 +63,9 @@ function recColor(label: string) {
 }
 
 function decisionColor(d: string) {
-  if (d === "shortlist") return "#0e9f6e";
-  if (d === "hold") return "#d97706";
-  if (d === "reject") return "#dc2626";
+  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return "#0e9f6e";
+  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return "#d97706";
+  if (d === "reject" || d === "not_yet_ready") return "#dc2626";
   return MUTED;
 }
 

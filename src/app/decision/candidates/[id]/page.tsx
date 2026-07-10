@@ -7,6 +7,7 @@ import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
+import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -15,7 +16,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, status, overall_score, invited_at, started_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title, description)"
+      "id, assessment_id, status, overall_score, invited_at, started_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title, description, purpose)"
     )
     .eq("id", id)
     .single();
@@ -23,7 +24,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   if (!ca) notFound();
 
   const candidate = ca.candidate as unknown as { full_name: string; email: string };
-  const assessment = ca.assessments as unknown as { title: string; description: string };
+  const assessment = ca.assessments as unknown as { title: string; description: string; purpose: string | null };
+  const purpose = normalizePurpose(assessment?.purpose);
+  const purposeMeta = PURPOSE_META[purpose];
+  const decisionOptions = DECISION_OPTIONS[purpose];
 
   const { data: peerScoresRaw } = await supabase
     .from("candidate_assessments")
@@ -250,15 +254,11 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       <Card className="p-6">
         <p className="text-sm font-bold text-foreground mb-1">Your decision</p>
         <p className="text-xs text-muted mb-5">
-          Submit your assessment of this candidate. HR and other assigned decision makers will see it alongside theirs.
+          {purposeMeta.blurb} {purpose === "hiring" ? "HR and other assigned decision makers will see it alongside theirs." : ""}
         </p>
         <form action={submitReviewWithId} className="space-y-3.5 no-print">
-          <div className="grid grid-cols-3 gap-2.5">
-            {[
-              { v: "shortlist", label: "Shortlist", icon: "checkCircle", cls: "peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700" },
-              { v: "hold", label: "Hold", icon: "clock", cls: "peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700" },
-              { v: "reject", label: "Reject", icon: "x", cls: "peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700" },
-            ].map((d) => (
+          <div className={`grid gap-2.5 ${decisionOptions.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {decisionOptions.map((d) => (
               <label key={d.v} className="cursor-pointer">
                 <input type="radio" name="decision" value={d.v} required className="peer sr-only" />
                 <span

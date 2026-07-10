@@ -100,12 +100,18 @@ export default async function ReportsPage({
     { label: "Reviewed", count: rows.filter((r) => r.status === "reviewed").length },
   ];
 
-  // Decision breakdown
+  // Decision breakdown — grouped into positive/neutral/negative buckets so
+  // hiring (shortlist/hold/reject), promotion (recommend/needs_development_plan/
+  // not_yet_ready), and development (strengths_identified/growth_areas_identified)
+  // decisions all roll up correctly rather than only counting hiring's own labels.
   const decisions = Array.from(latestDecisionByCa.values());
+  const POSITIVE_DECISIONS = new Set(["shortlist", "recommend", "strengths_identified"]);
+  const NEUTRAL_DECISIONS = new Set(["hold", "needs_development_plan", "growth_areas_identified"]);
+  const NEGATIVE_DECISIONS = new Set(["reject", "not_yet_ready"]);
   const decisionStages = [
-    { label: "Shortlisted", count: decisions.filter((d) => d === "shortlist").length },
-    { label: "On hold", count: decisions.filter((d) => d === "hold").length },
-    { label: "Rejected", count: decisions.filter((d) => d === "reject").length },
+    { label: "Positive (shortlist / recommend / strengths)", count: decisions.filter((d) => POSITIVE_DECISIONS.has(d)).length },
+    { label: "Neutral (hold / development plan)", count: decisions.filter((d) => NEUTRAL_DECISIONS.has(d)).length },
+    { label: "Negative (reject / not yet ready)", count: decisions.filter((d) => NEGATIVE_DECISIONS.has(d)).length },
     { label: "No decision yet", count: rows.filter((r) => r.status === "scored" && !latestDecisionByCa.has(r.id)).length },
   ];
 
