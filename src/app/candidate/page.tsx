@@ -68,7 +68,7 @@ export default async function CandidateDashboard() {
           <EmptyState
             icon="clipboard"
             title="No invitations yet"
-            body="Your recruiter will invite you to an assessment using this account's email address. You'll see it here the moment it lands."
+            body="You'll be invited to an assessment using this account's email address — for hiring, promotion, or development. You'll see it here the moment it lands."
           />
         </div>
       ) : null}

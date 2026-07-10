@@ -92,9 +92,12 @@ export function buildExecutiveSummary(params: {
   competencies: CompetencyLine[];
   benchmark: Benchmark;
   boxLabel?: string | null;
+  purpose?: "hiring" | "promotion" | "development";
 }): ExecutiveSummary {
-  const { candidateName, overallScore, competencies, benchmark, boxLabel } = params;
+  const { candidateName, overallScore, competencies, benchmark, boxLabel, purpose = "hiring" } = params;
   const firstName = (candidateName || "This candidate").split(/\s+/)[0];
+  const personNoun = purpose === "hiring" ? "candidate(s)" : "employee(s)";
+  const roleNoun = purpose === "hiring" ? "this role's" : purpose === "promotion" ? "the target role's" : "the";
 
   const sorted = [...competencies].sort((a, b) => b.score - a.score);
   const strengths = sorted.slice(0, 3).filter((c) => c.score >= 60).map((c) => `${c.name} (${Math.round(c.score)})`);
@@ -109,13 +112,29 @@ export function buildExecutiveSummary(params: {
   const recommendationTone = toneFor(overallScore);
 
   const headline =
-    recommendationLabel === "Strong fit"
-      ? `${firstName} demonstrates strong, well-rounded capability against this role's competency model.`
-      : recommendationLabel === "Fit with reservations"
-        ? `${firstName} meets the bar on most mapped competencies, with a few areas worth probing further in interview.`
-        : recommendationLabel === "Borderline"
-          ? `${firstName}'s results are mixed — some competencies land above the bar, others fall short.`
-          : `${firstName}'s scored responses fall mostly below the expected bar for this role's competency model.`;
+    purpose === "hiring"
+      ? recommendationLabel === "Strong fit"
+        ? `${firstName} demonstrates strong, well-rounded capability against this role's competency model.`
+        : recommendationLabel === "Fit with reservations"
+          ? `${firstName} meets the bar on most mapped competencies, with a few areas worth probing further in interview.`
+          : recommendationLabel === "Borderline"
+            ? `${firstName}'s results are mixed — some competencies land above the bar, others fall short.`
+            : `${firstName}'s scored responses fall mostly below the expected bar for this role's competency model.`
+      : purpose === "promotion"
+        ? recommendationLabel === "Strong fit"
+          ? `${firstName} demonstrates strong, well-rounded capability against the target role's competency model.`
+          : recommendationLabel === "Fit with reservations"
+            ? `${firstName} meets the bar on most mapped competencies, with a few areas worth discussing before advancing.`
+            : recommendationLabel === "Borderline"
+              ? `${firstName}'s results are mixed — some competencies land above the bar, others fall short of what the target role needs.`
+              : `${firstName}'s scored responses fall mostly below the expected bar for the target role's competency model.`
+        : recommendationLabel === "Strong fit"
+          ? `${firstName} demonstrates strong, well-rounded capability across the assessed competencies.`
+          : recommendationLabel === "Fit with reservations"
+            ? `${firstName} shows solid capability on most competencies, with a few clear areas for growth.`
+            : recommendationLabel === "Borderline"
+              ? `${firstName}'s results are mixed — some competencies are strong, others are clear growth areas.`
+              : `${firstName}'s scored responses point to several growth areas across the assessed competencies.`;
 
   let comparisonSentence: string | null = null;
   if (benchmark.percentile !== null && benchmark.peerAvg !== null) {
@@ -125,7 +144,7 @@ export function buildExecutiveSummary(params: {
         : benchmark.delta !== null && benchmark.delta < 0
           ? `${Math.abs(benchmark.delta).toFixed(1)} points below`
           : "in line with";
-    comparisonSentence = `Scored higher than ${benchmark.percentile}% of the ${benchmark.peerCount} candidate(s) assessed for this role — ${vsPeers} the peer average of ${benchmark.peerAvg}.${
+    comparisonSentence = `Scored higher than ${benchmark.percentile}% of the ${benchmark.peerCount} ${personNoun} assessed for ${roleNoun} competency model — ${vsPeers} the peer average of ${benchmark.peerAvg}.${
       boxLabel ? ` Talent Matrix placement: ${boxLabel}.` : ""
     }`;
   } else if (boxLabel) {

@@ -84,6 +84,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           competencies: competencyLines,
           benchmark,
           boxLabel,
+          purpose,
         })
       : null;
 

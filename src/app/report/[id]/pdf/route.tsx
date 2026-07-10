@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { createClient } from "@/lib/supabase/server";
 import { CandidateReportDocument, type ReportData } from "@/lib/pdf-report";
 import { buildExecutiveSummary, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
+import { normalizePurpose } from "@/lib/purpose";
 
 export const runtime = "nodejs";
 
@@ -18,7 +19,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, overall_score, submitted_at, tab_switch_count, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title)"
+      "id, assessment_id, overall_score, submitted_at, tab_switch_count, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
     )
     .eq("id", id)
     .single();
@@ -27,7 +28,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!ca) return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 });
 
   const candidate = ca.candidate as unknown as { full_name: string; email: string; department: string | null } | null;
-  const assessment = ca.assessments as unknown as { title: string; vacancy_title: string | null } | null;
+  const assessment = ca.assessments as unknown as { title: string; vacancy_title: string | null; purpose: string | null } | null;
+  const purpose = normalizePurpose(assessment?.purpose);
 
   const { data: peerScoresRaw } = await supabase
     .from("candidate_assessments")
@@ -74,6 +76,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           competencies: competencyLines,
           benchmark,
           boxLabel,
+          purpose,
         })
       : null;
 

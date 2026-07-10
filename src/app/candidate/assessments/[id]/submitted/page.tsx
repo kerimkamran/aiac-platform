@@ -3,12 +3,25 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Card, Icon } from "@/components/ui";
 import { ConfettiBurst, SubmissionSeal } from "@/components/celebration";
+import { AssessmentPurpose, normalizePurpose } from "@/lib/purpose";
 
-const NEXT_STEPS = [
-  { icon: "wand", title: "AI scoring", body: "Your responses are scored against the role's competency model within moments." },
-  { icon: "eye", title: "Human review", body: "A recruiter reviews the AI-assisted scores alongside your answers before any decision is made." },
-  { icon: "mail", title: "You'll hear back", body: "You'll be notified here once a decision maker has reviewed your results." },
-] as const;
+const NEXT_STEPS: Record<AssessmentPurpose, { icon: string; title: string; body: string }[]> = {
+  hiring: [
+    { icon: "wand", title: "AI scoring", body: "Your responses are scored against the role's competency model within moments." },
+    { icon: "eye", title: "Human review", body: "A recruiter reviews the AI-assisted scores alongside your answers before any decision is made." },
+    { icon: "mail", title: "You'll hear back", body: "You'll be notified here once a decision maker has reviewed your results." },
+  ],
+  promotion: [
+    { icon: "wand", title: "AI scoring", body: "Your responses are scored against the target role's competency model within moments." },
+    { icon: "eye", title: "Manager & HR review", body: "Your manager and HR review the AI-assisted scores alongside your answers before any outcome is decided." },
+    { icon: "mail", title: "You'll hear back", body: "You'll be notified here once your promotion review is complete." },
+  ],
+  development: [
+    { icon: "wand", title: "AI scoring", body: "Your responses are scored against the competency model within moments." },
+    { icon: "eye", title: "Reviewer feedback", body: "A reviewer looks at the AI-assisted scores alongside your answers to identify strengths and growth areas." },
+    { icon: "mail", title: "You'll hear back", body: "You'll be notified here once your development feedback is ready — there's no pass/fail outcome attached." },
+  ],
+};
 
 export default async function AssessmentSubmittedPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,7 +34,7 @@ export default async function AssessmentSubmittedPage({ params }: { params: Prom
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
-    .select("id, status, candidate_id, assessments(title)")
+    .select("id, status, candidate_id, assessments(title, purpose)")
     .eq("id", id)
     .eq("candidate_id", user.id)
     .single();
@@ -30,7 +43,9 @@ export default async function AssessmentSubmittedPage({ params }: { params: Prom
 
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
   const firstName = (profile?.full_name || "").split(/\s+/)[0] || "there";
-  const assessment = ca.assessments as unknown as { title: string } | null;
+  const assessment = ca.assessments as unknown as { title: string; purpose: string | null } | null;
+  const purpose = normalizePurpose(assessment?.purpose);
+  const nextSteps = NEXT_STEPS[purpose];
 
   return (
     <div className="p-6 lg:p-10 max-w-xl mx-auto">
@@ -51,7 +66,7 @@ export default async function AssessmentSubmittedPage({ params }: { params: Prom
       <Card className="p-6 mt-6 anim-fade-up delay-2">
         <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-4">What happens next</p>
         <div className="space-y-4">
-          {NEXT_STEPS.map((s, i) => (
+          {nextSteps.map((s, i) => (
             <div key={s.title} className="flex items-start gap-3.5">
               <span className="w-8 h-8 rounded-xl bg-accent-soft text-accent-dark grid place-items-center shrink-0">
                 <Icon name={s.icon} className="w-4 h-4" />
