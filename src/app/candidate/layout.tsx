@@ -31,16 +31,25 @@ export default async function CandidateLayout({ children }: { children: React.Re
     if ((count ?? 0) === 0) redirect("/staff");
   }
 
+  // Anyone who is set as someone else's manager (profiles.manager_id) may have
+  // promotion sign-off requests waiting -- surface the nav link only then,
+  // since most people will never be a manager on this system.
+  const { count: directReportCount } = await supabase
+    .from("profiles")
+    .select("id", { count: "exact", head: true })
+    .eq("manager_id", user.id);
+
+  const links = [
+    { href: "/candidate", label: "Home", icon: "home", exact: true },
+    { href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" },
+    { href: "/candidate/results", label: "My Results", icon: "award" },
+  ];
+  if ((directReportCount ?? 0) > 0) {
+    links.push({ href: "/candidate/signoffs", label: "Sign-off requests", icon: "checkCircle" });
+  }
+
   return (
-    <NavShell
-      role={profile.role}
-      name={profile.full_name}
-      links={[
-        { href: "/candidate", label: "Home", icon: "home", exact: true },
-        { href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" },
-        { href: "/candidate/results", label: "My Results", icon: "award" },
-      ]}
-    >
+    <NavShell role={profile.role} name={profile.full_name} links={links}>
       {children}
     </NavShell>
   );

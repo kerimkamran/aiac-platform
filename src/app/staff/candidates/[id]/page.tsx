@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff } from "./actions";
 import { assignDecisionMaker, unassignDecisionMaker } from "../../people/actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
@@ -16,14 +16,14 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, status, overall_score, invited_at, started_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title, description, purpose)"
+      "id, assessment_id, candidate_id, status, overall_score, invited_at, started_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, manager_id), assessments(title, description, purpose)"
     )
     .eq("id", id)
     .single();
 
   if (!ca) notFound();
 
-  const candidate = ca.candidate as unknown as { full_name: string; email: string };
+  const candidate = ca.candidate as unknown as { full_name: string; email: string; manager_id: string | null };
   const assessment = ca.assessments as unknown as { title: string; description: string; purpose: string | null };
   const purpose = normalizePurpose(assessment?.purpose);
   const purposeMeta = PURPOSE_META[purpose];
@@ -73,6 +73,27 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       return { ...r, url };
     })
   );
+
+  // Promotion-only: lightweight manager sign-off. profiles.manager_id resolves
+  // who the employee's manager is; the sign-off itself is a request/response
+  // row on promotion_signoffs, not a blocking gate on the HR decision above.
+  let managerProfile: { id: string; full_name: string; email: string } | null = null;
+  let signoff: { id: string; status: string; comment: string | null; requested_at: string; decided_at: string | null } | null = null;
+  if (purpose === "promotion" && candidate?.manager_id) {
+    const [{ data: mgr }, { data: existingSignoff }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, email").eq("id", candidate.manager_id).maybeSingle(),
+      supabase
+        .from("promotion_signoffs")
+        .select("id, status, comment, requested_at, decided_at")
+        .eq("candidate_assessment_id", id)
+        .order("requested_at", { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+    managerProfile = mgr;
+    signoff = existingSignoff;
+  }
+  const requestSignoffWithId = requestManagerSignoff.bind(null, id);
 
   const assignedIds = new Set((assignedDMs || []).map((a) => a.profile_id));
   const unassignedDMs = (allDecisionMakers || []).filter((dm) => !assignedIds.has(dm.id));
@@ -391,6 +412,55 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           </p>
         )}
       </Card>
+
+      {/* Manager sign-off (promotion only) */}
+      {purpose === "promotion" && (
+        <Card className="p-6 mb-6 no-print">
+          <p className="text-sm font-bold text-foreground mb-1">Manager sign-off</p>
+          {!candidate?.manager_id ? (
+            <p className="text-xs text-muted">
+              This employee has no manager on file — set one in People &amp; Access to request sign-off.
+            </p>
+          ) : !managerProfile ? (
+            <p className="text-xs text-muted">Assigned manager could not be found.</p>
+          ) : !signoff ? (
+            <>
+              <p className="text-xs text-muted mb-4">
+                Optional — ask <span className="font-semibold text-foreground">{managerProfile.full_name}</span>{" "}
+                (this employee&apos;s manager) to weigh in before the promotion decision is finalized. Not a blocking
+                requirement; your decision above can still be submitted either way.
+              </p>
+              <form action={requestSignoffWithId}>
+                <button className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">
+                  <Icon name="send" className="w-4 h-4" />
+                  Request sign-off from {managerProfile.full_name}
+                </button>
+              </form>
+            </>
+          ) : (
+            <div className="flex items-start gap-3">
+              <StatusBadge
+                status={signoff.status === "pending" ? "in_progress" : signoff.status === "approved" ? "shortlist" : "reject"}
+              />
+              <div className="text-sm text-muted">
+                <p>
+                  <span className="font-semibold text-foreground">{managerProfile.full_name}</span>
+                  {signoff.status === "pending"
+                    ? " — sign-off requested, awaiting response."
+                    : signoff.status === "approved"
+                      ? " approved this promotion."
+                      : " declined this promotion."}
+                </p>
+                {signoff.comment && <p className="mt-1 italic">&ldquo;{signoff.comment}&rdquo;</p>}
+                <p className="text-faint text-xs mt-1">
+                  Requested {new Date(signoff.requested_at).toLocaleString()}
+                  {signoff.decided_at ? ` · Decided ${new Date(signoff.decided_at).toLocaleString()}` : ""}
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Decision */}
       <Card className="p-6">

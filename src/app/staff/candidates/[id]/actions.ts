@@ -32,6 +32,43 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
   revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
 }
 
+export async function requestManagerSignoff(candidateAssessmentId: string) {
+  await requireRole(...STAFF_ROLES);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const { data: ca } = await supabase
+    .from("candidate_assessments")
+    .select("id, assessments(title), candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, manager_id)")
+    .eq("id", candidateAssessmentId)
+    .single();
+
+  const candidate = ca?.candidate as unknown as { full_name: string; manager_id: string | null } | null;
+  const assessment = ca?.assessments as unknown as { title: string } | null;
+  if (!candidate?.manager_id) {
+    revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+    return;
+  }
+
+  await supabase.from("promotion_signoffs").insert({
+    candidate_assessment_id: candidateAssessmentId,
+    requested_by: user!.id,
+    manager_id: candidate.manager_id,
+    status: "pending",
+  });
+
+  await supabase.from("notifications").insert({
+    user_id: candidate.manager_id,
+    title: "Promotion sign-off requested",
+    body: `Your input is requested on ${candidate.full_name}'s promotion review for "${assessment?.title || "an assessment"}".`,
+    link: `/candidate/signoffs`,
+  });
+
+  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+}
+
 export async function deleteProctoringRecording(candidateAssessmentId: string, recordingId: string, storagePath: string | null) {
   await requireRole(...STAFF_ROLES);
   const supabase = await createClient();
