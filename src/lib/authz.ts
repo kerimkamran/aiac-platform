@@ -15,6 +15,17 @@ export type SessionProfile = {
 // tools (People & Access, Settings) remain gated separately in the staff layout.
 export const ADMIN_ROLES = ["system_admin"] as const;
 
+// Mirrors the Postgres is_staff() helper used throughout RLS policies.
+// Server Actions under src/app/staff/** should call requireStaff() as their
+// first line: the /staff layout's role redirect only runs when a page is
+// rendered/navigated to, not when a Server Action is invoked directly, so
+// the action itself must independently re-check the caller's role.
+export const STAFF_ROLES = ["recruiter", "hiring_manager", "hr_admin", "org_admin", "system_admin"] as const;
+
+export async function requireStaff(): Promise<SessionProfile> {
+  return requireRole(...STAFF_ROLES);
+}
+
 /** Load the signed-in user's profile, or null. */
 export async function getSessionProfile(): Promise<SessionProfile | null> {
   const supabase = await createClient();

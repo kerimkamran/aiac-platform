@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -20,6 +21,7 @@ function friendlyInviteError(raw: string): string {
 }
 
 export async function createAssessment(formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,6 +51,7 @@ export async function createAssessment(formData: FormData) {
 }
 
 export async function addSection(assessmentId: string, formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
   const title = String(formData.get("title") || "");
   const competencyId = String(formData.get("competency_id") || "");
@@ -69,6 +72,7 @@ export async function addSection(assessmentId: string, formData: FormData) {
 }
 
 export async function addQuestion(sectionId: string, assessmentId: string, formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
 
   const questionType = String(formData.get("question_type") || "text");
@@ -104,12 +108,14 @@ export async function addQuestion(sectionId: string, assessmentId: string, formD
 }
 
 export async function publishAssessment(assessmentId: string) {
+  await requireStaff();
   const supabase = await createClient();
   await supabase.from("assessments").update({ status: "published" }).eq("id", assessmentId);
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
 
 export async function inviteCandidate(assessmentId: string, formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const fullName = String(formData.get("full_name") || "").trim();
@@ -180,6 +186,7 @@ export async function inviteCandidate(assessmentId: string, formData: FormData) 
 // creating a new account or sending an auth email -- they already have one.
 // Notified in-app instead, since that doesn't depend on outbound mail at all.
 export async function assignExistingCandidate(assessmentId: string, formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
   const profileId = String(formData.get("profile_id") || "").trim();
 
@@ -218,6 +225,7 @@ export async function assignExistingCandidate(assessmentId: string, formData: Fo
 }
 
 export async function updateProctoringSettings(assessmentId: string, formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
   const {
     data: { user },
@@ -446,6 +454,7 @@ export async function deleteAssessment(assessmentId: string) {
 }
 
 export async function updateAssessmentMeta(assessmentId: string, formData: FormData) {
+  await requireStaff();
   const supabase = await createClient();
   const title = String(formData.get("title") || "").trim();
   const description = String(formData.get("description") || "").trim();
@@ -465,6 +474,7 @@ export async function updateAssessmentMeta(assessmentId: string, formData: FormD
 }
 
 export async function deleteSection(sectionId: string, assessmentId: string) {
+  await requireStaff();
   const supabase = await createClient();
   const { error } = await supabase.from("assessment_sections").delete().eq("id", sectionId);
   if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
@@ -472,6 +482,7 @@ export async function deleteSection(sectionId: string, assessmentId: string) {
 }
 
 export async function deleteQuestion(questionId: string, sectionId: string, assessmentId: string) {
+  await requireStaff();
   const supabase = await createClient();
   const { error } = await supabase.from("questions").delete().eq("id", questionId);
   if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));

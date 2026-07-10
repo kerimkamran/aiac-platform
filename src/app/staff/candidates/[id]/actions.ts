@@ -2,8 +2,13 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { requireRole, STAFF_ROLES } from "@/lib/authz";
 
 export async function submitReview(candidateAssessmentId: string, formData: FormData) {
+  // Shared with decision/candidates/[id]/actions.ts, so decision makers are
+  // allowed here too; RLS's is_assigned_decision_maker() scopes which
+  // specific candidate_assessment a given decision maker may actually write.
+  await requireRole(...STAFF_ROLES, "decision_maker");
   const supabase = await createClient();
   const {
     data: { user },
@@ -28,6 +33,7 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
 }
 
 export async function deleteProctoringRecording(candidateAssessmentId: string, recordingId: string, storagePath: string | null) {
+  await requireRole(...STAFF_ROLES);
   const supabase = await createClient();
 
   if (storagePath) {
