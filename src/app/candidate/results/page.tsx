@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Card, EmptyState, Icon, PageHeader, ScoreRing, bandFor } from "@/components/ui";
+import { GrowthHub } from "./GrowthHub";
+import { normalizePurpose } from "@/lib/purpose";
 
 export default async function CandidateResultsPage() {
   const supabase = await createClient();
@@ -10,7 +12,7 @@ export default async function CandidateResultsPage() {
 
   const { data: rows } = await supabase
     .from("candidate_assessments")
-    .select("id, status, overall_score, submitted_at, assessments(title)")
+    .select("id, status, overall_score, submitted_at, assessments(title, purpose)")
     .eq("candidate_id", user!.id)
     .in("status", ["submitted", "scored", "reviewed"])
     .order("submitted_at", { ascending: false });
@@ -20,8 +22,47 @@ export default async function CandidateResultsPage() {
     status: string;
     overall_score: number | null;
     submitted_at: string | null;
-    assessments: { title: string } | null;
+    assessments: { title: string; purpose: string | null } | null;
   }[];
+
+  // Growth Hub: a competency-trend view across past reviewed promotion/
+  // development assessments (UAT roadmap item — this list was previously
+  // just a flat card grid with no sense of progress over time). Hiring
+  // assessments are excluded since they're one-off role evaluations, not
+  // part of an ongoing growth arc for this employee.
+  const growthAssessments = list.filter(
+    (r) => r.status === "reviewed" && r.overall_score !== null && normalizePurpose(r.assessments?.purpose) !== "hiring"
+  );
+  let growthData: {
+    id: string;
+    title: string;
+    submittedAt: string;
+    overallScore: number;
+    competencies: { name: string; score: number }[];
+  }[] = [];
+  if (growthAssessments.length >= 2) {
+    const ids = growthAssessments.map((r) => r.id);
+    const { data: scores } = await supabase
+      .from("candidate_competency_scores")
+      .select("candidate_assessment_id, score, competencies(name)")
+      .in("candidate_assessment_id", ids);
+    const byCa = new Map<string, { name: string; score: number }[]>();
+    for (const s of (scores || []) as unknown as { candidate_assessment_id: string; score: number; competencies: { name: string } | null }[]) {
+      if (!s.competencies) continue;
+      const arr = byCa.get(s.candidate_assessment_id) || [];
+      arr.push({ name: s.competencies.name, score: s.score });
+      byCa.set(s.candidate_assessment_id, arr);
+    }
+    growthData = [...growthAssessments]
+      .sort((a, b) => new Date(a.submitted_at || 0).getTime() - new Date(b.submitted_at || 0).getTime())
+      .map((r) => ({
+        id: r.id,
+        title: r.assessments?.title || "Assessment",
+        submittedAt: r.submitted_at || "",
+        overallScore: r.overall_score!,
+        competencies: byCa.get(r.id) || [],
+      }));
+  }
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
@@ -29,6 +70,8 @@ export default async function CandidateResultsPage() {
         title="My results"
         subtitle="Results unlock once a human reviewer has confirmed your AI-assisted scores."
       />
+
+      {growthData.length >= 2 && <GrowthHub assessments={growthData} />}
 
       {list.length === 0 && (
         <EmptyState
