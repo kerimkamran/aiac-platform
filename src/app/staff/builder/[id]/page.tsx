@@ -14,6 +14,7 @@ import {
   deleteQuestion,
 } from "../actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
+import { normalizePurpose } from "@/lib/purpose";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 
@@ -80,6 +81,7 @@ export default async function BuilderDetailPage({
 
   const { data: assessment } = await supabase.from("assessments").select("*").eq("id", id).single();
   if (!assessment) notFound();
+  const purpose = normalizePurpose((assessment as { purpose?: string | null }).purpose);
 
   const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }] = await Promise.all([
     supabase
@@ -205,13 +207,21 @@ export default async function BuilderDetailPage({
         <p className="text-xs text-muted mb-4">
           When enabled, candidates are asked for camera consent and a video of the session is recorded. This is a
           consent-gated recording only — it is not analyzed automatically for gestures, emotions, or behavior.
+          {proctoring == null && (
+            <>
+              {" "}
+              {purpose === "hiring"
+                ? "Defaulted on for hiring assessments — untick if this isn't needed."
+                : "Defaulted off for " + (purpose === "promotion" ? "promotion" : "development") + " assessments — existing employees typically don't need camera proctoring, but you can turn it on."}
+            </>
+          )}
         </p>
         <form action={updateProctoringWithId} className="flex flex-wrap items-center gap-4">
           <label className="inline-flex items-center gap-2.5 text-sm font-medium cursor-pointer">
             <input
               type="checkbox"
               name="camera_enabled"
-              defaultChecked={proctoring?.camera_enabled || false}
+              defaultChecked={proctoring ? proctoring.camera_enabled : purpose === "hiring"}
               className="w-4 h-4 accent-[color:var(--brand)]"
             />
             Require camera recording for this assessment
