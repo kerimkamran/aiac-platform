@@ -328,6 +328,27 @@ Return ONLY valid JSON, no markdown fences, no commentary:
 {"cases": [{"title": string, "scenarioText": string, "questionStem": string, "questionType": "mcq" | "text", "options"?: [{"text": string, "correct"?: boolean}], "difficulty": "mid" | "high", "methodologyTag": "Hogan-style derailment" | "Mettl-style SJT" | "WTW/Saville-style situation" | "Korn Ferry-style exercise" | "McLean-style behavioral anchor" | "Blended", "methodologyNotes": string, "competencyCode": string | null}]}`;
 }
 
+// Redacts patterns that are unambiguously PII and never legitimate case-study
+// substance -- email addresses and phone numbers -- before any text leaves
+// this process for an external AI provider. Deliberately does NOT attempt to
+// strip personal names: case studies routinely use fictional protagonist
+// names ("Sarah, a mid-level manager...") as the actual content, and there's
+// no reliable regex/heuristic way to tell a fictional case name apart from a
+// real one without an NER model, so guessing would either strip legitimate
+// content or miss real names anyway. Uploaders are still expected to use
+// generic/anonymized case studies, not real HR records -- this is a
+// best-effort backstop for the two PII categories that are safe to redact
+// with high confidence, not a substitute for that expectation.
+function redactPiiForAi(text: string): string {
+  return text
+    .replace(/[\w.+-]+@[\w-]+\.[A-Za-z]{2,}/g, "[EMAIL REDACTED]")
+    .replace(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}\b/g, (m) =>
+      // Avoid clobbering short numeric tokens (years, scores, section numbers)
+      // that happen to match loosely -- require at least 7 digits total.
+      (m.match(/\d/g) || []).length >= 7 ? "[PHONE REDACTED]" : m
+    );
+}
+
 export async function extractCasesWithAI(
   engine: "claude" | "fugu" | "kimi",
   apiKey: string,
@@ -339,7 +360,7 @@ export async function extractCasesWithAI(
 
   const MAX_CHARS = 14000;
   const truncated = text.length > MAX_CHARS;
-  const clipped = truncated ? text.slice(0, MAX_CHARS) : text;
+  const clipped = redactPiiForAi(truncated ? text.slice(0, MAX_CHARS) : text);
 
   const competencyList = competencies.map((c) => `${c.code} — ${c.name}`).join("\n");
   const system = aiExtractionSystemPrompt(competencyList);
