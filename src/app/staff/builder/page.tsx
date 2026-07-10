@@ -50,7 +50,7 @@ export default async function BuilderListPage({
     isAdmin
       ? supabase.from("competencies").select("id, name, category").order("category").order("name")
       : Promise.resolve({ data: [] }),
-    isAdmin ? supabase.from("generation_engines").select("key, display_name, enabled, api_key") : Promise.resolve({ data: [] }),
+    isAdmin ? supabase.from("generation_engines").select("key, display_name, enabled, api_key_secret_id") : Promise.resolve({ data: [] }),
   ]);
 
   const compGroups = ["Core", "Leadership", "Functional"]
@@ -127,7 +127,18 @@ export default async function BuilderListPage({
 
         <div className="space-y-6">
           {isAdmin ? (
-            <CreateAssessmentPanel compGroups={compGroups} engines={(engines || []) as { key: string; display_name: string; enabled: boolean; api_key: string | null }[]} />
+            <CreateAssessmentPanel
+              compGroups={compGroups}
+              // Never ship the raw api_key to the client -- this Server
+              // Component's props get serialized into the page's RSC payload,
+              // so the panel only receives whether each engine is configured.
+              engines={(engines || []).map((e) => ({
+                key: e.key,
+                display_name: e.display_name,
+                enabled: e.enabled,
+                configured: !!e.api_key_secret_id,
+              }))}
+            />
           ) : (
             <Card className="p-6">
               <form action={createAssessment} className="space-y-4">

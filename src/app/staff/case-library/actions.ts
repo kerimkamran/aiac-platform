@@ -23,13 +23,16 @@ async function requireSuperAdmin() {
 async function loadEngineKey(supabase: Awaited<ReturnType<typeof createClient>>, engineKey: "claude" | "fugu" | "kimi") {
   const { data: engine } = await supabase
     .from("generation_engines")
-    .select("api_key, enabled")
+    .select("enabled")
     .eq("key", engineKey)
     .maybeSingle();
-  if (!engine || !engine.enabled || !engine.api_key) {
+  // The key lives in Supabase Vault (encrypted at rest), not on this row --
+  // get_engine_api_key() decrypts it server-side, re-checking is_staff().
+  const { data: apiKey } = await supabase.rpc("get_engine_api_key", { p_engine_key: engineKey });
+  if (!engine || !engine.enabled || !apiKey) {
     throw new Error(`That engine isn't configured. Add an API key and enable it in Settings first.`);
   }
-  return engine.api_key as string;
+  return apiKey as string;
 }
 
 async function loadCompetencyForPrompt(

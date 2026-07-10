@@ -53,14 +53,14 @@ export default async function CaseLibraryPage({
 
   const [{ data: competencies }, { data: engines }, { data: cases }] = await Promise.all([
     supabase.from("competencies").select("id, code, name, category").order("category").order("name"),
-    supabase.from("generation_engines").select("key, display_name, enabled, api_key"),
+    supabase.from("generation_engines").select("key, display_name, enabled, api_key_secret_id"),
     supabase
       .from("case_library")
       .select("id, title, scenario_text, question_stem, question_type, options, difficulty, methodology_tag, methodology_notes, engine, generated_at, competency_id, competencies(name, category, code)")
       .order("generated_at", { ascending: false }),
   ]);
 
-  const availableEngines = (engines || []).filter((e) => e.enabled && e.api_key);
+  const availableEngines = (engines || []).filter((e) => e.enabled && e.api_key_secret_id);
   const compList = competencies || [];
 
   type CaseRow = {

@@ -24,7 +24,7 @@ export default async function SettingsPage({
 
   const { data: engines } = await supabase
     .from("generation_engines")
-    .select("key, display_name, api_key, enabled, updated_at")
+    .select("key, display_name, api_key_secret_id, enabled, updated_at")
     .order("key");
 
   return (
@@ -120,12 +120,12 @@ export default async function SettingsPage({
                 <p className="text-sm font-bold text-foreground">{e.display_name}</p>
                 <span
                   className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
-                    e.enabled && e.api_key
+                    e.enabled && e.api_key_secret_id
                       ? "bg-green-50 text-green-700 ring-green-600/20"
                       : "bg-gray-100 text-gray-600 ring-gray-500/20"
                   }`}
                 >
-                  {e.enabled && e.api_key ? "Active" : "Not configured"}
+                  {e.enabled && e.api_key_secret_id ? "Active" : "Not configured"}
                 </span>
               </div>
               <form action={updateEngineSettings.bind(null, e.key as "claude" | "fugu" | "kimi")} className="flex flex-wrap items-center gap-3">
@@ -136,14 +136,14 @@ export default async function SettingsPage({
                 <input
                   name="api_key"
                   type="password"
-                  placeholder={e.api_key ? "•••••••••••• (set — leave blank to keep)" : "Paste API key"}
+                  placeholder={e.api_key_secret_id ? "•••••••••••• (set — leave blank to keep)" : "Paste API key"}
                   className="flex-1 min-w-48 bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <button className="bg-brand text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand-light transition-colors">
                   Save
                 </button>
               </form>
-              {e.api_key && (
+              {e.api_key_secret_id && (
                 <form action={clearEngineKey.bind(null, e.key as "claude" | "fugu" | "kimi")} className="mt-2">
                   <button className="text-[11px] text-critical hover:underline">Remove key & disable</button>
                 </form>

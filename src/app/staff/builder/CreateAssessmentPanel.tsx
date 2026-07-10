@@ -30,7 +30,7 @@ function GenerateSubmitButton({ label, disabled }: { label: string; disabled: bo
   );
 }
 
-type Engine = { key: string; display_name: string; enabled: boolean; api_key: string | null };
+type Engine = { key: string; display_name: string; enabled: boolean; configured: boolean };
 type Competency = { id: string; name: string; category: string };
 
 const ENGINE_INFO: Record<string, { tagline: string; cost: string; quality: string }> = {
@@ -68,16 +68,16 @@ export function CreateAssessmentPanel({
   engines: Engine[];
 }) {
   const [scope, setScope] = useState<ScopeKey>("Core");
-  const [engine, setEngine] = useState<string>(() => engines.find((e) => e.enabled && e.api_key)?.key || "");
+  const [engine, setEngine] = useState<string>(() => engines.find((e) => e.enabled && e.configured)?.key || "");
   const [showBlank, setShowBlank] = useState(false);
 
-  const anyConfigured = engines.some((e) => e.enabled && e.api_key);
+  const anyConfigured = engines.some((e) => e.enabled && e.configured);
   const activeScope = SCOPES.find((s) => s.key === scope)!;
 
   const engineByKey = (key: string) => engines.find((e) => e.key === key);
   const engineReady = (key: string) => {
     const e = engineByKey(key);
-    return !!(e && e.enabled && e.api_key);
+    return !!(e && e.enabled && e.configured);
   };
 
   const boundDefaultAction =

@@ -93,16 +93,22 @@ export async function updateEngineSettings(engineKey: "claude" | "fugu" | "kimi"
   const enabled = formData.get("enabled") === "on";
   const rawKey = String(formData.get("api_key") || "").trim();
 
-  const update: Record<string, unknown> = {
-    enabled,
-    updated_by: userId,
-    updated_at: new Date().toISOString(),
-  };
-  // Only overwrite the stored key if the admin typed a new one — leaves the existing
-  // key in place when the field is left blank (it renders masked, never the real value).
-  if (rawKey) update.api_key = rawKey;
+  // The key itself is stored in Supabase Vault (encrypted at rest), not as a
+  // plaintext column -- set_engine_api_key() re-checks hr_admin/system_admin
+  // server-side and creates or rotates the vault secret. Only call it if the
+  // admin actually typed a new key; leaves the existing one in place when the
+  // field is left blank (it renders masked, never the real value).
+  if (rawKey) {
+    const { error: keyError } = await supabase.rpc("set_engine_api_key", { p_engine_key: engineKey, p_new_key: rawKey });
+    if (keyError) {
+      redirect("/staff/settings?error=" + encodeURIComponent(keyError.message));
+    }
+  }
 
-  const { error } = await supabase.from("generation_engines").update(update).eq("key", engineKey);
+  const { error } = await supabase
+    .from("generation_engines")
+    .update({ enabled, updated_by: userId, updated_at: new Date().toISOString() })
+    .eq("key", engineKey);
 
   if (error) {
     redirect("/staff/settings?error=" + encodeURIComponent(error.message));
@@ -115,9 +121,12 @@ export async function updateEngineSettings(engineKey: "claude" | "fugu" | "kimi"
 
 export async function clearEngineKey(engineKey: "claude" | "fugu" | "kimi") {
   const { supabase, userId } = await requireAdmin();
+  // Deletes the vault secret too (not just the reference), re-checking
+  // hr_admin/system_admin server-side.
+  await supabase.rpc("clear_engine_api_key", { p_engine_key: engineKey });
   await supabase
     .from("generation_engines")
-    .update({ api_key: null, enabled: false, updated_by: userId, updated_at: new Date().toISOString() })
+    .update({ enabled: false, updated_by: userId, updated_at: new Date().toISOString() })
     .eq("key", engineKey);
   revalidatePath("/staff/settings");
   revalidatePath("/staff/builder");

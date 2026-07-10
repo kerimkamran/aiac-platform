@@ -273,16 +273,21 @@ async function loadEngine(
 ) {
   const { data: engine } = await supabase
     .from("generation_engines")
-    .select("api_key, enabled")
+    .select("enabled")
     .eq("key", engineKey)
     .maybeSingle();
 
-  if (!engine || !engine.enabled || !engine.api_key) {
+  // The key itself lives in Supabase Vault (encrypted at rest), not on this
+  // row -- get_engine_api_key() is a SECURITY DEFINER RPC that decrypts it
+  // server-side only, re-checking is_staff() independently of this call site.
+  const { data: apiKey } = await supabase.rpc("get_engine_api_key", { p_engine_key: engineKey });
+
+  if (!engine || !engine.enabled || !apiKey) {
     throw new Error(
       `The ${engineDisplayName(engineKey)} engine isn't configured. Add an API key and enable it in Settings first.`
     );
   }
-  return engine.api_key as string;
+  return apiKey as string;
 }
 
 // Takes competency rows the caller already fetched (avoids a second round trip
