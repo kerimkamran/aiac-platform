@@ -1,8 +1,8 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect } from "@react-pdf/renderer";
 
-const BRAND = "#0D3D8C";
-const BRAND_DEEP = "#0A2553";
-const ACCENT = "#2D6B16";
+const BRAND = "#4338CA";
+const BRAND_DEEP = "#241E6B";
+const ACCENT = "#0F8A5F";
 const INK = "#111318";
 const MUTED = "#5D6674";
 const LINE = "#E3E8ED";
@@ -112,13 +112,13 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
     .filter((g) => g.rows.length > 0);
 
   return (
-    <Document title={`${data.candidateName} — Assessment Report`} author="AI Assessment Center by Azerconnect Group">
+    <Document title={`${data.candidateName} — Assessment Report`} author="Vantage by Azerconnect Group">
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBar}>
           <View style={styles.brandBlock}>
             <LogoMark />
             <View>
-              <Text style={styles.brandTitle}>AI Assessment Center</Text>
+              <Text style={styles.brandTitle}>Vantage</Text>
               <Text style={styles.brandSub}>BY AZERCONNECT GROUP</Text>
             </View>
           </View>
@@ -272,7 +272,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         )}
 
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Generated {new Date(data.generatedAt).toLocaleString()} · AI Assessment Center by Azerconnect Group</Text>
+          <Text style={styles.footerText}>Generated {new Date(data.generatedAt).toLocaleString()} · Vantage by Azerconnect Group</Text>
           <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>

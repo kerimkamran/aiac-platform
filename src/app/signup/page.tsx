@@ -8,7 +8,7 @@ export default function SignupPage() {
   return (
     <AuthPanel
       title="Accounts are invite-only"
-      subtitle="AIAC candidate and reviewer accounts are created by your HR team — there's no public sign-up."
+      subtitle="Vantage candidate and reviewer accounts are created by your HR team — there's no public sign-up."
     >
       <div className="space-y-5">
         <div className="flex items-start gap-3 bg-background border border-line rounded-xl p-4">

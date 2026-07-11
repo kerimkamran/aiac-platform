@@ -26,29 +26,33 @@
   --shadow-glow-brand: 0 8px 28px -8px color-mix(in srgb, var(--brand) 45%, transparent);
   --shadow-glow-accent: 0 8px 28px -8px color-mix(in srgb, var(--accent) 45%, transparent);
 
-  /* Brand -- Azerconnect Group design system (navy blue -> forest green).
-     DO NOT CHANGE these hex values. */
-  --brand: #0d3d8c;        /* blue-700, primary */
-  --brand-light: #1767c4;  /* blue-500 */
-  --brand-deep: #0a2553;   /* blue-900 */
-  --brand-50: #ebf3fd;
-  --accent: #2d6b16;       /* green-600, primary */
-  --accent-dark: #235213;  /* green-700 */
-  --accent-soft: #ecf7e4;  /* green-50 */
+  /* Brand -- "Vantage" rebrand. Deep indigo-violet primary (a distinct,
+     currently-trending B2B SaaS direction) replaces the former flat navy;
+     a fresh emerald secondary keeps a green thread to Azerconnect's
+     heritage without reusing the old literal hex. This is a deliberate,
+     full rebrand per explicit request -- these values are intended to
+     change and should be treated as the new source of truth going forward. */
+  --brand: #4338ca;        /* indigo-700, primary */
+  --brand-light: #6d5ef8;  /* indigo-500 */
+  --brand-deep: #241e6b;   /* indigo-900 */
+  --brand-50: #eeecfd;
+  --accent: #0f8a5f;       /* emerald-600, primary */
+  --accent-dark: #0b6b49;  /* emerald-700 */
+  --accent-soft: #e4f7ee;  /* emerald-50 */
   --gold: #b9861a;         /* secondary accent -- attention / in-progress states */
   --gold-soft: #fbf1dc;
 
   /* Status (validated dataviz status palette) */
-  --good: #2d6b16;
+  --good: #0f8a5f;
   --warning: #a06a00;
   --serious: #a01818;
   --critical: #c62020;
-  --info: #1767c4;
+  --info: #6d5ef8;
 
   /* Chart series (validated categorical slots) */
-  --chart-1: #0d3d8c; /* blue   — Core */
-  --chart-2: #2d6b16; /* green  — Functional */
-  --chart-3: #b9861a; /* gold   — Leadership */
+  --chart-1: #4338ca; /* indigo  — Core */
+  --chart-2: #0f8a5f; /* emerald — Functional */
+  --chart-3: #b9861a; /* gold    — Leadership */
   --chart-grid: #ebede8;
   --chart-axis: #cfd3cb;
 }
@@ -71,25 +75,25 @@
   --shadow-glow-brand: 0 8px 28px -8px color-mix(in srgb, var(--brand) 55%, transparent);
   --shadow-glow-accent: 0 8px 28px -8px color-mix(in srgb, var(--accent) 55%, transparent);
 
-  --brand: #3d88d8;
-  --brand-light: #70aaea;
-  --brand-deep: #0a2553;
-  --brand-50: #0b3070;
+  --brand: #8577f5;
+  --brand-light: #a89bff;
+  --brand-deep: #241e6b;
+  --brand-50: #2a2470;
 
-  --accent: #56a83c;
-  --accent-dark: #80c463;
-  --accent-soft: #132d09;
+  --accent: #35c088;
+  --accent-dark: #6fdcae;
+  --accent-soft: #0c2a1e;
   --gold: #d1a94a;
   --gold-soft: #2a2010;
 
-  --good: #56a83c;
+  --good: #35c088;
   --warning: #d19a2a;
   --serious: #e05a5a;
   --critical: #e05a5a;
-  --info: #3d88d8;
+  --info: #a89bff;
 
-  --chart-1: #3d88d8;
-  --chart-2: #56a83c;
+  --chart-1: #8577f5;
+  --chart-2: #35c088;
   --chart-3: #d1a94a;
   --chart-grid: #262b33;
   --chart-axis: #3a4049;
@@ -269,9 +273,9 @@ body {
 /* ---------- Brand panels -- one confident gradient moment (Azerconnect navy -> forest green) ---------- */
 .hero-mesh {
   background:
-    radial-gradient(60rem 36rem at 85% -15%, rgba(45, 107, 22, 0.28), transparent 60%),
-    radial-gradient(40rem 30rem at 10% 110%, rgba(23, 103, 196, 0.25), transparent 55%),
-    linear-gradient(160deg, #0a2553 0%, #0d3d8c 100%);
+    radial-gradient(60rem 36rem at 85% -15%, rgba(15, 138, 95, 0.28), transparent 60%),
+    radial-gradient(40rem 30rem at 10% 110%, rgba(109, 94, 248, 0.28), transparent 55%),
+    linear-gradient(160deg, #241e6b 0%, #4338ca 100%);
 }
 /* Faint architectural grid over solid-navy panels -- graphic texture that
    doesn't compete with the white type sitting on top of it. */
@@ -284,7 +288,7 @@ body {
   -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
 }
 .text-gradient {
-  background: linear-gradient(92deg, #9cc3f5 0%, #aeda97 100%);
+  background: linear-gradient(92deg, #a89bff 0%, #6fdcae 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;

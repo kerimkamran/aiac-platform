@@ -26,11 +26,11 @@ function Sparkline({ values, className = "" }: { values: number[]; className?: s
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none">
-      <path d={path} fill="none" stroke={up ? "#2d6b16" : "#d97706"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke={up ? "#0f8a5f" : "#d97706"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {points.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 2.5} fill={up ? "#2d6b16" : "#d97706"} />
+        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 2.5} fill={up ? "#0f8a5f" : "#d97706"} />
       ))}
-      {last && <circle cx={last[0]} cy={last[1]} r="6" fill={up ? "#2d6b16" : "#d97706"} opacity="0.15" />}
+      {last && <circle cx={last[0]} cy={last[1]} r="6" fill={up ? "#0f8a5f" : "#d97706"} opacity="0.15" />}
     </svg>
   );
 }

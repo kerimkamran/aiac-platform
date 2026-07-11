@@ -38,7 +38,7 @@ export function AuthPanel({
           </ul>
         </div>
         <div className="relative flex items-center justify-between gap-3 text-[12px] text-faint">
-          <p>Azerconnect Group — Internal Use Only · AIAC v1.0</p>
+          <p>Azerconnect Group — Internal Use Only · Vantage v1.0</p>
           <div className="flex items-center gap-3">
             <ThemeToggle className="text-faint hover:text-muted transition-colors" />
             <a

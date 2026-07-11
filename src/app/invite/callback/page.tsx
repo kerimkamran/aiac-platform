@@ -73,7 +73,7 @@ export default function InviteCallbackPage() {
               Set your password
             </h1>
             <p className="text-sm text-muted mt-2 mb-8 text-center">
-              Welcome to AIAC — choose a password to finish setting up your account.
+              Welcome to Vantage — choose a password to finish setting up your account.
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (

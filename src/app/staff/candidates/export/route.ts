@@ -109,7 +109,7 @@ export async function GET(req: Request) {
   };
 
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "AI Assessment Center by Azerconnect Group";
+  workbook.creator = "Vantage by Azerconnect Group";
   workbook.created = new Date();
 
   const sheet = workbook.addWorksheet("Candidates", { views: [{ state: "frozen", ySplit: 1 }] });
@@ -134,7 +134,7 @@ export async function GET(req: Request) {
   ];
 
   sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-  sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF0D3D8C" } };
+  sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4338CA" } };
   sheet.getRow(1).height = 22;
 
   for (const r of list) {

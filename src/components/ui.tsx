@@ -71,12 +71,22 @@ export function Icon({ name, className = "w-5 h-5" }: { name: string; className?
 
 /* ---------------- Brand ---------------- */
 
+// "Vantage" mark: an ascending peak/chevron inside a squircle -- reads as
+// both an upward viewpoint (evidence -> clarity) and a growth signal. Built
+// on the new indigo -> emerald brand gradient, replacing the previous "A"
+// shield mark as part of the full rebrand.
 export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <rect width="64" height="64" rx="14" className="fill-brand-deep" />
-      <path d="M32 12 L48 48 H40.5 L32 27 L23.5 48 H16 Z" fill="#fff" />
-      <circle cx="32" cy="42" r="5" className="fill-accent" />
+      <defs>
+        <linearGradient id="vantageMarkGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
+          <stop offset="0%" stopColor="var(--brand-light)" />
+          <stop offset="100%" stopColor="var(--brand-deep)" />
+        </linearGradient>
+      </defs>
+      <rect width="64" height="64" rx="18" fill="url(#vantageMarkGrad)" />
+      <path d="M14 40 L28 22 L36 32 L50 16" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+      <circle cx="50" cy="16" r="5.5" className="fill-accent" />
     </svg>
   );
 }
@@ -86,9 +96,9 @@ export function Logo({ dark = false, compact = false }: { dark?: boolean; compac
     <span className="inline-flex items-center gap-2.5">
       <LogoMark className="w-8 h-8 shrink-0" />
       {!compact && (
-        <span className={`font-semibold leading-none tracking-tight ${dark ? "text-white" : "text-brand"}`}>
-          <span className="block text-[15px]">AI Assessment Center</span>
-          <span className={`block text-[10px] font-medium uppercase tracking-[0.18em] mt-1 ${dark ? "text-accent" : "text-accent-dark"}`}>
+        <span className={`font-semibold leading-none tracking-tight [font-family:var(--font-display)] ${dark ? "text-white" : "text-brand"}`}>
+          <span className="block text-[16px]">Vantage</span>
+          <span className={`block text-[10px] font-medium uppercase tracking-[0.18em] mt-1 font-sans ${dark ? "text-accent" : "text-accent-dark"}`}>
             by Azerconnect Group
           </span>
         </span>
@@ -105,16 +115,16 @@ export function bandFor(score: number): Band {
   if (score >= 85)
     return { label: "Exceeds", badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", bar: "bg-emerald-600", hex: "#1c400f" };
   if (score >= 70)
-    return { label: "Fully Meets", badge: "bg-green-50 text-green-700 ring-green-600/20", bar: "bg-accent", hex: "#2d6b16" };
+    return { label: "Fully Meets", badge: "bg-green-50 text-green-700 ring-green-600/20", bar: "bg-accent", hex: "#0f8a5f" };
   if (score >= 50)
     return { label: "Partially Meets", badge: "bg-amber-50 text-amber-700 ring-amber-600/20", bar: "bg-amber-500", hex: "#eda100" };
   return { label: "Does Not Meet", badge: "bg-red-50 text-red-700 ring-red-600/20", bar: "bg-critical", hex: "#d03b3b" };
 }
 
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
-  Core: { text: "text-chart-1", bg: "bg-chart-1/10", dot: "bg-chart-1", hex: "#0d3d8c" },
+  Core: { text: "text-chart-1", bg: "bg-chart-1/10", dot: "bg-chart-1", hex: "#4338ca" },
   Leadership: { text: "text-chart-3", bg: "bg-chart-3/10", dot: "bg-chart-3", hex: "#b9861a" },
-  Functional: { text: "text-chart-2", bg: "bg-chart-2/10", dot: "bg-chart-2", hex: "#2d6b16" },
+  Functional: { text: "text-chart-2", bg: "bg-chart-2/10", dot: "bg-chart-2", hex: "#0f8a5f" },
 };
 
 export function categoryStyle(category: string) {

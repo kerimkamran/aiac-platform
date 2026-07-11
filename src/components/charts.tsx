@@ -50,7 +50,7 @@ export function BandDistribution({
 }
 
 /* Horizontal pipeline funnel — ordinal single-hue ramp (validated blue steps). */
-const FUNNEL_RAMP = ["#a8ccf2", "#3d88d8", "#1050a8", "#0a2553"];
+const FUNNEL_RAMP = ["#c7c1fb", "#8577f5", "#6d5ef8", "#241e6b"];
 
 export function PipelineFunnel({ stages }: { stages: { label: string; count: number }[] }) {
   const max = Math.max(1, ...stages.map((s) => s.count));
@@ -73,7 +73,7 @@ export function PipelineFunnel({ stages }: { stages: { label: string; count: num
 }
 
 /* Distinct series hues for overlaid radars: navy, gold, green, violet. */
-export const RADAR_SERIES_COLORS = ["#0d3d8c", "#b9861a", "#2d6b16", "#8b5cf6"];
+export const RADAR_SERIES_COLORS = ["#4338ca", "#b9861a", "#0f8a5f", "#8b5cf6"];
 
 export type RadarSeries = { name: string; color: string; values: number[] };
 
@@ -82,7 +82,7 @@ export type RadarSeries = { name: string; color: string; values: number[] };
 export function RadarChart({
   items,
   size = 320,
-  color = "#0d3d8c",
+  color = "#4338ca",
   labels,
   series,
   showLegend = false,

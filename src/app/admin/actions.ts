@@ -56,7 +56,7 @@ export async function setUserStatus(userId: string, status: string) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_user_status", { p_user_id: userId, p_status: status });
   if (error) redirect(`/admin/users/${userId}?error=${encodeURIComponent(error.message)}`);
-  await notify(userId, "Account status changed", `Your AIAC account is now ${status}.`);
+  await notify(userId, "Account status changed", `Your Vantage account is now ${status}.`);
   revalidatePath(`/admin/users/${userId}`);
 }
 

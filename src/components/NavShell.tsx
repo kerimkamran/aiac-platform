@@ -34,7 +34,7 @@ export function NavShell({
         <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={() => setOpen(false)}>
           <LogoMark className="w-8 h-8 shrink-0 rounded-[9px]" />
           <span className="leading-none min-w-0">
-            <span className="block text-[13.5px] font-semibold text-foreground truncate [font-family:var(--font-display)]">AI Assessment Center</span>
+            <span className="block text-[13.5px] font-semibold text-foreground truncate [font-family:var(--font-display)]">Vantage</span>
             <span className="block text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-dark mt-1.5">Azerconnect Group</span>
           </span>
         </Link>
@@ -106,7 +106,7 @@ export function NavShell({
       <div className="lg:hidden fixed inset-x-0 top-0 z-40 flex items-center justify-between bg-surface/95 backdrop-blur border-b border-line px-4 py-3 no-print">
         <Link href="/" className="flex items-center gap-2">
           <LogoMark className="w-7 h-7" />
-          <span className="text-sm font-semibold text-foreground">AIAC</span>
+          <span className="text-sm font-semibold text-foreground [font-family:var(--font-display)]">Vantage</span>
         </Link>
         <button onClick={() => setOpen(true)} aria-label="Open menu" className="p-2 -mr-2 text-foreground">
           <Icon name="menu" className="w-6 h-6" />

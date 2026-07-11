@@ -48,7 +48,7 @@ export default async function Home() {
           <div className="max-w-3xl mx-auto text-center">
             <p className="anim-fade-up inline-flex items-center gap-2 text-[12px] font-semibold text-accent-dark bg-accent-soft ring-1 ring-inset ring-accent/15 rounded-full px-3.5 py-1.5 mb-9">
               <Icon name="sparkles" className="w-3.5 h-3.5" />
-              Azerconnect Group · AI Assessment Center
+              Azerconnect Group · Vantage
             </p>
             <h1 className="anim-fade-up delay-1 text-[46px] md:text-[68px] font-semibold tracking-tight leading-[1.04] text-foreground [font-family:var(--font-display)]">
               Decide on evidence,
@@ -56,7 +56,7 @@ export default async function Home() {
               not <em className="text-accent-dark not-italic">gut feeling</em>.
             </h1>
             <p className="anim-fade-up delay-2 text-lg text-muted max-w-xl mx-auto mt-8 leading-relaxed">
-              AIAC turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
+              Vantage turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
               AI-assisted scoring, and reviewer-verified decisions — for hiring, promotion, or development —
               every score traceable back to a person&apos;s own words.
             </p>
@@ -191,7 +191,7 @@ export default async function Home() {
                 ["Does Not Meet", "0–49", "#c62020"],
                 ["Partially Meets", "50–69", "#a06a00"],
                 ["Fully Meets", "70–84", "#3a8820"],
-                ["Exceeds", "85–100", "#2d6b16"],
+                ["Exceeds", "85–100", "#0f8a5f"],
               ].map(([label, range, color]) => (
                 <div key={label} className="flex items-center gap-3">
                   <span className="w-2.5 h-9 rounded-full shrink-0" style={{ background: color as string }} />
@@ -263,7 +263,7 @@ export default async function Home() {
         <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <Logo />
           <p className="text-[12.5px] text-faint text-center">
-            Azerconnect Group — Internal Use Only · AIAC Platform v1.0 · Phase 1 scoring is simulated; the
+            Azerconnect Group — Internal Use Only · Vantage Platform v1.0 · Phase 1 scoring is simulated; the
             production LLM engine ships per SRS Part 4.
           </p>
           <div className="flex items-center gap-4">
@@ -354,7 +354,7 @@ function HeroPreview() {
             <div className="relative w-28 h-28">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
                 <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" strokeWidth="9" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#2d6b16" strokeWidth="9" strokeLinecap="round" strokeDasharray="264" strokeDashoffset="55" />
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#0f8a5f" strokeWidth="9" strokeLinecap="round" strokeDasharray="264" strokeDashoffset="55" />
               </svg>
               <span className="absolute inset-0 grid place-items-center text-3xl font-bold rotate-0">79</span>
             </div>

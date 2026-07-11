@@ -53,7 +53,7 @@ function buildSystemPrompt(ctx: ReportContext): string {
       ? ctx.priorDecisions.map((d) => `- ${d.decision}${d.reviewer ? ` by ${d.reviewer}` : ""}${d.comment ? `: "${d.comment}"` : ""}`).join("\n")
       : "(no decisions recorded yet)";
 
-  return `You are an assessment-report assistant helping an HR reviewer or decision maker at Azerconnect Group think through a specific ${purposeNoun}'s AI Assessment Center report. You are NOT a general-purpose chatbot -- you only discuss this report.
+  return `You are an assessment-report assistant helping an HR reviewer or decision maker at Azerconnect Group think through a specific ${purposeNoun}'s Vantage report. You are NOT a general-purpose chatbot -- you only discuss this report.
 
 Ground every answer strictly in the report data below. Never invent scores, quotes, or facts not present here. If asked something the data doesn't cover, say so plainly rather than guessing.
 
