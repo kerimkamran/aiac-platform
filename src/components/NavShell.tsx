@@ -7,6 +7,16 @@ import { Avatar, Icon, LogoMark } from "@/components/ui";
 import { CommandPalette } from "@/components/CommandPalette";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ToastProvider } from "@/components/Toaster";
+import { ScoutLauncher } from "@/components/ScoutLauncher";
+import type { ScoutRole } from "@/lib/scout-intents";
+
+// Maps the DB's raw role string to Scout's coarser role categories.
+function toScoutRole(role: string): ScoutRole {
+  if (role === "candidate") return "candidate";
+  if (role === "decision_maker") return "decision_maker";
+  if (role === "system_admin") return "admin";
+  return "staff";
+}
 
 export type NavLink = { href: string; label: string; icon: string; exact?: boolean };
 
@@ -127,6 +137,8 @@ export function NavShell({
       )}
 
       <main className="flex-1 min-w-0 pt-12 lg:pt-0">{children}</main>
+
+      <ScoutLauncher role={toScoutRole(role)} />
     </div>
     </ToastProvider>
   );

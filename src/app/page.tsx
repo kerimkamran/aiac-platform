@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Icon, Logo, LogoMark } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ScoutLauncher } from "@/components/ScoutLauncher";
 
 export default async function Home() {
   const supabase = await createClient();
@@ -279,6 +280,8 @@ export default async function Home() {
           </div>
         </div>
       </footer>
+
+      <ScoutLauncher role="visitor" />
     </div>
   );
 }

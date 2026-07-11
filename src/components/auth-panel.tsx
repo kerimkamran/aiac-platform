@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Icon, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { ScoutLauncher } from "@/components/ScoutLauncher";
 
 /* Split-screen auth layout: warm brand panel left, form right. */
 export function AuthPanel({
@@ -63,6 +64,8 @@ export function AuthPanel({
           {children}
         </div>
       </main>
+
+      <ScoutLauncher role="visitor" />
     </div>
   );
 }
