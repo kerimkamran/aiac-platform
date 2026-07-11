@@ -182,14 +182,29 @@ export function ScoringDisclosure({ className = "" }: { className?: string }) {
 
 /* ---------------- Layout primitives ---------------- */
 
-export function Card({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
-  // "Open Air": a near-white surface separated by a single thin hairline --
-  // no shadow, no colored border, no fill. Definition comes entirely from
-  // generous internal padding (set per-usage) and whitespace between cards,
-  // not from a heavier frame. Brand color is reserved for content inside the
-  // card (icons, active states, data) rather than the card chrome itself.
+export function Card({
+  className = "",
+  id,
+  children,
+  interactive = false,
+}: {
+  className?: string;
+  id?: string;
+  children: React.ReactNode;
+  interactive?: boolean;
+}) {
+  // v3 "Signal": a distinct surface defined by soft layered elevation
+  // (--shadow-sm) plus a squircle radius, rather than a flat hairline.
+  // Depth is subtle -- one soft shadow, not a heavy card-game look -- so
+  // dense pages stay calm. `interactive` adds a hover lift for cards that
+  // are actually clickable (candidate rows, nav tiles), so affordance is
+  // honest rather than applied uniformly.
   return (
-    <div id={id} className={`bg-surface border border-line rounded-2xl print-card ${className}`}>
+    <div
+      id={id}
+      className={`bg-surface squircle print-card ${interactive ? "lift-on-hover cursor-pointer" : ""} ${className}`}
+      style={{ boxShadow: "var(--shadow-sm)" }}
+    >
       {children}
     </div>
   );
@@ -204,24 +219,32 @@ export function PageHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
-  // Open, quiet header: generous top whitespace, a calm large display
-  // headline directly on the page background (no banner, no fill), a
-  // single thin hairline closing the block. Brand color appears only as a
-  // small accent dash beside the title -- the "load-bearing color" idea
-  // from the previous round is deliberately retired in favor of color used
-  // sparingly and precisely.
+  // v3 "Signal": headline sits in a soft-elevated squircle band (not flat
+  // on background, not a solid navy banner either) -- a confident middle
+  // ground between the two previous passes. A small brand-to-accent
+  // gradient chip replaces the flat accent dash as the recurring visual
+  // signature carried across every page.
   return (
-    <div className="mb-10 pb-6 border-b border-line">
-      <div className="flex flex-wrap items-end justify-between gap-5">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
+      <div className="flex items-start gap-4">
+        <span
+          className="hidden sm:grid place-items-center w-11 h-11 rounded-2xl shrink-0 mt-0.5"
+          style={{
+            background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)",
+            boxShadow: "var(--shadow-glow-brand)",
+          }}
+          aria-hidden
+        >
+          <span className="block w-2.5 h-2.5 rounded-full bg-white/90" />
+        </span>
         <div>
-          <span className="inline-block w-6 h-[3px] rounded-full bg-accent mb-4" aria-hidden />
-          <h1 className="text-[30px] leading-tight font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">
+          <h1 className="text-[28px] leading-tight font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">
             {title}
           </h1>
-          {subtitle && <p className="text-[15px] text-muted mt-2 max-w-2xl leading-relaxed">{subtitle}</p>}
+          {subtitle && <p className="text-[15px] text-muted mt-1.5 max-w-2xl leading-relaxed">{subtitle}</p>}
         </div>
-        {children && <div className="flex items-center gap-2.5">{children}</div>}
       </div>
+      {children && <div className="flex items-center gap-2.5">{children}</div>}
     </div>
   );
 }
@@ -232,13 +255,19 @@ export function StatCard({
   icon,
   hint,
   tone = "brand",
+  emphasis = false,
 }: {
   label: string;
   value: string | number;
   icon: string;
   hint?: string;
   tone?: "brand" | "accent" | "amber" | "violet";
+  emphasis?: boolean;
 }) {
+  // v3 "Signal": bento-aware -- an `emphasis` stat (the one number that
+  // matters most on a given page) gets a soft brand-tinted surface and
+  // slightly larger type, so the grid has real visual hierarchy instead of
+  // four uniformly-weighted boxes.
   const tones = {
     brand: "bg-brand-50 text-brand",
     accent: "bg-accent-soft text-accent-dark",
@@ -246,12 +275,19 @@ export function StatCard({
     violet: "bg-chart-3/10 text-chart-3",
   };
   return (
-    <Card className="p-6 flex items-start gap-4">
-      <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${tones[tone]}`}>
+    <Card
+      className={`p-6 flex items-start gap-4 ${emphasis ? "sm:col-span-2" : ""}`}
+      interactive
+    >
+      <span className={`w-11 h-11 squircle-sm grid place-items-center shrink-0 ${tones[tone]}`}>
         <Icon name={icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-[30px] leading-9 font-semibold text-foreground tabular-nums [font-family:var(--font-display)]">{value}</p>
+        <p
+          className={`${emphasis ? "text-[36px] leading-10" : "text-[28px] leading-9"} font-semibold text-foreground tabular-nums [font-family:var(--font-display)]`}
+        >
+          {value}
+        </p>
         <p className="text-[13px] font-medium text-muted mt-1">{label}</p>
         {hint && <p className="text-[11.5px] text-faint mt-1">{hint}</p>}
       </div>

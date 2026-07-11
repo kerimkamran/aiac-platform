@@ -29,7 +29,7 @@ export function NavShell({
   const isActive = (l: NavLink) => (l.exact ? pathname === l.href : pathname === l.href || pathname.startsWith(l.href + "/"));
 
   const sidebar = (
-    <div className="h-full flex flex-col bg-surface border-r border-line">
+    <div className="h-full flex flex-col bg-surface border-r border-line-soft" style={{ boxShadow: "var(--shadow-sm)" }}>
       <div className="px-5 py-6 flex items-center gap-3">
         <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={() => setOpen(false)}>
           <LogoMark className="w-8 h-8 shrink-0 rounded-[9px]" />
@@ -51,11 +51,18 @@ export function NavShell({
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className={`group relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-colors ${
-                active ? "bg-accent-soft text-accent-dark font-semibold" : "text-muted hover:bg-line-soft hover:text-foreground"
+              className={`group relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 squircle-sm text-[13.5px] font-medium transition-all ${
+                active
+                  ? "text-white font-semibold"
+                  : "text-muted hover:bg-line-soft hover:text-foreground"
               }`}
+              style={
+                active
+                  ? { background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)", boxShadow: "var(--shadow-glow-brand)" }
+                  : undefined
+              }
             >
-              <Icon name={l.icon} className={`w-[18px] h-[18px] ${active ? "text-accent-dark" : "text-faint group-hover:text-muted"}`} />
+              <Icon name={l.icon} className={`w-[18px] h-[18px] ${active ? "text-white" : "text-faint group-hover:text-muted"}`} />
               {l.label}
             </Link>
           );

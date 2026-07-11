@@ -73,9 +73,9 @@ export default async function StaffHomePage() {
 
       {/* Review queue callout */}
       {pendingReview.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-chart-3/[0.06] border border-chart-3/20 rounded-2xl px-6 py-5 mb-10 anim-fade-up">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-chart-3/[0.06] squircle px-6 py-5 mb-10 anim-fade-up" style={{ boxShadow: "var(--shadow-xs)" }}>
           <p className="text-sm text-foreground flex items-center gap-3.5">
-            <span className="w-9 h-9 rounded-xl bg-chart-3/10 text-chart-3 grid place-items-center shrink-0">
+            <span className="w-9 h-9 squircle-sm bg-chart-3/10 text-chart-3 grid place-items-center shrink-0">
               <Icon name="eye" className="w-4 h-4" />
             </span>
             <span>
@@ -95,7 +95,7 @@ export default async function StaffHomePage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-        <StatCard label="Candidates in pipeline" value={list.length} icon="users" tone="brand" />
+        <StatCard label="Candidates in pipeline" value={list.length} icon="users" tone="brand" emphasis />
         <StatCard label="Awaiting human review" value={pendingReview.length} icon="eye" tone="violet" />
         <StatCard label="Avg. Role Fit Score" value={avg ?? "—"} icon="target" tone="accent" />
         <StatCard label="Published assessments" value={publishedCount ?? 0} icon="layers" tone="amber" />
@@ -133,7 +133,7 @@ export default async function StaffHomePage() {
         ) : (
           <div className="divide-y divide-line border-t border-line">
             {recent.map((r) => (
-              <Link key={r.id} href={`/staff/candidates/${r.id}`} className="flex items-center gap-4 px-7 py-4 hover:bg-background/70 transition-colors">
+              <Link key={r.id} href={`/staff/candidates/${r.id}`} className="flex items-center gap-4 px-7 py-4 hover:bg-line-soft transition-colors">
                 <Avatar name={r.candidate?.full_name || "?"} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground truncate">{r.candidate?.full_name}</p>

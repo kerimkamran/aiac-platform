@@ -34,6 +34,7 @@ export default async function Home() {
             <Link
               href="/signup"
               className="px-4 py-2 rounded-full bg-brand text-white font-semibold hover:bg-brand-light transition-colors"
+              style={{ boxShadow: "var(--shadow-glow-brand)" }}
             >
               Get started
             </Link>
@@ -128,11 +129,11 @@ export default async function Home() {
               body: "Recruiters review the competency profile, read the evidence behind each score, and shortlist, hold, or reject — the full trail is preserved.",
             },
           ].map((s, i) => (
-            <div key={s.step} className="relative bg-surface border border-line rounded-xl p-7">
+            <div key={s.step} className="relative bg-surface squircle p-7 lift-on-hover" style={{ boxShadow: "var(--shadow-sm)" }}>
               <span className="absolute -top-3 left-7 text-[11px] font-bold tracking-widest uppercase text-accent-dark bg-accent-soft rounded-full px-3 py-1">
                 {s.step}
               </span>
-              <span className="w-11 h-11 rounded-xl bg-brand/8 text-brand grid place-items-center mb-5 mt-2">
+              <span className="w-11 h-11 squircle-sm bg-brand/8 text-brand grid place-items-center mb-5 mt-2">
                 <Icon name={s.icon} className="w-5.5 h-5.5" />
               </span>
               <h3 className="font-bold text-foreground text-lg [font-family:var(--font-display)]">{s.title}</h3>
@@ -181,7 +182,7 @@ export default async function Home() {
           </div>
 
           {/* Proficiency bands */}
-          <div className="mt-14 bg-white/5 border border-white/10 rounded-2xl p-7">
+          <div className="mt-14 bg-white/5 border border-white/10 squircle-lg p-7">
             <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/45 mb-5">
               Four proficiency bands, one shared language
             </p>
@@ -221,8 +222,8 @@ export default async function Home() {
             ["shield", "Human-in-the-loop", "AI proposes, people decide. Reviewers confirm scores and record shortlist / hold / reject decisions with full audit history."],
             ["file", "Printable reports", "Every candidate profile exports as a clean, print-ready competency report for panel discussions."],
           ].map(([icon, title, body]) => (
-            <div key={title} className="bg-surface border border-line rounded-2xl p-6 shadow-sm hover:shadow-md hover:border-accent/40 transition-all">
-              <span className="w-10 h-10 rounded-xl bg-accent-soft text-accent-dark grid place-items-center mb-4">
+            <div key={title} className="bg-surface squircle p-6 lift-on-hover" style={{ boxShadow: "var(--shadow-sm)" }}>
+              <span className="w-10 h-10 squircle-sm bg-accent-soft text-accent-dark grid place-items-center mb-4">
                 <Icon name={icon} className="w-5 h-5" />
               </span>
               <h3 className="font-semibold text-foreground">{title}</h3>
@@ -234,7 +235,7 @@ export default async function Home() {
 
       {/* ---------- CTA ---------- */}
       <section className="max-w-6xl mx-auto px-6 pb-24 w-full">
-        <div className="relative overflow-hidden hero-mesh rounded-3xl text-white px-8 py-14 md:px-14 text-center">
+        <div className="relative overflow-hidden hero-mesh squircle-lg text-white px-8 py-14 md:px-14 text-center" style={{ boxShadow: "var(--shadow-lg)" }}>
           <div className="absolute inset-0 hero-grid-overlay" aria-hidden />
           <div className="relative">
             <LogoMark className="w-12 h-12 mx-auto mb-6 anim-float" />
@@ -246,7 +247,7 @@ export default async function Home() {
               build, review, and decide.
             </p>
             <div className="flex flex-wrap justify-center gap-3.5 mt-8">
-              <Link href="/signup" className="px-6 py-3 rounded-xl bg-accent font-semibold hover:bg-accent-dark transition-colors">
+              <Link href="/signup" className="px-6 py-3 squircle-sm bg-accent font-semibold hover:bg-accent-dark transition-colors" style={{ boxShadow: "var(--shadow-glow-accent)" }}>
                 Create candidate account
               </Link>
               <Link href="/login" className="px-6 py-3 rounded-xl border border-white/25 font-semibold hover:bg-white/10 transition-colors">
@@ -310,7 +311,7 @@ function FrameworkCard({
   full?: boolean;
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-2xl p-7 hover:bg-white/[0.08] transition-colors">
+    <div className="bg-white/5 border border-white/10 squircle-lg p-7 hover:bg-white/[0.08] transition-colors">
       <span className="inline-flex items-center gap-2 text-sm font-bold" style={{ color }}>
         <span className="w-2 h-2 rounded-full" style={{ background: color }} />
         {name}
@@ -339,16 +340,16 @@ function HeroPreview() {
   ] as const;
   const catColor: Record<string, string> = { Core: "#1050a8", Leadership: "#b9861a", Functional: "#3a8820" };
   return (
-    <div className="bg-surface border border-line rounded-3xl p-2 shadow-[0_24px_60px_-24px_rgba(10,37,83,0.25)] max-w-4xl">
-      <div className="bg-surface rounded-xl overflow-hidden text-foreground">
+    <div className="bg-surface squircle-lg p-2 max-w-4xl" style={{ boxShadow: "var(--shadow-lg)" }}>
+      <div className="bg-surface squircle-sm overflow-hidden text-foreground">
         <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-line bg-background/60">
           <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
           <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
-          <span className="ml-3 text-[11px] text-faint font-medium">aiac.azerconnect.az / staff / candidates / leyla-mammadova</span>
+          <span className="ml-3 text-[11px] text-faint font-medium">insight-azerconnect.vercel.app / staff / candidates / leyla-mammadova</span>
         </div>
         <div className="grid md:grid-cols-[1fr_1.6fr] gap-6 p-6">
-          <div className="flex flex-col items-center justify-center gap-3 border border-line rounded-xl p-5 bg-background/40">
+          <div className="flex flex-col items-center justify-center gap-3 squircle-sm p-5 bg-background/40" style={{ boxShadow: "var(--shadow-xs)" }}>
             <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Overall Role Fit</p>
             <div className="relative w-28 h-28">
               <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">

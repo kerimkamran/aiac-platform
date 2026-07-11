@@ -79,14 +79,19 @@ export default async function StaffCandidatesPage({
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="flex items-center gap-1.5 bg-surface border border-line rounded-xl p-1">
+        <div className="flex items-center gap-1.5 bg-surface squircle-sm p-1" style={{ boxShadow: "var(--shadow-xs)" }}>
           {FILTERS.map((f) => (
             <Link
               key={f.key}
               href={`/staff/candidates${qs({ status: f.key })}`}
               className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors ${
-                status === f.key ? "bg-brand text-white" : "text-muted hover:text-foreground"
+                status === f.key ? "text-white" : "text-muted hover:text-foreground"
               }`}
+              style={
+                status === f.key
+                  ? { background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)" }
+                  : undefined
+              }
             >
               {f.label}
             </Link>
@@ -101,7 +106,8 @@ export default async function StaffCandidatesPage({
             name="q"
             defaultValue={q}
             placeholder="Search name, email, or assessment…"
-            className="w-full bg-surface border border-line rounded-xl pl-10 pr-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface squircle-sm pl-10 pr-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+            style={{ boxShadow: "var(--shadow-xs)" }}
           />
         </form>
       </div>

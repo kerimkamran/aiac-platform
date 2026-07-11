@@ -1,19 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* "Open Air" -- light, airy, spacious. Near-white surfaces, soft neutral
-     ink, generous whitespace implied by component padding (see ui.tsx).
-     Brand hex values below are unchanged (Azerconnect Group navy/green) --
-     they are now used sparingly, as precise accents (active states, primary
-     actions, data emphasis) rather than filled panels. */
-  --background: #f7f8f7;
+  /* v3 "Signal" design system -- confident, modern B2B SaaS surface language.
+     Layered elevation (soft shadows, not just hairlines), squircle-leaning
+     radii, and a slightly warmer off-white base than the previous "Open Air"
+     pass so cards read as distinct surfaces without needing heavy borders.
+     Brand hex values below are UNCHANGED (Azerconnect Group navy/green) --
+     only how/where they're used shifts (precise accents + one confident
+     gradient moment per surface, never wall-to-wall fill). */
+  --background: #f4f5f3;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --foreground: #16191d;
-  --muted: #565d68;
-  --faint: #8b909b;
-  --line: #e7e9e4;
-  --line-soft: #f0f1ee;
+  --surface-sunken: #ecedea;
+  --foreground: #14171b;
+  --muted: #4c525c;
+  --faint: #868c96;
+  --line: #e5e7e2;
+  --line-soft: #eef0eb;
+
+  /* Elevation -- layered, soft, directional (not a flat drop shadow) */
+  --shadow-xs: 0 1px 2px rgba(20, 23, 27, 0.04);
+  --shadow-sm: 0 1px 3px rgba(20, 23, 27, 0.06), 0 1px 2px rgba(20, 23, 27, 0.04);
+  --shadow-md: 0 4px 16px rgba(20, 23, 27, 0.07), 0 1px 3px rgba(20, 23, 27, 0.05);
+  --shadow-lg: 0 12px 32px rgba(20, 23, 27, 0.10), 0 2px 8px rgba(20, 23, 27, 0.05);
+  --shadow-glow-brand: 0 8px 28px -8px color-mix(in srgb, var(--brand) 45%, transparent);
+  --shadow-glow-accent: 0 8px 28px -8px color-mix(in srgb, var(--accent) 45%, transparent);
 
   /* Brand -- Azerconnect Group design system (navy blue -> forest green).
      DO NOT CHANGE these hex values. */
@@ -38,19 +49,27 @@
   --chart-1: #0d3d8c; /* blue   — Core */
   --chart-2: #2d6b16; /* green  — Functional */
   --chart-3: #b9861a; /* gold   — Leadership */
-  --chart-grid: #eef0ec;
-  --chart-axis: #d3d7d0;
+  --chart-grid: #ebede8;
+  --chart-axis: #cfd3cb;
 }
 
 .dark {
-  --background: #0b0d10;
+  --background: #0a0c0f;
   --surface: #15181d;
-  --surface-raised: #1a1e24;
-  --foreground: #f1f2f4;
-  --muted: #a7aebb;
-  --faint: #767d8a;
+  --surface-raised: #1b1f26;
+  --surface-sunken: #0e1114;
+  --foreground: #eef0f2;
+  --muted: #9da4b0;
+  --faint: #6b7280;
   --line: #262b33;
-  --line-soft: #1d2129;
+  --line-soft: #1c2029;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-glow-brand: 0 8px 28px -8px color-mix(in srgb, var(--brand) 55%, transparent);
+  --shadow-glow-accent: 0 8px 28px -8px color-mix(in srgb, var(--accent) 55%, transparent);
 
   --brand: #3d88d8;
   --brand-light: #70aaea;
@@ -72,13 +91,14 @@
   --chart-1: #3d88d8;
   --chart-2: #56a83c;
   --chart-3: #d1a94a;
-  --chart-grid: #2d333c;
-  --chart-axis: #424a57;
+  --chart-grid: #262b33;
+  --chart-axis: #3a4049;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-surface-sunken: var(--surface-sunken);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-faint: var(--faint);
@@ -86,6 +106,7 @@
   --color-brand: var(--brand);
   --color-brand-light: var(--brand-light);
   --color-brand-deep: var(--brand-deep);
+  --color-brand-50: var(--brand-50);
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --color-accent-soft: var(--accent-soft);
@@ -119,6 +140,17 @@ body {
 
 ::selection {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* ---------- Squircle -- organic corner language used on primary surfaces ---------- */
+.squircle {
+  border-radius: 22px;
+}
+.squircle-lg {
+  border-radius: 28px;
+}
+.squircle-sm {
+  border-radius: 14px;
 }
 
 /* ---------- Motion ---------- */
@@ -169,6 +201,15 @@ body {
   animation: shimmer 1.4s linear infinite;
 }
 
+/* ---------- Interactive lift -- subtle hover affordance for clickable cards ---------- */
+.lift-on-hover {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease;
+}
+.lift-on-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
 /* ---------- Celebration (assessment-submitted moment) ---------- */
 @keyframes seal-pop {
   0% { transform: scale(0.6); opacity: 0; }
@@ -215,19 +256,21 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-up, .anim-fade-in, .anim-float, .anim-grow, .anim-grow-y,
-  .anim-ring circle.ring-value, .skeleton,
+  .anim-ring circle.ring-value, .skeleton, .lift-on-hover,
   .anim-seal-pop, .anim-seal-draw, .anim-seal-ring, .confetti-piece,
   .anim-toast-in, .anim-toast-bar {
     animation: none;
+    transition: none;
   }
   .anim-seal-draw { stroke-dashoffset: 0; }
   .confetti-piece { display: none; }
 }
 
-/* ---------- Brand panels — flat, calm (Azerconnect navy -> forest green) ---------- */
+/* ---------- Brand panels -- one confident gradient moment (Azerconnect navy -> forest green) ---------- */
 .hero-mesh {
   background:
-    radial-gradient(50rem 32rem at 88% -20%, rgba(45, 107, 22, 0.22), transparent 65%),
+    radial-gradient(60rem 36rem at 85% -15%, rgba(45, 107, 22, 0.28), transparent 60%),
+    radial-gradient(40rem 30rem at 10% 110%, rgba(23, 103, 196, 0.25), transparent 55%),
     linear-gradient(160deg, #0a2553 0%, #0d3d8c 100%);
 }
 /* Faint architectural grid over solid-navy panels -- graphic texture that
@@ -245,6 +288,16 @@ body {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* ---------- Glass -- reserved for floating/overlay surfaces only (panels,
+   popovers, command palette) -- never applied to full pages or dense
+   text content, which glassmorphism actively harms. ---------- */
+.glass-panel {
+  background: color-mix(in srgb, var(--surface) 78%, transparent);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
 }
 
 /* ---------- Anti-copy deterrents (assessment runner only) ---------- */
