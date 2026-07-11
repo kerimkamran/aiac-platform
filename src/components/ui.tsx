@@ -49,6 +49,7 @@ const ICON_PATHS: Record<string, string> = {
   info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-5m0-3.5h.01",
   history: "M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2",
   keyboard: "M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01M8 15h8",
+  messageSquare: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
 };
 
 export function Icon({ name, className = "w-5 h-5" }: { name: string; className?: string }) {

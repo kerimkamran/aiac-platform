@@ -5,6 +5,7 @@ import { submitReview } from "./actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
+import { ReportChatPanel } from "@/components/ReportChatPanel";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
@@ -116,6 +117,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           </div>
         </div>
         <div className="flex items-center gap-2 no-print">
+          <ReportChatPanel candidateAssessmentId={id} candidateName={candidate?.full_name || "This candidate"} />
           <a
             href={`/report/${id}/pdf`}
             className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
