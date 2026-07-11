@@ -14,7 +14,7 @@ export function AuthPanel({
 }) {
   return (
     <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr] bg-background">
-      <aside className="hidden lg:flex relative hero-warm border-r border-line flex-col justify-between p-12 overflow-hidden">
+      <aside className="hidden lg:flex relative bg-background border-r border-line flex-col justify-between p-12 overflow-hidden">
         <Link href="/" className="relative">
           <Logo />
         </Link>

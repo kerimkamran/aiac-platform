@@ -73,19 +73,19 @@ export default async function StaffHomePage() {
 
       {/* Review queue callout */}
       {pendingReview.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-violet-50 border border-violet-200 rounded-2xl px-5 py-4 mb-8 anim-fade-up">
-          <p className="text-sm text-violet-900 flex items-center gap-3">
-            <span className="w-8 h-8 rounded-xl bg-violet-100 text-violet-700 grid place-items-center shrink-0">
+        <div className="flex flex-wrap items-center justify-between gap-4 bg-chart-3/[0.06] border border-chart-3/20 rounded-2xl px-6 py-5 mb-10 anim-fade-up">
+          <p className="text-sm text-foreground flex items-center gap-3.5">
+            <span className="w-9 h-9 rounded-xl bg-chart-3/10 text-chart-3 grid place-items-center shrink-0">
               <Icon name="eye" className="w-4 h-4" />
             </span>
             <span>
-              <span className="font-bold">{pendingReview.length} candidate{pendingReview.length > 1 ? "s" : ""}</span> scored
+              <span className="font-semibold">{pendingReview.length} candidate{pendingReview.length > 1 ? "s" : ""}</span> scored
               by the AI engine and waiting for human review.
             </span>
           </p>
           <Link
             href={`/staff/candidates/${pendingReview[0].id}`}
-            className="text-sm font-semibold text-violet-700 hover:underline inline-flex items-center gap-1.5"
+            className="text-sm font-semibold text-accent-dark hover:underline inline-flex items-center gap-1.5"
           >
             Start reviewing
             <Icon name="arrowRight" className="w-4 h-4" />
@@ -94,7 +94,7 @@ export default async function StaffHomePage() {
       )}
 
       {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
         <StatCard label="Candidates in pipeline" value={list.length} icon="users" tone="brand" />
         <StatCard label="Awaiting human review" value={pendingReview.length} icon="eye" tone="violet" />
         <StatCard label="Avg. Role Fit Score" value={avg ?? "—"} icon="target" tone="accent" />
@@ -102,38 +102,38 @@ export default async function StaffHomePage() {
       </div>
 
       {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-5 mb-8">
-        <Card className="p-6">
-          <p className="text-sm font-bold text-foreground mb-1">Role Fit distribution</p>
-          <p className="text-xs text-muted mb-5">Scored candidates per proficiency band</p>
+      <div className="grid lg:grid-cols-2 gap-6 mb-10">
+        <Card className="p-7">
+          <p className="text-sm font-semibold text-foreground mb-1">Role Fit distribution</p>
+          <p className="text-[13px] text-muted mb-6">Scored candidates per proficiency band</p>
           {scored.length > 0 ? (
             <BandDistribution buckets={bands} />
           ) : (
             <p className="text-sm text-faint py-10 text-center">No scored candidates yet.</p>
           )}
         </Card>
-        <Card className="p-6">
-          <p className="text-sm font-bold text-foreground mb-1">Pipeline funnel</p>
-          <p className="text-xs text-muted mb-6">Where candidates are in the journey</p>
+        <Card className="p-7">
+          <p className="text-sm font-semibold text-foreground mb-1">Pipeline funnel</p>
+          <p className="text-[13px] text-muted mb-6">Where candidates are in the journey</p>
           <PipelineFunnel stages={funnel} />
         </Card>
       </div>
 
       {/* Recent submissions */}
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-6 pt-5 pb-4">
-          <p className="text-sm font-bold text-foreground">Recent submissions</p>
+        <div className="flex items-center justify-between px-7 pt-6 pb-5">
+          <p className="text-sm font-semibold text-foreground">Recent submissions</p>
           <Link href="/staff/candidates" className="text-[13px] font-semibold text-accent-dark hover:underline inline-flex items-center gap-1.5">
             All candidates
             <Icon name="arrowRight" className="w-3.5 h-3.5" />
           </Link>
         </div>
         {recent.length === 0 ? (
-          <p className="px-6 pb-6 text-sm text-faint">Nothing submitted yet — publish an assessment and invite candidates from the builder.</p>
+          <p className="px-7 pb-7 text-sm text-faint">Nothing submitted yet — publish an assessment and invite candidates from the builder.</p>
         ) : (
           <div className="divide-y divide-line border-t border-line">
             {recent.map((r) => (
-              <Link key={r.id} href={`/staff/candidates/${r.id}`} className="flex items-center gap-4 px-6 py-3.5 hover:bg-background/70 transition-colors">
+              <Link key={r.id} href={`/staff/candidates/${r.id}`} className="flex items-center gap-4 px-7 py-4 hover:bg-background/70 transition-colors">
                 <Avatar name={r.candidate?.full_name || "?"} />
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-foreground truncate">{r.candidate?.full_name}</p>

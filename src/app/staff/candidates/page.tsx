@@ -78,7 +78,7 @@ export default async function StaffCandidatesPage({
       <PageHeader title="Candidates" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-4">
+      <div className="flex flex-wrap items-center gap-3 mb-5">
         <div className="flex items-center gap-1.5 bg-surface border border-line rounded-xl p-1">
           {FILTERS.map((f) => (
             <Link
@@ -106,7 +106,7 @@ export default async function StaffCandidatesPage({
         </form>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
+      <div className="flex flex-wrap items-center gap-3 mb-8">
         <div className="flex items-center gap-1.5 text-xs text-faint font-semibold">
           <Icon name="filter" className="w-3.5 h-3.5" />
           Filter for export

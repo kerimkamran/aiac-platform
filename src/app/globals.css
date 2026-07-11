@@ -1,20 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces & ink — "Studio Ledger": cooler paper white, near-ink text,
-     sharper contrast than the previous warm-ivory palette. Brand hex values
-     below are unchanged (Azerconnect Group navy/green) -- only the neutral
-     scale around them moved. */
-  --background: #eef0ec;
+  /* "Open Air" -- light, airy, spacious. Near-white surfaces, soft neutral
+     ink, generous whitespace implied by component padding (see ui.tsx).
+     Brand hex values below are unchanged (Azerconnect Group navy/green) --
+     they are now used sparingly, as precise accents (active states, primary
+     actions, data emphasis) rather than filled panels. */
+  --background: #f7f8f7;
   --surface: #ffffff;
-  --foreground: #0d0f14;
-  --muted: #454a52;
-  --faint: #767c85;
-  --line: #d7dbd4;
-
-  /* Ledger rule -- a thin structural accent under headers/section titles,
-     the signature motif of this design pass. */
-  --ledger-rule: #0d3d8c;
+  --surface-raised: #ffffff;
+  --foreground: #16191d;
+  --muted: #565d68;
+  --faint: #8b909b;
+  --line: #e7e9e4;
+  --line-soft: #f0f1ee;
 
   /* Brand -- Azerconnect Group design system (navy blue -> forest green).
      DO NOT CHANGE these hex values. */
@@ -39,19 +38,19 @@
   --chart-1: #0d3d8c; /* blue   — Core */
   --chart-2: #2d6b16; /* green  — Functional */
   --chart-3: #b9861a; /* gold   — Leadership */
-  --chart-grid: #e3e8ed;
-  --chart-axis: #c8d0da;
+  --chart-grid: #eef0ec;
+  --chart-axis: #d3d7d0;
 }
 
 .dark {
-  --background: #08090c;
-  --surface: #121419;
-  --foreground: #f4f5f7;
-  --muted: #b0b7c0;
-  --faint: #7e8797;
+  --background: #0b0d10;
+  --surface: #15181d;
+  --surface-raised: #1a1e24;
+  --foreground: #f1f2f4;
+  --muted: #a7aebb;
+  --faint: #767d8a;
   --line: #262b33;
-
-  --ledger-rule: #3d88d8;
+  --line-soft: #1d2129;
 
   --brand: #3d88d8;
   --brand-light: #70aaea;
@@ -92,7 +91,6 @@
   --color-accent-soft: var(--accent-soft);
   --color-gold: var(--gold);
   --color-gold-soft: var(--gold-soft);
-  --color-ledger-rule: var(--ledger-rule);
   --color-good: var(--good);
   --color-warning: var(--warning);
   --color-serious: var(--serious);

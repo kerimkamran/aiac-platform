@@ -73,12 +73,12 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
           <div className="absolute inset-0 bg-black/30 anim-fade-in" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 right-0 w-full sm:w-[440px] bg-surface shadow-2xl flex flex-col anim-fade-in">
             {/* Header */}
-            <div className="bg-brand-deep px-5 py-4 flex items-start justify-between gap-3 shrink-0">
+            <div className="bg-surface border-b border-line px-5 py-4 flex items-start justify-between gap-3 shrink-0">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-accent">Kimi AI · Report chat</p>
-                <p className="text-sm font-bold text-white truncate mt-0.5">{candidateName}</p>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-accent-dark">Kimi AI · Report chat</p>
+                <p className="text-sm font-semibold text-foreground truncate mt-0.5">{candidateName}</p>
               </div>
-              <button onClick={() => setOpen(false)} aria-label="Close" className="text-white/60 hover:text-white p-1 -m-1 shrink-0">
+              <button onClick={() => setOpen(false)} aria-label="Close" className="text-faint hover:text-foreground p-1 -m-1 shrink-0">
                 <Icon name="x" className="w-5 h-5" />
               </button>
             </div>

@@ -183,13 +183,13 @@ export function ScoringDisclosure({ className = "" }: { className?: string }) {
 /* ---------------- Layout primitives ---------------- */
 
 export function Card({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
-  // Flat, bordered surface with a colored top border accent -- a consistent,
-  // unmistakable brand signal on every panel without the visual noise a
-  // solid fill would cause across data-dense pages with many cards at once.
-  // Deliberately NOT overflow-hidden: many cards host dropdowns, popovers, or
-  // absolutely-positioned badges that must not be clipped.
+  // "Open Air": a near-white surface separated by a single thin hairline --
+  // no shadow, no colored border, no fill. Definition comes entirely from
+  // generous internal padding (set per-usage) and whitespace between cards,
+  // not from a heavier frame. Brand color is reserved for content inside the
+  // card (icons, active states, data) rather than the card chrome itself.
   return (
-    <div id={id} className={`bg-surface border border-line border-t-[3px] border-t-accent rounded-xl print-card ${className}`}>
+    <div id={id} className={`bg-surface border border-line rounded-2xl print-card ${className}`}>
       {children}
     </div>
   );
@@ -204,27 +204,23 @@ export function PageHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
-  // Bold banner treatment: a solid navy block behind the title, reversed
-  // (white-on-navy) typography -- a deliberately graphic, unmissable header
-  // rather than a subtle hairline, so every page opens with an obvious,
-  // consistent brand statement. Children (action buttons) are wrapped in a
-  // white pill so any button color variant used at call sites -- including
-  // navy ones -- stays visible against the navy banner behind it.
+  // Open, quiet header: generous top whitespace, a calm large display
+  // headline directly on the page background (no banner, no fill), a
+  // single thin hairline closing the block. Brand color appears only as a
+  // small accent dash beside the title -- the "load-bearing color" idea
+  // from the previous round is deliberately retired in favor of color used
+  // sparingly and precisely.
   return (
-    <div className="mb-8 -mx-6 lg:-mx-10 -mt-6 lg:-mt-10 px-6 lg:px-10 pt-7 pb-6 bg-brand-deep">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-10 pb-6 border-b border-line">
+      <div className="flex flex-wrap items-end justify-between gap-5">
         <div>
-          <span className="inline-block w-8 h-1 rounded-full bg-accent mb-3" aria-hidden />
-          <h1 className="text-[28px] leading-tight font-bold tracking-tight text-white [font-family:var(--font-display)]">
+          <span className="inline-block w-6 h-[3px] rounded-full bg-accent mb-4" aria-hidden />
+          <h1 className="text-[30px] leading-tight font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">
             {title}
           </h1>
-          {subtitle && <p className="text-sm text-white/60 mt-1.5 max-w-2xl">{subtitle}</p>}
+          {subtitle && <p className="text-[15px] text-muted mt-2 max-w-2xl leading-relaxed">{subtitle}</p>}
         </div>
-        {children && (
-          <div className="flex items-center gap-3 bg-white/95 rounded-xl p-1.5 shadow-lg shadow-black/10">
-            {children}
-          </div>
-        )}
+        {children && <div className="flex items-center gap-2.5">{children}</div>}
       </div>
     </div>
   );
@@ -244,20 +240,20 @@ export function StatCard({
   tone?: "brand" | "accent" | "amber" | "violet";
 }) {
   const tones = {
-    brand: "bg-brand text-white",
-    accent: "bg-accent text-white",
-    amber: "bg-gold text-white",
-    violet: "bg-chart-3 text-white",
+    brand: "bg-brand-50 text-brand",
+    accent: "bg-accent-soft text-accent-dark",
+    amber: "bg-gold-soft text-gold",
+    violet: "bg-chart-3/10 text-chart-3",
   };
   return (
-    <Card className="p-5 flex items-start gap-4">
-      <span className={`w-11 h-11 rounded-lg grid place-items-center shrink-0 shadow-sm ${tones[tone]}`}>
+    <Card className="p-6 flex items-start gap-4">
+      <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${tones[tone]}`}>
         <Icon name={icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-[28px] leading-8 font-bold text-foreground tabular-nums [font-family:var(--font-display)]">{value}</p>
-        <p className="text-xs font-medium text-muted mt-1">{label}</p>
-        {hint && <p className="text-[11px] text-faint mt-0.5">{hint}</p>}
+        <p className="text-[30px] leading-9 font-semibold text-foreground tabular-nums [font-family:var(--font-display)]">{value}</p>
+        <p className="text-[13px] font-medium text-muted mt-1">{label}</p>
+        {hint && <p className="text-[11.5px] text-faint mt-1">{hint}</p>}
       </div>
     </Card>
   );
