@@ -182,11 +182,13 @@ export function ScoringDisclosure({ className = "" }: { className?: string }) {
 /* ---------------- Layout primitives ---------------- */
 
 export function Card({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
-  // "Studio Ledger" surface: flat, bordered, no soft drop-shadow -- definition
-  // comes from the border weight and the ledger-rule accents used elsewhere,
-  // not from ambient shadow. Slightly tighter radius than the previous pass.
+  // Flat, bordered surface with a colored top border accent -- a consistent,
+  // unmistakable brand signal on every panel without the visual noise a
+  // solid fill would cause across data-dense pages with many cards at once.
+  // Deliberately NOT overflow-hidden: many cards host dropdowns, popovers, or
+  // absolutely-positioned badges that must not be clipped.
   return (
-    <div id={id} className={`bg-surface border border-line rounded-xl print-card ${className}`}>
+    <div id={id} className={`bg-surface border border-line border-t-[3px] border-t-accent rounded-xl print-card ${className}`}>
       {children}
     </div>
   );
@@ -201,22 +203,27 @@ export function PageHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
-  // Ledger rule: a thin brand-colored bar beside the title, plus a hairline
-  // rule under the whole header block -- the signature structural motif of
-  // this design pass, echoing a printed report's section divider.
+  // Bold banner treatment: a solid navy block behind the title, reversed
+  // (white-on-navy) typography -- a deliberately graphic, unmissable header
+  // rather than a subtle hairline, so every page opens with an obvious,
+  // consistent brand statement. Children (action buttons) are wrapped in a
+  // white pill so any button color variant used at call sites -- including
+  // navy ones -- stays visible against the navy banner behind it.
   return (
-    <div className="mb-8">
-      <div className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-line">
-        <div className="flex items-stretch gap-3.5">
-          <span className="w-[3px] rounded-full bg-ledger-rule shrink-0" aria-hidden />
-          <div>
-            <h1 className="text-[26px] leading-tight font-bold tracking-tight text-foreground [font-family:var(--font-display)]">
-              {title}
-            </h1>
-            {subtitle && <p className="text-sm text-muted mt-1.5 max-w-2xl">{subtitle}</p>}
-          </div>
+    <div className="mb-8 -mx-6 lg:-mx-10 -mt-6 lg:-mt-10 px-6 lg:px-10 pt-7 pb-6 bg-brand-deep">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <span className="inline-block w-8 h-1 rounded-full bg-accent mb-3" aria-hidden />
+          <h1 className="text-[28px] leading-tight font-bold tracking-tight text-white [font-family:var(--font-display)]">
+            {title}
+          </h1>
+          {subtitle && <p className="text-sm text-white/60 mt-1.5 max-w-2xl">{subtitle}</p>}
         </div>
-        {children && <div className="flex items-center gap-3">{children}</div>}
+        {children && (
+          <div className="flex items-center gap-3 bg-white/95 rounded-xl p-1.5 shadow-lg shadow-black/10">
+            {children}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -236,14 +243,14 @@ export function StatCard({
   tone?: "brand" | "accent" | "amber" | "violet";
 }) {
   const tones = {
-    brand: "bg-brand/8 text-brand",
-    accent: "bg-accent/10 text-accent-dark",
-    amber: "bg-gold/12 text-gold",
-    violet: "bg-chart-3/10 text-chart-3",
+    brand: "bg-brand text-white",
+    accent: "bg-accent text-white",
+    amber: "bg-gold text-white",
+    violet: "bg-chart-3 text-white",
   };
   return (
     <Card className="p-5 flex items-start gap-4">
-      <span className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${tones[tone]}`}>
+      <span className={`w-11 h-11 rounded-lg grid place-items-center shrink-0 shadow-sm ${tones[tone]}`}>
         <Icon name={icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0">

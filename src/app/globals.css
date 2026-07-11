@@ -232,21 +232,21 @@ body {
     radial-gradient(50rem 32rem at 88% -20%, rgba(45, 107, 22, 0.22), transparent 65%),
     linear-gradient(160deg, #0a2553 0%, #0d3d8c 100%);
 }
+/* Faint architectural grid over solid-navy panels -- graphic texture that
+   doesn't compete with the white type sitting on top of it. */
 .hero-grid-overlay {
-  background-image: none;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
 }
 .text-gradient {
   background: linear-gradient(92deg, #9cc3f5 0%, #aeda97 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-/* Warm light hero (landing) */
-.hero-warm {
-  background:
-    radial-gradient(44rem 26rem at 85% -15%, rgba(45, 107, 22, 0.07), transparent 60%),
-    radial-gradient(40rem 26rem at 5% 110%, rgba(13, 61, 140, 0.06), transparent 60%),
-    var(--background);
 }
 
 /* ---------- Anti-copy deterrents (assessment runner only) ---------- */
@@ -284,4 +284,7 @@ body {
   .no-print { display: none !important; }
   .print-page { padding: 0 !important; max-width: none !important; }
   .print-card { border: 1px solid #d5dbe3 !important; box-shadow: none !important; break-inside: avoid; }
+  /* PageHeader's navy banner wastes ink and looks odd on paper -- print it
+     as plain black-on-white text instead, matching print-card's approach. */
+  .print-page :where(h1) { color: #000 !important; }
 }

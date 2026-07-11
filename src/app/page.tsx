@@ -42,19 +42,20 @@ export default async function Home() {
       </header>
 
       {/* ---------- Hero ---------- */}
-      <section className="relative hero-warm overflow-hidden">
+      <section className="relative overflow-hidden bg-brand-deep">
+        <div className="absolute inset-0 hero-grid-overlay opacity-[0.35]" aria-hidden />
         <div className="relative max-w-6xl mx-auto px-6 pt-20 pb-16 lg:pt-28 lg:pb-20">
           <div className="max-w-3xl mx-auto text-center">
-            <p className="anim-fade-up inline-flex items-center gap-2 text-[12px] font-semibold text-accent-dark bg-accent-soft ring-1 ring-inset ring-accent/20 rounded-full px-3.5 py-1.5 mb-8">
+            <p className="anim-fade-up inline-flex items-center gap-2 text-[12px] font-semibold text-white bg-accent ring-1 ring-inset ring-white/20 rounded-full px-3.5 py-1.5 mb-8">
               <Icon name="sparkles" className="w-3.5 h-3.5" />
               Azerconnect Group · AI Assessment Center
             </p>
-            <h1 className="anim-fade-up delay-1 text-[44px] md:text-[68px] font-semibold tracking-tight leading-[1.02] text-foreground [font-family:var(--font-display)]">
+            <h1 className="anim-fade-up delay-1 text-[44px] md:text-[72px] font-bold tracking-tight leading-[0.98] text-white [font-family:var(--font-display)]">
               Decide on evidence,
               <br />
-              not <em className="text-accent-dark">gut feeling</em>.
+              not <em className="text-accent not-italic">gut feeling</em>.
             </h1>
-            <p className="anim-fade-up delay-2 text-lg text-muted max-w-xl mx-auto mt-7 leading-relaxed">
+            <p className="anim-fade-up delay-2 text-lg text-white/65 max-w-xl mx-auto mt-7 leading-relaxed">
               AIAC turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
               AI-assisted scoring, and reviewer-verified decisions — for hiring, promotion, or development —
               every score traceable back to a person&apos;s own words.
@@ -62,14 +63,14 @@ export default async function Home() {
             <div className="anim-fade-up delay-3 flex flex-wrap justify-center gap-3.5 mt-10">
               <Link
                 href="/signup"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand text-white font-semibold hover:bg-brand-light transition-colors"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-accent text-white font-semibold hover:bg-accent-dark transition-colors"
               >
                 I&apos;m a candidate
                 <Icon name="arrowRight" className="w-4 h-4" />
               </Link>
               <Link
                 href="/login"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-foreground/15 text-foreground font-semibold hover:border-foreground/40 transition-colors"
+                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-white/25 text-white font-semibold hover:border-white/50 hover:bg-white/5 transition-colors"
               >
                 HR / Staff login
               </Link>
@@ -83,7 +84,7 @@ export default async function Home() {
         </div>
 
         {/* Stat strip */}
-        <div className="relative border-t border-line">
+        <div className="relative border-t border-white/10">
           <div className="max-w-6xl mx-auto px-6 py-8 grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
             {[
               ["37", "governed competencies"],
@@ -92,8 +93,8 @@ export default async function Home() {
               ["100%", "decisions with evidence"],
             ].map(([v, l], i) => (
               <div key={l} className={`anim-fade-up delay-${i + 2}`}>
-                <p className="text-[34px] leading-10 font-semibold [font-family:var(--font-display)] text-foreground">{v}</p>
-                <p className="text-[12.5px] text-faint mt-1">{l}</p>
+                <p className="text-[34px] leading-10 font-bold [font-family:var(--font-display)] text-white">{v}</p>
+                <p className="text-[12.5px] text-white/45 mt-1">{l}</p>
               </div>
             ))}
           </div>
