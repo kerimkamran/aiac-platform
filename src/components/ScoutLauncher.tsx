@@ -10,7 +10,6 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui";
-import { useToast } from "@/components/Toaster";
 import { sendScoutMessage } from "@/app/scout-actions";
 import { matchScoutIntent, type ScoutRole } from "@/lib/scout-intents";
 
@@ -37,7 +36,6 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
   const [messages, setMessages] = useState<ScoutMessage[]>([]);
   const [input, setInput] = useState("");
   const [pending, startTransition] = useTransition();
-  const { push } = useToast();
   const router = useRouter();
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -70,7 +68,6 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
         setMessages((m) => [...m, { role: "assistant", content: reply }]);
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
-        push("error", `Scout couldn't answer that: ${msg}`);
         setMessages((m) => [...m, { role: "assistant", content: `Sorry, I couldn't reach my AI fallback (${msg}). Try rephrasing, or use the menu directly.` }]);
       }
     });
