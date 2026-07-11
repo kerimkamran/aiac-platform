@@ -182,8 +182,11 @@ export function ScoringDisclosure({ className = "" }: { className?: string }) {
 /* ---------------- Layout primitives ---------------- */
 
 export function Card({ className = "", id, children }: { className?: string; id?: string; children: React.ReactNode }) {
+  // "Studio Ledger" surface: flat, bordered, no soft drop-shadow -- definition
+  // comes from the border weight and the ledger-rule accents used elsewhere,
+  // not from ambient shadow. Slightly tighter radius than the previous pass.
   return (
-    <div id={id} className={`bg-surface border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,28,44,0.04)] print-card ${className}`}>
+    <div id={id} className={`bg-surface border border-line rounded-xl print-card ${className}`}>
       {children}
     </div>
   );
@@ -198,13 +201,23 @@ export function PageHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
+  // Ledger rule: a thin brand-colored bar beside the title, plus a hairline
+  // rule under the whole header block -- the signature structural motif of
+  // this design pass, echoing a printed report's section divider.
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4 mb-8">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground [font-family:var(--font-display)]">{title}</h1>
-        {subtitle && <p className="text-sm text-muted mt-1.5 max-w-2xl">{subtitle}</p>}
+    <div className="mb-8">
+      <div className="flex flex-wrap items-end justify-between gap-4 pb-5 border-b border-line">
+        <div className="flex items-stretch gap-3.5">
+          <span className="w-[3px] rounded-full bg-ledger-rule shrink-0" aria-hidden />
+          <div>
+            <h1 className="text-[26px] leading-tight font-bold tracking-tight text-foreground [font-family:var(--font-display)]">
+              {title}
+            </h1>
+            {subtitle && <p className="text-sm text-muted mt-1.5 max-w-2xl">{subtitle}</p>}
+          </div>
+        </div>
+        {children && <div className="flex items-center gap-3">{children}</div>}
       </div>
-      {children && <div className="flex items-center gap-3">{children}</div>}
     </div>
   );
 }
@@ -225,16 +238,16 @@ export function StatCard({
   const tones = {
     brand: "bg-brand/8 text-brand",
     accent: "bg-accent/10 text-accent-dark",
-    amber: "bg-amber-500/10 text-amber-600",
+    amber: "bg-gold/12 text-gold",
     violet: "bg-chart-3/10 text-chart-3",
   };
   return (
     <Card className="p-5 flex items-start gap-4">
-      <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${tones[tone]}`}>
+      <span className={`w-10 h-10 rounded-lg grid place-items-center shrink-0 ${tones[tone]}`}>
         <Icon name={icon} className="w-5 h-5" />
       </span>
       <div className="min-w-0">
-        <p className="text-[28px] leading-8 font-bold text-foreground tabular-nums">{value}</p>
+        <p className="text-[28px] leading-8 font-bold text-foreground tabular-nums [font-family:var(--font-display)]">{value}</p>
         <p className="text-xs font-medium text-muted mt-1">{label}</p>
         {hint && <p className="text-[11px] text-faint mt-0.5">{hint}</p>}
       </div>

@@ -49,15 +49,15 @@ export default async function Home() {
               <Icon name="sparkles" className="w-3.5 h-3.5" />
               Azerconnect Group · AI Assessment Center
             </p>
-            <h1 className="anim-fade-up delay-1 text-[42px] md:text-[64px] font-semibold tracking-tight leading-[1.04] text-foreground [font-family:var(--font-display)]">
-              Hire on evidence,
+            <h1 className="anim-fade-up delay-1 text-[44px] md:text-[68px] font-semibold tracking-tight leading-[1.02] text-foreground [font-family:var(--font-display)]">
+              Decide on evidence,
               <br />
               not <em className="text-accent-dark">gut feeling</em>.
             </h1>
             <p className="anim-fade-up delay-2 text-lg text-muted max-w-xl mx-auto mt-7 leading-relaxed">
               AIAC turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
-              AI-assisted scoring, and reviewer-verified hiring decisions — every score traceable back to
-              a candidate&apos;s own words.
+              AI-assisted scoring, and reviewer-verified decisions — for hiring, promotion, or development —
+              every score traceable back to a person&apos;s own words.
             </p>
             <div className="anim-fade-up delay-3 flex flex-wrap justify-center gap-3.5 mt-10">
               <Link
@@ -71,7 +71,7 @@ export default async function Home() {
                 href="/login"
                 className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-foreground/15 text-foreground font-semibold hover:border-foreground/40 transition-colors"
               >
-                Recruiter / HR login
+                HR / Staff login
               </Link>
             </div>
           </div>
@@ -128,7 +128,7 @@ export default async function Home() {
               body: "Recruiters review the competency profile, read the evidence behind each score, and shortlist, hold, or reject — the full trail is preserved.",
             },
           ].map((s, i) => (
-            <div key={s.step} className="relative bg-surface border border-line rounded-2xl p-7 shadow-sm">
+            <div key={s.step} className="relative bg-surface border border-line rounded-xl p-7">
               <span className="absolute -top-3 left-7 text-[11px] font-bold tracking-widest uppercase text-accent-dark bg-accent-soft rounded-full px-3 py-1">
                 {s.step}
               </span>
@@ -286,12 +286,15 @@ export default async function Home() {
 
 function SectionHead({ eyebrow, title, body, dark = false }: { eyebrow: string; title: string; body: string; dark?: boolean }) {
   return (
-    <div className="max-w-2xl">
-      <p className={`text-[12px] font-bold uppercase tracking-[0.18em] ${dark ? "text-accent" : "text-accent-dark"}`}>{eyebrow}</p>
-      <h2 className={`text-3xl md:text-4xl font-bold tracking-tight mt-3 [font-family:var(--font-display)] ${dark ? "text-white" : "text-foreground"}`}>
-        {title}
-      </h2>
-      <p className={`mt-4 leading-relaxed ${dark ? "text-white/60" : "text-muted"}`}>{body}</p>
+    <div className="max-w-2xl flex items-stretch gap-3.5">
+      <span className={`w-[3px] rounded-full shrink-0 ${dark ? "bg-accent" : "bg-ledger-rule"}`} aria-hidden />
+      <div>
+        <p className={`text-[12px] font-bold uppercase tracking-[0.18em] ${dark ? "text-accent" : "text-accent-dark"}`}>{eyebrow}</p>
+        <h2 className={`text-3xl md:text-4xl font-bold tracking-tight mt-2.5 [font-family:var(--font-display)] ${dark ? "text-white" : "text-foreground"}`}>
+          {title}
+        </h2>
+        <p className={`mt-4 leading-relaxed ${dark ? "text-white/60" : "text-muted"}`}>{body}</p>
+      </div>
     </div>
   );
 }

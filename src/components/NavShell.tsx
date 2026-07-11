@@ -50,8 +50,10 @@ export function NavShell({
               key={l.href}
               href={l.href}
               onClick={() => setOpen(false)}
-              className={`group relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-[13.5px] font-medium transition-colors ${
-                active ? "bg-surface text-brand shadow-[0_1px_2px_rgba(22,24,28,0.06)] ring-1 ring-line" : "text-muted hover:bg-line/50 hover:text-foreground"
+              className={`group relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 rounded-lg text-[13.5px] font-medium transition-colors border-l-[3px] ${
+                active
+                  ? "bg-surface text-brand border-l-ledger-rule"
+                  : "text-muted border-l-transparent hover:bg-line/50 hover:text-foreground"
               }`}
             >
               <Icon name={l.icon} className={`w-[18px] h-[18px] ${active ? "text-accent-dark" : "text-faint group-hover:text-muted"}`} />

@@ -1,15 +1,23 @@
 @import "tailwindcss";
 
 :root {
-  /* Surfaces & ink — warm, calm neutrals */
-  --background: #f4f3ee;
-  --surface: #fdfdfa;
-  --foreground: #16181c;
-  --muted: #55534c;
-  --faint: #8a877d;
-  --line: #e6e4da;
+  /* Surfaces & ink — "Studio Ledger": cooler paper white, near-ink text,
+     sharper contrast than the previous warm-ivory palette. Brand hex values
+     below are unchanged (Azerconnect Group navy/green) -- only the neutral
+     scale around them moved. */
+  --background: #eef0ec;
+  --surface: #ffffff;
+  --foreground: #0d0f14;
+  --muted: #454a52;
+  --faint: #767c85;
+  --line: #d7dbd4;
 
-  /* Brand — Azerconnect Group design system (navy blue -> forest green) */
+  /* Ledger rule -- a thin structural accent under headers/section titles,
+     the signature motif of this design pass. */
+  --ledger-rule: #0d3d8c;
+
+  /* Brand -- Azerconnect Group design system (navy blue -> forest green).
+     DO NOT CHANGE these hex values. */
   --brand: #0d3d8c;        /* blue-700, primary */
   --brand-light: #1767c4;  /* blue-500 */
   --brand-deep: #0a2553;   /* blue-900 */
@@ -17,6 +25,8 @@
   --accent: #2d6b16;       /* green-600, primary */
   --accent-dark: #235213;  /* green-700 */
   --accent-soft: #ecf7e4;  /* green-50 */
+  --gold: #b9861a;         /* secondary accent -- attention / in-progress states */
+  --gold-soft: #fbf1dc;
 
   /* Status (validated dataviz status palette) */
   --good: #2d6b16;
@@ -34,12 +44,14 @@
 }
 
 .dark {
-  --background: #0a0c0f;
-  --surface: #111318;
-  --foreground: #f2f4f7;
-  --muted: #a4aebb;
+  --background: #08090c;
+  --surface: #121419;
+  --foreground: #f4f5f7;
+  --muted: #b0b7c0;
   --faint: #7e8797;
-  --line: #2d333c;
+  --line: #262b33;
+
+  --ledger-rule: #3d88d8;
 
   --brand: #3d88d8;
   --brand-light: #70aaea;
@@ -49,6 +61,8 @@
   --accent: #56a83c;
   --accent-dark: #80c463;
   --accent-soft: #132d09;
+  --gold: #d1a94a;
+  --gold-soft: #2a2010;
 
   --good: #56a83c;
   --warning: #d19a2a;
@@ -76,6 +90,9 @@
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --color-accent-soft: var(--accent-soft);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-ledger-rule: var(--ledger-rule);
   --color-good: var(--good);
   --color-warning: var(--warning);
   --color-serious: var(--serious);
