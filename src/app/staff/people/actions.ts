@@ -56,12 +56,17 @@ export async function addCandidate(formData: FormData) {
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const fullName = String(formData.get("full_name") || "").trim();
   const department = String(formData.get("department") || "").trim() || null;
+  // Assessment package is optional here: an admin can create a bare account
+  // now and assign an assessment later (via the bulk "assign_assessment"
+  // action further down this file), or pick one right away so the invite
+  // email and the assessment assignment happen in a single step.
+  const assessmentId = String(formData.get("assessment_id") || "").trim() || null;
 
   if (!email || !fullName) {
     redirect("/staff/people?error=" + encodeURIComponent("Name and email are required."));
   }
 
-  const { error } = await supabase.rpc("admin_provision_user", {
+  const { data: provisioned, error } = await supabase.rpc("admin_provision_user", {
     p_email: email,
     p_full_name: fullName,
     p_role: "candidate",
@@ -72,14 +77,32 @@ export async function addCandidate(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent(error.message));
   }
 
+  const candidateId = provisioned?.[0]?.profile_id as string | undefined;
+
+  if (assessmentId && candidateId) {
+    const { error: linkError } = await supabase.from("candidate_assessments").insert({
+      assessment_id: assessmentId,
+      candidate_id: candidateId,
+      status: "invited",
+    });
+    // A duplicate link (candidate already assigned to this assessment) isn't
+    // worth failing the whole invite over -- the account is still created
+    // and the invite email still goes out below.
+    if (linkError && !linkError.message.includes("duplicate")) {
+      redirect("/staff/people?error=" + encodeURIComponent(`${fullName} was added, but couldn't be assigned the assessment: ${linkError.message}`));
+    }
+  }
+
   const inviteError = await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
+  revalidatePath("/staff/candidates");
+  const assignedNote = assessmentId ? " and assigned their assessment" : "";
   redirect(
     inviteError
       ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
-      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`)
+          encodeURIComponent(`${fullName} was added${assignedNote}, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
+      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added${assignedNote} and invited by email.`)
   );
 }
 

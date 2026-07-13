@@ -21,7 +21,7 @@ const ROLE_BLURB: Record<ScoutRole, string> = {
 const ROLE_MAP: Record<ScoutRole, string> = {
   visitor: "Home /, How it works /#how, Competency framework /#framework, Platform /#features, Sign up /signup, Log in /login.",
   candidate: "Home /candidate, My Assessments /candidate/assessments, My Results /candidate/results, Sign-off requests /candidate/signoffs (only if they manage direct reports).",
-  staff: "Home /staff, Candidates /staff/candidates, Promotions & Development /staff/promotions, Reports & Analytics /staff/reports, Talent Matrix /staff/talent-matrix, Assessment Builder /staff/builder, People & Access /staff/people, Settings /staff/settings, Case Library /staff/case-library, Compare /staff/compare.",
+  staff: "Home /staff, Candidates /staff/candidates, Reports & Analytics /staff/reports, Assessment Builder /staff/builder, People & Access /staff/people, Settings /staff/settings, Case Library /staff/case-library, Compare /staff/compare.",
   decision_maker: "Assigned candidates /decision.",
   admin: "Admin Dashboard /admin, Users /admin/users, Roles & Permissions /admin/roles, Organizations /admin/organizations, Approvals /admin/approvals, Audit Logs /admin/audit, Notifications /admin/notifications, Security /admin/security, AI Governance /admin/ai-governance, Data Governance /admin/data-governance, API /admin/api-docs.",
 };

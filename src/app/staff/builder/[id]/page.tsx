@@ -4,9 +4,8 @@ import { notFound } from "next/navigation";
 import {
   addSection,
   addQuestion,
+  addQuestionsFromCases,
   publishAssessment,
-  inviteCandidate,
-  assignExistingCandidate,
   updateProctoringSettings,
   deleteAssessment,
   updateAssessmentMeta,
@@ -17,6 +16,7 @@ import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { normalizePurpose } from "@/lib/purpose";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+import { CaseLibraryPicker } from "@/components/CaseLibraryPicker";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -83,10 +83,10 @@ export default async function BuilderDetailPage({
   if (!assessment) notFound();
   const purpose = normalizePurpose((assessment as { purpose?: string | null }).purpose);
 
-  const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }] = await Promise.all([
+  const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }, { data: cases }] = await Promise.all([
     supabase
       .from("assessment_sections")
-      .select("id, title, sequence, competencies(name, category), questions(id, question_type, prompt, options, weight, sequence)")
+      .select("id, title, sequence, competency_id, competencies(name, category), questions(id, question_type, prompt, options, weight, sequence)")
       .eq("assessment_id", id)
       .order("sequence"),
     supabase.from("competencies").select("id, name, category").order("category").order("name"),
@@ -95,31 +95,27 @@ export default async function BuilderDetailPage({
       .select("id, status, candidate_id, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email)")
       .eq("assessment_id", id),
     supabase.from("proctoring_settings").select("camera_enabled, storage_backend").eq("assessment_id", id).maybeSingle(),
+    supabase
+      .from("case_library")
+      .select("id, competency_id, title, question_stem, question_type, difficulty, competencies(name)")
+      .order("created_at", { ascending: false }),
   ]);
+
+  const caseList = (cases || []) as unknown as {
+    id: string;
+    competency_id: string | null;
+    title: string | null;
+    question_stem: string | null;
+    question_type: string;
+    difficulty: string | null;
+    competencies: { name: string } | null;
+  }[];
 
   const compList = (competencies || []) as { id: string; name: string; category: string }[];
   const questionCount = (sections || []).reduce((n, s) => n + ((s.questions as unknown[]) || []).length, 0);
   const addSectionWithId = addSection.bind(null, id);
-  const inviteCandidateWithId = inviteCandidate.bind(null, id);
-  const assignExistingWithId = assignExistingCandidate.bind(null, id);
   const updateProctoringWithId = updateProctoringSettings.bind(null, id);
   const updateMetaWithId = updateAssessmentMeta.bind(null, id);
-
-  const alreadyInvitedIds = new Set((invitees || []).map((iv) => iv.candidate_id as string));
-  const { data: assignableProfiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, email, role")
-    .eq("status", "active")
-    .order("full_name");
-  const ROLE_LABEL: Record<string, string> = {
-    system_admin: "Super Admin",
-    hr_admin: "Admin",
-    recruiter: "Recruiter",
-    hiring_manager: "Hiring Manager",
-    decision_maker: "Decision Maker",
-    candidate: "Candidate",
-  };
-  const assignableList = (assignableProfiles || []).filter((p) => !alreadyInvitedIds.has(p.id));
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -368,6 +364,27 @@ export default async function BuilderDetailPage({
                     </button>
                   </form>
                 </details>
+
+                {caseList.length > 0 && (
+                  <details className="group mt-3">
+                    <summary className="cursor-pointer text-sm text-accent-dark font-semibold inline-flex items-center gap-1.5 list-none">
+                      <Icon name="brain" className="w-4 h-4" />
+                      Add from Case Library
+                    </summary>
+                    <form
+                      action={async (formData: FormData) => {
+                        "use server";
+                        await addQuestionsFromCases(section.id, id, formData);
+                      }}
+                      className="mt-4 space-y-3 bg-background rounded-xl p-4 border border-line"
+                    >
+                      <p className="text-xs text-muted">
+                        Import one or more validated case-study questions directly into this section. Pick a competency to narrow the list, then check the cases to add.
+                      </p>
+                      <CaseLibraryPicker cases={caseList} defaultCompetencyId={(section as unknown as { competency_id: string | null }).competency_id} />
+                    </form>
+                  </details>
+                )}
               </Card>
             );
           })}
@@ -393,78 +410,23 @@ export default async function BuilderDetailPage({
           </Card>
         </div>
 
-        {/* Invite panel */}
+        {/* Assigned candidates (read-only) -- inviting/assigning candidates now
+            happens in People & Access, where the assessment package is chosen
+            as part of the invite itself, so the Builder stays focused on
+            composing the assessment. */}
         <Card className="p-6 sticky top-6">
           <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
-            <Icon name="send" className="w-4 h-4 text-accent-dark" />
-            Invite candidates
+            <Icon name="users" className="w-4 h-4 text-accent-dark" />
+            Assigned candidates
           </p>
           <p className="text-xs text-muted mb-4">
-            New person: we&apos;ll create their account and email them a link to set a password. Existing person:
-            assign the assessment directly — no email needed, they&apos;ll see it next time they sign in.
+            To invite or assign someone to this assessment, go to{" "}
+            <Link href="/staff/people" className="font-semibold text-brand hover:underline">
+              People &amp; Access
+            </Link>{" "}
+            and pick this assessment as the package.
           </p>
-
-          {assignableList.length > 0 && (
-            <form action={assignExistingWithId} className="flex flex-col gap-2 mb-4 pb-4 border-b border-line">
-              <label className="text-[11px] font-semibold text-muted uppercase tracking-wide">Existing person</label>
-              <div className="flex gap-2">
-                <select
-                  name="profile_id"
-                  required
-                  defaultValue=""
-                  className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-                  aria-label="Select an existing person"
-                >
-                  <option value="" disabled>
-                    Type a name…
-                  </option>
-                  {assignableList.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.full_name} — {p.email} ({ROLE_LABEL[p.role] || p.role})
-                    </option>
-                  ))}
-                </select>
-                <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0">
-                  Assign
-                </button>
-              </div>
-            </form>
-          )}
-
-          <label className="text-[11px] font-semibold text-muted uppercase tracking-wide">New person</label>
-          <form action={inviteCandidateWithId} className="flex flex-col gap-2 mt-1.5 mb-5">
-            <input
-              name="full_name"
-              type="text"
-              placeholder="Full name"
-              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-            <input
-              name="email"
-              type="email"
-              required
-              placeholder="candidate@email.com"
-              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
-            />
-            <div className="flex gap-2">
-              <input
-                name="department"
-                type="text"
-                placeholder="Division"
-                className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-              <input
-                name="job_title"
-                type="text"
-                placeholder="Vacancy / position"
-                className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
-              />
-            </div>
-            <button className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors">
-              Invite
-            </button>
-          </form>
-          <div className="space-y-2.5 max-h-72 overflow-y-auto">
+          <div className="space-y-2.5 max-h-96 overflow-y-auto">
             {(invitees || []).map((iv) => {
               const cand = iv.candidate as unknown as { full_name: string; email: string } | null;
               return (
@@ -477,7 +439,7 @@ export default async function BuilderDetailPage({
                 </div>
               );
             })}
-            {(!invitees || invitees.length === 0) && <p className="text-xs text-faint">No invitations yet.</p>}
+            {(!invitees || invitees.length === 0) && <p className="text-xs text-faint">No one assigned yet.</p>}
           </div>
         </Card>
       </div>

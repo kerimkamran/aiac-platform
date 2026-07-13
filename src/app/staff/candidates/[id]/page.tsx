@@ -205,7 +205,6 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             benchmark={benchmark}
             assessmentTitle={assessment?.title}
             boxLabel={boxLabel}
-            boxHref="/staff/talent-matrix"
           />
 
           {/* Competency bars by category */}

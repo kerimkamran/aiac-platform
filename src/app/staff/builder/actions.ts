@@ -5,21 +5,6 @@ import { requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-// Mirrors the same friendly-messaging in staff/people/actions.ts: Supabase's
-// per-email cooldown and its project-wide send-volume cap are both normal,
-// expected conditions, not app failures -- and "Copy invite link" (People &
-// Access) sidesteps both since it never touches the mailer.
-function friendlyInviteError(raw: string): string {
-  const cooldown = raw.match(/after (\d+) seconds?/i);
-  if (cooldown) {
-    return `Supabase's per-email cooldown is still active (wait ${cooldown[1]}s to resend by email) — or use "Copy invite link" in People & Access to skip the wait.`;
-  }
-  if (/rate limit/i.test(raw)) {
-    return `Supabase's shared email sending limit is temporarily exhausted — use "Copy invite link" in People & Access instead of waiting it out.`;
-  }
-  return raw;
-}
-
 export type AssessmentPurpose = "hiring" | "promotion" | "development";
 
 function normalizePurpose(raw: FormDataEntryValue | null): AssessmentPurpose {
@@ -115,121 +100,80 @@ export async function addQuestion(sectionId: string, assessmentId: string, formD
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
 
+// Imports one or more Case Library entries directly as questions in this
+// section -- cases are already validated, methodology-grounded scenario
+// questions (scenario_text + question_stem + options), so this is a direct
+// insert rather than a second AI-generation pass. The case's scenario_text
+// (context) is prepended to its question_stem to form the question prompt,
+// so the scenario reads inline with the question the way the case-library
+// preview shows it. RLS on case_library allows any is_staff() role to read
+// it (see case_library "cases staff" policy), so this only needs
+// requireStaff(), not the case-library page's stricter system_admin gate --
+// that stricter gate is an app-layer choice specific to browsing/managing
+// the raw library, not a data-access restriction.
+export async function addQuestionsFromCases(sectionId: string, assessmentId: string, formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+
+  const caseIds = (formData.getAll("case_id") as string[]).filter(Boolean);
+  if (caseIds.length === 0) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Choose at least one case first."));
+  }
+
+  const { data: cases, error } = await supabase
+    .from("case_library")
+    .select("id, competency_id, scenario_text, question_stem, question_type, options")
+    .in("id", caseIds);
+
+  if (error || !cases || cases.length === 0) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error?.message || "Couldn't load the selected cases."));
+  }
+
+  const { count } = await supabase
+    .from("questions")
+    .select("id", { count: "exact", head: true })
+    .eq("section_id", sectionId);
+
+  let nextSequence = (count || 0) + 1;
+  const rows = (cases || []).map((c) => {
+    const prompt = c.scenario_text ? `${c.scenario_text}\n\n${c.question_stem || ""}`.trim() : c.question_stem || "";
+    const rawOptions = (c.options as { text?: unknown; correct?: unknown }[] | null) || null;
+    // case_library.options is {text, correct} (no letter key) -- questions.options
+    // needs the {key, text, correct} shape the runner/scoring expects, so the
+    // A/B/C/D key is assigned here on import.
+    const options =
+      c.question_type === "mcq" && rawOptions
+        ? rawOptions.map((o, i) => ({
+            key: String.fromCharCode(65 + i),
+            text: typeof o.text === "string" ? o.text : "",
+            correct: !!o.correct,
+          }))
+        : null;
+    return {
+      section_id: sectionId,
+      question_type: c.question_type || "text",
+      prompt,
+      options,
+      competency_id: c.competency_id,
+      weight: 1,
+      sequence: nextSequence++,
+    };
+  });
+
+  const { error: insertError } = await supabase.from("questions").insert(rows);
+  if (insertError) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(insertError.message));
+  }
+
+  revalidatePath(`/staff/builder/${assessmentId}`);
+  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${rows.length} question${rows.length > 1 ? "s" : ""} added from the Case Library.`));
+}
+
 export async function publishAssessment(assessmentId: string) {
   await requireStaff();
   const supabase = await createClient();
   await supabase.from("assessments").update({ status: "published" }).eq("id", assessmentId);
   revalidatePath(`/staff/builder/${assessmentId}`);
-}
-
-export async function inviteCandidate(assessmentId: string, formData: FormData) {
-  await requireStaff();
-  const supabase = await createClient();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-  const fullName = String(formData.get("full_name") || "").trim();
-  const department = String(formData.get("department") || "").trim() || null;
-  const jobTitle = String(formData.get("job_title") || "").trim() || null;
-
-  if (!email) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Email is required."));
-  }
-
-  // Accounts are invite-only: provision the candidate if they don't already exist,
-  // then send them a real "set your password" email — no self-signup required.
-  const { data: provisioned, error: provisionError } = await supabase.rpc("admin_provision_user", {
-    p_email: email,
-    p_full_name: fullName || email.split("@")[0],
-    p_role: "candidate",
-    p_department: department,
-  });
-
-  if (provisionError) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(provisionError.message));
-  }
-
-  const candidateId = provisioned?.[0]?.profile_id as string | undefined;
-  const wasCreated = provisioned?.[0]?.created as boolean | undefined;
-
-  if (!candidateId) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Could not provision candidate."));
-  }
-
-  // Division/position apply to the person's profile itself (shared across all
-  // their assessments), so keep them in sync here regardless of whether this
-  // call created a brand-new profile or matched an existing one.
-  if (department || jobTitle) {
-    await supabase
-      .from("profiles")
-      .update({ ...(department ? { department } : {}), ...(jobTitle ? { job_title: jobTitle } : {}) })
-      .eq("id", candidateId as string);
-  }
-
-  const { error: linkError } = await supabase.from("candidate_assessments").insert({
-    assessment_id: assessmentId,
-    candidate_id: candidateId,
-    status: "invited",
-  });
-
-  if (linkError) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(linkError.message.includes("duplicate") ? "This candidate is already invited to this assessment." : linkError.message));
-  }
-
-  const site = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://insight-azerconnect.vercel.app";
-  const { error: mailError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${site}/invite/callback` });
-
-  revalidatePath(`/staff/builder/${assessmentId}`);
-  revalidatePath("/staff/people");
-  void wasCreated;
-
-  if (mailError) {
-    redirect(
-      `/staff/builder/${assessmentId}?error=` +
-        encodeURIComponent(`${fullName || email} was added to the assessment, but the invite email failed to send. ${friendlyInviteError(mailError.message)}`)
-    );
-  }
-  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${fullName || email} was invited.`));
-}
-
-// Assigns an already-existing profile (any role) to this assessment without
-// creating a new account or sending an auth email -- they already have one.
-// Notified in-app instead, since that doesn't depend on outbound mail at all.
-export async function assignExistingCandidate(assessmentId: string, formData: FormData) {
-  await requireStaff();
-  const supabase = await createClient();
-  const profileId = String(formData.get("profile_id") || "").trim();
-
-  if (!profileId) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Choose a person first."));
-  }
-
-  const { error: linkError } = await supabase.from("candidate_assessments").insert({
-    assessment_id: assessmentId,
-    candidate_id: profileId,
-    status: "invited",
-  });
-
-  if (linkError) {
-    redirect(
-      `/staff/builder/${assessmentId}?error=` +
-        encodeURIComponent(linkError.message.includes("duplicate") ? "This person is already assigned to this assessment." : linkError.message)
-    );
-  }
-
-  const [{ data: assessment }, { data: profile }] = await Promise.all([
-    supabase.from("assessments").select("title").eq("id", assessmentId).single(),
-    supabase.from("profiles").select("full_name").eq("id", profileId).single(),
-  ]);
-
-  await supabase.from("notifications").insert({
-    user_id: profileId,
-    title: "New assessment assigned",
-    body: `You've been assigned "${assessment?.title || "an assessment"}". Log in to take it.`,
-    link: "/candidate/assessments",
-  });
-
-  revalidatePath(`/staff/builder/${assessmentId}`);
-  revalidatePath("/staff/people");
-  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${profile?.full_name || "Person"} was assigned this assessment.`));
 }
 
 export async function updateProctoringSettings(assessmentId: string, formData: FormData) {

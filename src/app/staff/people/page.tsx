@@ -42,6 +42,8 @@ type ProfileRow = {
   department: string | null;
   status: string;
   created_at: string;
+  is_employee: boolean | null;
+  job_title: string | null;
 };
 
 export default async function PeoplePage({
@@ -68,7 +70,7 @@ export default async function PeoplePage({
   const [{ data: profiles }, { data: auditRows }, { data: assessmentOptions }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, department, status, created_at")
+      .select("id, full_name, email, role, department, status, created_at, is_employee, job_title")
       .order("created_at", { ascending: false }),
     supabase
       .from("admin_audit_log")
@@ -188,11 +190,29 @@ export default async function PeoplePage({
             <Icon name="users" className="w-4 h-4 text-brand" />
             Add a candidate
           </p>
-          <p className="text-xs text-muted mb-4">Creates the account and emails an invite link to set a password.</p>
+          <p className="text-xs text-muted mb-4">Creates the account, assigns an assessment package, and emails an invite link to set a password.</p>
           <form action={addCandidate} className="space-y-3">
             <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+            <div>
+              <label className="text-[11px] font-semibold text-muted block mb-1">Assessment package</label>
+              <select
+                name="assessment_id"
+                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                defaultValue=""
+              >
+                <option value="">Don&apos;t assign one yet</option>
+                {(assessmentOptions || []).map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.title}
+                  </option>
+                ))}
+              </select>
+              {(assessmentOptions || []).length === 0 && (
+                <p className="text-[11px] text-faint mt-1">No published assessments yet — publish one in the Builder first.</p>
+              )}
+            </div>
             <button className="inline-flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
               <Icon name="plus" className="w-4 h-4" />
               Add & invite candidate
@@ -486,6 +506,7 @@ export default async function PeoplePage({
                 <SelectAllCheckbox formId="bulk-candidates-form" name="user_ids" />
               </th>
               <th className="text-left px-6 py-3 font-semibold">Name</th>
+              <th className="text-left px-6 py-3 font-semibold">Type</th>
               <th className="text-left px-6 py-3 font-semibold">Department</th>
               <th className="text-left px-6 py-3 font-semibold">Status</th>
               <th className="text-left px-6 py-3 font-semibold">Added</th>
@@ -512,6 +533,12 @@ export default async function PeoplePage({
                       <p className="text-xs text-muted">{p.email}</p>
                     </div>
                   </div>
+                </td>
+                <td className="px-6 py-3">
+                  <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${p.is_employee ? "bg-brand-50 text-brand ring-brand/20" : "bg-line-soft text-muted ring-line"}`}>
+                    {p.is_employee ? "Employee" : "External candidate"}
+                  </span>
+                  {p.job_title && <p className="text-[11px] text-faint mt-1">{p.job_title}</p>}
                 </td>
                 <td className="px-6 py-3 text-muted">{p.department || "—"}</td>
                 <td className="px-6 py-3">
@@ -544,7 +571,7 @@ export default async function PeoplePage({
             ))}
             {candidateRows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-faint text-sm">
+                <td colSpan={7} className="px-6 py-8 text-center text-faint text-sm">
                   No matching candidates.
                 </td>
               </tr>

@@ -61,7 +61,7 @@ export default async function BuilderListPage({
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader
         title="Assessment Builder"
-        subtitle="Compose assessments from the governed competency library, publish them, and invite candidates."
+        subtitle="Compose assessments from the governed competency library or generate scenarios from the Case Library, then publish."
       />
 
       <ToastFromParams specs={TOAST_SPECS} />

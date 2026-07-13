@@ -36,9 +36,9 @@ export const SCOUT_INTENTS: ScoutIntent[] = [
   {
     id: "staff-invite-candidate",
     roles: ["staff"],
-    href: "/staff/builder",
-    label: "Assessment Builder",
-    explain: "Open a published assessment in the Builder and use \"Invite\" to assign it to a new or existing candidate.",
+    href: "/staff/people",
+    label: "People & Access",
+    explain: "In People & Access, use \"Add a candidate\" and pick an assessment package -- it creates the account, assigns the assessment, and emails the invite in one step.",
     keywords: ["invite candidate", "invite a candidate", "assign assessment", "send invite", "add candidate"],
   },
   {
@@ -64,22 +64,6 @@ export const SCOUT_INTENTS: ScoutIntent[] = [
     label: "Reports & Analytics",
     explain: "Score distributions, pipeline funnels, and competency breakdowns across every assessment.",
     keywords: ["reports", "analytics", "insights", "charts", "statistics"],
-  },
-  {
-    id: "staff-talent-matrix",
-    roles: ["staff"],
-    href: "/staff/talent-matrix",
-    label: "Talent Matrix",
-    explain: "A 9-box grid plotting performance against potential for promotion and succession conversations.",
-    keywords: ["talent matrix", "9 box", "nine box", "succession"],
-  },
-  {
-    id: "staff-promotions",
-    roles: ["staff"],
-    href: "/staff/promotions",
-    label: "Promotions & Development",
-    explain: "Manage promotion-track and development-purpose assessments and manager sign-offs.",
-    keywords: ["promotions", "development track", "promotion decisions", "manager sign-off"],
   },
   {
     id: "staff-people",

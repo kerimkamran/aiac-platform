@@ -35,9 +35,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   const links: NavLink[] = [
     { href: "/staff", label: "Home", icon: "home", exact: true },
     { href: "/staff/candidates", label: "Candidates", icon: "users" },
-    { href: "/staff/promotions", label: "Promotions & Development", icon: "trending" },
     { href: "/staff/reports", label: "Reports & Analytics", icon: "chart" },
-    { href: "/staff/talent-matrix", label: "Talent Matrix", icon: "grid" },
     { href: "/staff/builder", label: "Assessment Builder", icon: "layers" },
   ];
   if (isAdmin) {
