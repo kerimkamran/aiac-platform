@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { Icon, Logo } from "@/components/ui";
 
@@ -52,9 +53,9 @@ export default function InviteCallbackPage() {
   return (
     <div className="min-h-screen grid place-items-center bg-background px-5">
       <div className="w-full max-w-sm anim-fade-up">
-        <div className="mb-8 flex justify-center">
+        <Link href="/" className="mb-8 flex justify-center">
           <Logo />
-        </div>
+        </Link>
 
         {status === "checking" && (
           <p className="text-center text-sm text-muted">Verifying your invitation…</p>
