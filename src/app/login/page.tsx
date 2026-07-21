@@ -30,16 +30,6 @@ export default async function LoginPage({
           </Link>
         </p>
       </form>
-
-      <div className="mt-6 bg-background border border-line rounded-xl p-4 text-xs text-muted space-y-1.5">
-        <p className="font-bold text-foreground uppercase tracking-wide text-[10px]">Demo accounts</p>
-        <p>
-          <span className="font-semibold text-foreground">Candidate:</span> candidate@aiac-demo.com · Demo12345!
-        </p>
-        <p>
-          <span className="font-semibold text-foreground">Recruiter / HR:</span> recruiter@aiac-demo.com · Demo12345!
-        </p>
-      </div>
     </AuthPanel>
   );
 }
