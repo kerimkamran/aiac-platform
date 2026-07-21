@@ -27,7 +27,7 @@ async function sendInviteEmail(
   supabase: Awaited<ReturnType<typeof createClient>>,
   email: string
 ): Promise<string | null> {
-  const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://insight-azerconnect.vercel.app");
+  const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://vantage-ag.vercel.app");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${site}/invite/callback`,
   });
