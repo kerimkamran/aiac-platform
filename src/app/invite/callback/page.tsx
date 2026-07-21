@@ -47,7 +47,19 @@ export default function InviteCallbackPage() {
       return;
     }
     setStatus("done");
-    setTimeout(() => router.push("/candidate"), 1400);
+
+    // Route by the account's actual role instead of assuming candidate --
+    // this page is now also the destination for staff/admin password resets.
+    let destination = "/candidate";
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user) {
+      const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
+      if (profile?.role === "decision_maker") destination = "/decision";
+      else if (profile?.role && profile.role !== "candidate") destination = "/staff";
+    }
+    setTimeout(() => router.push(destination), 1400);
   }
 
   return (
@@ -74,7 +86,7 @@ export default function InviteCallbackPage() {
               Set your password
             </h1>
             <p className="text-sm text-muted mt-2 mb-8 text-center">
-              Welcome to Vantage — choose a password to finish setting up your account.
+              Choose a new password for your Vantage account.
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (

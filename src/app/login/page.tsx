@@ -20,6 +20,11 @@ export default async function LoginPage({
         )}
         <Field label="Email" name="email" type="email" placeholder="you@company.com" />
         <Field label="Password" name="password" type="password" placeholder="••••••••" />
+        <div className="text-right">
+          <Link href="/forgot-password" className="text-[12.5px] text-accent-dark font-semibold hover:underline">
+            Forgot password?
+          </Link>
+        </div>
         <button className="w-full bg-brand text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-light transition-colors">
           Log in
         </button>
