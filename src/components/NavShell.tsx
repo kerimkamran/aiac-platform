@@ -151,6 +151,20 @@ export function NavShell({
 
         <main className="flex-1 min-w-0">{children}</main>
 
+        <footer className="border-t border-line no-print">
+          <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-4 flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[11.5px] text-faint">Vantage by Azerconnect Group</span>
+            <a
+              href="https://www.linkedin.com/in/thekmrnkrml/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-[11.5px] text-faint hover:text-muted transition-colors"
+            >
+              Developed by Kamran Karimli
+            </a>
+          </div>
+        </footer>
+
         <ScoutLauncher role={toScoutRole(role)} />
       </div>
     </ToastProvider>

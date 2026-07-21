@@ -81,7 +81,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
         aria-label={open ? "Close Scout" : "Open Scout, your guide"}
         className="no-print fixed bottom-5 right-5 z-40 w-14 h-14 rounded-full grid place-items-center text-white transition-transform hover:scale-105 active:scale-95"
         style={{
-          background: "linear-gradient(135deg, var(--brand-light) 0%, var(--brand) 55%, var(--accent) 100%)",
+          background: "var(--foreground)",
           boxShadow: "var(--shadow-lg)",
         }}
       >
@@ -92,7 +92,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
       {open && (
         <div className="no-print fixed bottom-24 right-5 z-40 w-[calc(100vw-2.5rem)] sm:w-[380px] max-h-[70vh] bg-surface squircle-lg flex flex-col anim-fade-up overflow-hidden" style={{ boxShadow: "var(--shadow-lg)" }}>
           {/* Header */}
-          <div className="px-5 py-4 flex items-center gap-3 shrink-0 text-white" style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)" }}>
+          <div className="px-5 py-4 flex items-center gap-3 shrink-0 text-white" style={{ background: "var(--foreground)" }}>
             <span className="w-8 h-8 rounded-full bg-white/20 grid place-items-center shrink-0">
               <Icon name="sparkles" className="w-4 h-4" />
             </span>
@@ -127,7 +127,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
                       className={`squircle-sm px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${
                         m.role === "user" ? "text-white" : "bg-background text-foreground"
                       }`}
-                      style={m.role === "user" ? { background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)" } : undefined}
+                      style={m.role === "user" ? { background: "var(--foreground)" } : undefined}
                     >
                       {m.content}
                     </div>
@@ -174,7 +174,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
               disabled={pending || !input.trim()}
               aria-label="Send"
               className="shrink-0 w-10 h-10 squircle-sm text-white grid place-items-center disabled:opacity-40 transition-opacity"
-              style={{ background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)" }}
+              style={{ background: "var(--foreground)" }}
             >
               <Icon name="send" className="w-4 h-4" />
             </button>

@@ -60,7 +60,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
   const growthAreas = movers.filter((m) => m.delta <= 0).slice(-3).reverse();
 
   return (
-    <Card className="p-6 mb-8 border-brand/15 bg-gradient-to-br from-brand/[0.03] to-transparent">
+    <Card className="p-6 mb-8">
       <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
         <Icon name="trending" className="w-4 h-4 text-brand" />
         Your growth over time

@@ -74,56 +74,47 @@ export default async function StaffCandidatesPage({
   }));
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl">
+    <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-10">
       <PageHeader title="Candidates" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
 
       {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3 mb-5">
-        <div className="flex items-center gap-1.5 bg-surface squircle-sm p-1" style={{ boxShadow: "var(--shadow-xs)" }}>
+      <div className="flex flex-wrap items-center gap-5 mb-4 pb-4 border-b border-line">
+        <div className="flex items-center gap-4">
           {FILTERS.map((f) => (
             <Link
               key={f.key}
               href={`/staff/candidates${qs({ status: f.key })}`}
-              className={`px-3.5 py-1.5 rounded-lg text-[13px] font-semibold transition-colors ${
-                status === f.key ? "text-white" : "text-muted hover:text-foreground"
+              className={`text-[13px] pb-1 border-b-2 transition-colors ${
+                status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-faint border-transparent hover:text-muted"
               }`}
-              style={
-                status === f.key
-                  ? { background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)" }
-                  : undefined
-              }
             >
               {f.label}
             </Link>
           ))}
         </div>
-        <form className="flex-1 min-w-52 max-w-sm relative" action="/staff/candidates">
+        <form className="flex-1 min-w-52 max-w-sm relative ml-auto" action="/staff/candidates">
           {status && <input type="hidden" name="status" value={status} />}
           {department && <input type="hidden" name="department" value={department} />}
           {vacancy && <input type="hidden" name="vacancy" value={vacancy} />}
-          <Icon name="search" className="w-4 h-4 text-faint absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Icon name="search" className="w-3.5 h-3.5 text-faint absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search name, email, or assessment…"
-            className="w-full bg-surface squircle-sm pl-10 pr-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
-            style={{ boxShadow: "var(--shadow-xs)" }}
+            placeholder="Search name, email, or assessment"
+            className="w-full bg-surface border border-line rounded-md pl-8 pr-3 py-1.5 text-[13px] placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </form>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-8">
-        <div className="flex items-center gap-1.5 text-xs text-faint font-semibold">
-          <Icon name="filter" className="w-3.5 h-3.5" />
-          Filter for export
-        </div>
+      <div className="flex flex-wrap items-center gap-2.5 mb-8">
+        <span className="text-[11.5px] text-faint">Export filter:</span>
         <form action="/staff/candidates" className="flex items-center gap-2">
           {status && <input type="hidden" name="status" value={status} />}
           {q && <input type="hidden" name="q" value={q} />}
           <select
             name="department"
             defaultValue={department}
-            className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All departments / structures</option>
             {departments.map((d) => (
@@ -135,7 +126,7 @@ export default async function StaffCandidatesPage({
           <select
             name="vacancy"
             defaultValue={vacancy}
-            className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All vacancies / assessments</option>
             {vacancies.map((v) => (
@@ -144,7 +135,7 @@ export default async function StaffCandidatesPage({
               </option>
             ))}
           </select>
-          <button className="bg-foreground text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:opacity-90 transition-opacity">
+          <button className="bg-foreground text-background text-[12px] font-semibold px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
             Apply
           </button>
         </form>
