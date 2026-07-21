@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-// Rebrand type system: Plus Jakarta Sans (geometric, warm) for body/UI text,
-// Space Grotesk (confident, geometric-grotesque display) for headlines --
-// replacing the previous Nunito + italic-serif editorial pairing with a
-// sharper, more "product" feel that matches the new Vantage identity.
-const jakarta = Plus_Jakarta_Sans({ subsets: ["latin"], variable: "--font-nunito", weight: ["400", "500", "600", "700", "800"] });
+// v4 type system: a single neutral workhorse face (Inter) for everything,
+// body and headlines alike. The previous two-font pairing (a "geometric,
+// warm" body face plus a separate "confident" display face) was itself
+// part of what read as a templated AI-generated product -- hierarchy here
+// comes from size, weight, and spacing, not from switching typefaces.
+// Variable names (--font-nunito, --font-serif) are kept unchanged so every
+// consuming component keeps working without a mechanical rename.
+const inter = Inter({ subsets: ["latin"], variable: "--font-nunito", weight: ["400", "500", "600", "700", "800"] });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
-const grotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-serif", weight: ["400", "500", "600", "700"] });
+const interDisplay = Inter({ subsets: ["latin"], variable: "--font-serif", weight: ["500", "600", "700"] });
 
 export const metadata: Metadata = {
   title: {
@@ -30,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`h-full antialiased ${jakarta.variable} ${mono.variable} ${grotesk.variable}`}>
+    <html lang="en" className={`h-full antialiased ${inter.variable} ${mono.variable} ${interDisplay.variable}`}>
       <head>
         <script
           dangerouslySetInnerHTML={{

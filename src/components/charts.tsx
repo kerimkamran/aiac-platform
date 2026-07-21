@@ -49,25 +49,28 @@ export function BandDistribution({
   );
 }
 
-/* Horizontal pipeline funnel — ordinal single-hue ramp (validated blue steps). */
-const FUNNEL_RAMP = ["#c7c1fb", "#8577f5", "#6d5ef8", "#241e6b"];
-
+/* Horizontal pipeline funnel — neutral bars, only the final/most-relevant
+ * stage picks up the accent color. No rainbow ramp: color marks the one
+ * thing that matters (how far candidates got), not an ordinal rainbow. */
 export function PipelineFunnel({ stages }: { stages: { label: string; count: number }[] }) {
   const max = Math.max(1, ...stages.map((s) => s.count));
   return (
-    <div className="space-y-3">
-      {stages.map((s, i) => (
-        <div key={s.label} className="flex items-center gap-3" title={`${s.label}: ${s.count}`}>
-          <span className="w-24 text-xs font-medium text-muted shrink-0">{s.label}</span>
-          <div className="flex-1 h-6 rounded-md bg-line/40 overflow-hidden">
-            <div
-              className="h-full rounded-md anim-grow"
-              style={{ width: `${Math.max(2.5, (s.count / max) * 100)}%`, background: FUNNEL_RAMP[Math.min(i, FUNNEL_RAMP.length - 1)] }}
-            />
+    <div className="space-y-2.5">
+      {stages.map((s, i) => {
+        const isLast = i === stages.length - 1;
+        return (
+          <div key={s.label} className="flex items-center gap-3" title={`${s.label}: ${s.count}`}>
+            <span className="w-20 text-[11.5px] text-faint shrink-0">{s.label}</span>
+            <div className="flex-1 h-[5px] rounded-full bg-line-soft overflow-hidden">
+              <div
+                className="h-full rounded-full anim-grow"
+                style={{ width: `${Math.max(2.5, (s.count / max) * 100)}%`, background: isLast ? "var(--accent)" : "#c4c4c4" }}
+              />
+            </div>
+            <span className="w-6 text-[12.5px] font-medium text-foreground tabular-nums text-right shrink-0">{s.count}</span>
           </div>
-          <span className="w-8 text-sm font-bold text-foreground tabular-nums text-right shrink-0">{s.count}</span>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

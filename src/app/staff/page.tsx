@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Avatar, Card, Icon, PageHeader, ScoreBadge, StatCard, StatusBadge, bandFor } from "@/components/ui";
+import { Avatar, Icon, ScoreBadge, StatusBadge, bandFor } from "@/components/ui";
 import { BandDistribution, PipelineFunnel } from "@/components/charts";
 
 type Row = {
@@ -54,99 +54,110 @@ export default async function StaffHomePage() {
     { label: "Reviewed", count: list.filter((r) => r.status === "reviewed").length },
   ];
 
-  const recent = list.filter((r) => r.submitted_at).slice(0, 5);
+  const recent = list.filter((r) => r.submitted_at).slice(0, 6);
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl">
-      <PageHeader
-        title={`Good to see you, ${firstName}`}
-        subtitle="Your talent pipeline at a glance — assessments, scores, and what needs your review."
-      >
-        <Link
-          href="/staff/builder"
-          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
-        >
-          <Icon name="plus" className="w-4 h-4" />
-          New assessment
-        </Link>
-      </PageHeader>
-
-      {/* Review queue callout */}
-      {pendingReview.length > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-chart-3/[0.06] squircle px-6 py-5 mb-10 anim-fade-up" style={{ boxShadow: "var(--shadow-xs)" }}>
-          <p className="text-sm text-foreground flex items-center gap-3.5">
-            <span className="w-9 h-9 squircle-sm bg-chart-3/10 text-chart-3 grid place-items-center shrink-0">
-              <Icon name="eye" className="w-4 h-4" />
-            </span>
-            <span>
-              <span className="font-semibold">{pendingReview.length} candidate{pendingReview.length > 1 ? "s" : ""}</span> scored
-              by the AI engine and waiting for human review.
-            </span>
-          </p>
-          <Link
-            href={`/staff/candidates/${pendingReview[0].id}`}
-            className="text-sm font-semibold text-accent-dark hover:underline inline-flex items-center gap-1.5"
-          >
-            Start reviewing
-            <Icon name="arrowRight" className="w-4 h-4" />
-          </Link>
-        </div>
-      )}
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-        <StatCard label="Candidates in pipeline" value={list.length} icon="users" tone="brand" emphasis />
-        <StatCard label="Awaiting human review" value={pendingReview.length} icon="eye" tone="violet" />
-        <StatCard label="Avg. Role Fit Score" value={avg ?? "—"} icon="target" tone="accent" />
-        <StatCard label="Published assessments" value={publishedCount ?? 0} icon="layers" tone="amber" />
+    <div className="max-w-[1180px] mx-auto px-6 lg:px-10">
+      <div className="pt-10 pb-6 flex items-baseline justify-between gap-4 flex-wrap">
+        <h1 className="text-[22px] font-semibold tracking-tight text-foreground">Good to see you, {firstName}</h1>
+        <span className="text-[13px] text-faint">{today}</span>
       </div>
 
-      {/* Charts */}
-      <div className="grid lg:grid-cols-2 gap-6 mb-10">
-        <Card className="p-7">
-          <p className="text-sm font-semibold text-foreground mb-1">Role Fit distribution</p>
-          <p className="text-[13px] text-muted mb-6">Scored candidates per proficiency band</p>
+      {pendingReview.length > 0 && (
+        <Link
+          href={`/staff/candidates/${pendingReview[0].id}`}
+          className="flex items-center justify-between gap-4 py-3.5 mb-8 border-t border-b border-line group"
+        >
+          <p className="text-[13.5px] text-muted flex items-center gap-2.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
+            <span className="text-foreground font-semibold">{pendingReview.length} candidate{pendingReview.length > 1 ? "s" : ""}</span>
+            scored by the AI engine and waiting on your review
+          </p>
+          <span className="text-[12.5px] font-semibold text-accent inline-flex items-center gap-1.5 shrink-0 group-hover:underline">
+            Review now
+            <Icon name="arrowRight" className="w-3.5 h-3.5" />
+          </span>
+        </Link>
+      )}
+
+      <div className="grid lg:grid-cols-[1fr_300px]">
+        {/* Wide content column */}
+        <div className="lg:pr-14 lg:border-r border-line pb-14">
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-[13.5px] font-semibold text-foreground">Recent submissions</p>
+            <Link href="/staff/candidates" className="text-[12.5px] font-medium text-faint hover:text-muted">
+              All candidates
+            </Link>
+          </div>
+
+          {recent.length === 0 ? (
+            <p className="text-[13.5px] text-faint py-8 border-t border-line">
+              Nothing submitted yet — publish an assessment and invite candidates from People &amp; Access.
+            </p>
+          ) : (
+            <div className="border-t border-line">
+              {recent.map((r) => (
+                <Link
+                  key={r.id}
+                  href={`/staff/candidates/${r.id}`}
+                  className="flex items-center gap-3.5 py-3.5 border-b border-line-soft hover:bg-line-soft/40 transition-colors -mx-2 px-2"
+                >
+                  <Avatar name={r.candidate?.full_name || "?"} className="w-7 h-7 text-[10.5px]" />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-foreground truncate">{r.candidate?.full_name}</p>
+                    <p className="text-[11.5px] text-faint truncate">{r.assessments?.title}</p>
+                  </div>
+                  <StatusBadge status={r.status} />
+                  {r.overall_score !== null && <ScoreBadge score={Math.round(r.overall_score)} />}
+                </Link>
+              ))}
+            </div>
+          )}
+
+          <p className="text-[13.5px] font-semibold text-foreground mt-10 mb-4">Role fit distribution</p>
           {scored.length > 0 ? (
             <BandDistribution buckets={bands} />
           ) : (
-            <p className="text-sm text-faint py-10 text-center">No scored candidates yet.</p>
+            <p className="text-[13px] text-faint py-8 border-t border-line">No scored candidates yet.</p>
           )}
-        </Card>
-        <Card className="p-7">
-          <p className="text-sm font-semibold text-foreground mb-1">Pipeline funnel</p>
-          <p className="text-[13px] text-muted mb-6">Where candidates are in the journey</p>
-          <PipelineFunnel stages={funnel} />
-        </Card>
-      </div>
+        </div>
 
-      {/* Recent submissions */}
-      <Card className="overflow-hidden">
-        <div className="flex items-center justify-between px-7 pt-6 pb-5">
-          <p className="text-sm font-semibold text-foreground">Recent submissions</p>
-          <Link href="/staff/candidates" className="text-[13px] font-semibold text-accent-dark hover:underline inline-flex items-center gap-1.5">
-            All candidates
-            <Icon name="arrowRight" className="w-3.5 h-3.5" />
+        {/* Narrow stats rail */}
+        <div className="lg:pl-14 pt-10 lg:pt-0 pb-14">
+          <p className="text-[11px] font-semibold text-faint uppercase tracking-wide mb-5">This week</p>
+
+          <div className="mb-6">
+            <p className="text-[32px] font-semibold tracking-tight text-foreground tabular-nums leading-none">{list.length}</p>
+            <p className="text-[12.5px] text-faint mt-1.5">in the pipeline</p>
+          </div>
+          <div className="mb-6">
+            <p className="text-[32px] font-semibold tracking-tight text-accent tabular-nums leading-none">{pendingReview.length}</p>
+            <p className="text-[12.5px] text-faint mt-1.5">waiting on you</p>
+          </div>
+          <div className="mb-6">
+            <p className="text-[32px] font-semibold tracking-tight text-foreground tabular-nums leading-none">{avg ?? "—"}</p>
+            <p className="text-[12.5px] text-faint mt-1.5">average role fit</p>
+          </div>
+          <div>
+            <p className="text-[32px] font-semibold tracking-tight text-foreground tabular-nums leading-none">{publishedCount ?? 0}</p>
+            <p className="text-[12.5px] text-faint mt-1.5">published assessments</p>
+          </div>
+
+          <div className="mt-10 pt-6 border-t border-line">
+            <p className="text-[11px] font-semibold text-faint uppercase tracking-wide mb-3.5">Pipeline funnel</p>
+            <PipelineFunnel stages={funnel} />
+          </div>
+
+          <Link
+            href="/staff/builder"
+            className="mt-10 flex items-center justify-center gap-2 bg-foreground text-background text-[13px] font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
+          >
+            <Icon name="plus" className="w-4 h-4" />
+            New assessment
           </Link>
         </div>
-        {recent.length === 0 ? (
-          <p className="px-7 pb-7 text-sm text-faint">Nothing submitted yet — publish an assessment and invite candidates from the builder.</p>
-        ) : (
-          <div className="divide-y divide-line border-t border-line">
-            {recent.map((r) => (
-              <Link key={r.id} href={`/staff/candidates/${r.id}`} className="flex items-center gap-4 px-7 py-4 hover:bg-line-soft transition-colors">
-                <Avatar name={r.candidate?.full_name || "?"} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-semibold text-foreground truncate">{r.candidate?.full_name}</p>
-                  <p className="text-xs text-muted truncate">{r.assessments?.title}</p>
-                </div>
-                <StatusBadge status={r.status} />
-                {r.overall_score !== null && <ScoreBadge score={Math.round(r.overall_score)} />}
-                <Icon name="arrowRight" className="w-4 h-4 text-faint" />
-              </Link>
-            ))}
-          </div>
-        )}
-      </Card>
+      </div>
     </div>
   );
 }

@@ -188,11 +188,12 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
     return (
       <button
         onClick={openPalette}
-        className="hidden lg:flex items-center gap-2 text-[12.5px] font-medium text-faint hover:text-muted transition-colors px-3 py-2 rounded-xl border border-line bg-surface hover:border-faint/40 mx-3 mt-3 mb-1 w-[calc(100%-1.5rem)]"
+        aria-label="Quick jump"
+        className="hidden lg:flex items-center gap-2 text-[12.5px] text-faint hover:text-muted transition-colors px-2.5 py-1.5 rounded-md border border-line hover:border-faint/50"
       >
         <Icon name="search" className="w-3.5 h-3.5" />
-        Quick jump
-        <span className="ml-auto inline-flex items-center gap-0.5 text-[10px] font-semibold bg-line/60 px-1.5 py-0.5 rounded">
+        <span className="w-28 text-left">Search</span>
+        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-faint">
           <Icon name="command" className="w-2.5 h-2.5" />K
         </span>
       </button>

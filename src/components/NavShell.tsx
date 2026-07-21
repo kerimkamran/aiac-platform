@@ -38,108 +38,186 @@ export function NavShell({
 
   const isActive = (l: NavLink) => (l.exact ? pathname === l.href : pathname === l.href || pathname.startsWith(l.href + "/"));
 
-  const sidebar = (
-    <div className="h-full flex flex-col bg-surface border-r border-line-soft" style={{ boxShadow: "var(--shadow-sm)" }}>
-      <div className="px-5 py-6 flex items-center gap-3">
-        <Link href="/" className="flex items-center gap-2.5 min-w-0" onClick={() => setOpen(false)}>
-          <LogoMark className="w-8 h-8 shrink-0 rounded-[9px]" />
-          <span className="leading-none min-w-0">
-            <span className="block text-[13.5px] font-semibold text-foreground truncate [font-family:var(--font-display)]">Vantage</span>
-            <span className="block text-[9px] font-semibold uppercase tracking-[0.2em] text-accent-dark mt-1.5">Azerconnect Group</span>
-          </span>
-        </Link>
-      </div>
-
-      <CommandPalette links={links} actions={actions} />
-
-      <nav className="flex-1 px-3 pt-2 pb-5 space-y-0.5 overflow-y-auto">
-        <p className="px-3 pb-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-faint">Workspace</p>
-        {links.map((l) => {
-          const active = isActive(l);
-          return (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setOpen(false)}
-              className={`group relative flex items-center gap-3 pl-3.5 pr-3 py-2.5 squircle-sm text-[13.5px] font-medium transition-all ${
-                active
-                  ? "text-white font-semibold"
-                  : "text-muted hover:bg-line-soft hover:text-foreground"
-              }`}
-              style={
-                active
-                  ? { background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)", boxShadow: "var(--shadow-glow-brand)" }
-                  : undefined
-              }
-            >
-              <Icon name={l.icon} className={`w-[18px] h-[18px] ${active ? "text-white" : "text-faint group-hover:text-muted"}`} />
-              {l.label}
-            </Link>
-          );
-        })}
-      </nav>
-
-      <div className="px-3 py-4 space-y-1 border-t border-line">
-        <div className="flex items-center gap-3 px-3 py-2.5">
-          <Avatar name={name} className="w-9 h-9 text-xs" />
-          <div className="min-w-0">
-            <p className="text-[13px] font-semibold text-foreground truncate">{name}</p>
-            <p className="text-[10px] uppercase tracking-wider text-accent-dark font-semibold">{role.replace(/_/g, " ")}</p>
-          </div>
-        </div>
-        <ThemeToggle className="w-full px-3 py-2 rounded-xl text-[13px] font-medium text-muted hover:bg-line-soft hover:text-foreground transition-colors" />
-        <form action="/logout" method="post">
-          <button className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] font-medium text-muted hover:bg-line-soft hover:text-foreground transition-colors">
-            <Icon name="logout" className="w-[18px] h-[18px] text-faint" />
-            Log out
-          </button>
-        </form>
-        <a
-          href="https://www.linkedin.com/in/thekmrnkrml/"
-          target="_blank"
-          rel="noreferrer"
-          className="block text-center text-[10.5px] text-faint hover:text-muted transition-colors mt-3"
-        >
-          Developed by Kamran Karimli
-        </a>
-      </div>
-    </div>
+  const topLinks = (
+    <>
+      {links.map((l) => {
+        const active = isActive(l);
+        return (
+          <Link
+            key={l.href}
+            href={l.href}
+            onClick={() => setOpen(false)}
+            className={`text-[13px] pb-[3px] border-b-2 transition-colors ${
+              active
+                ? "font-semibold text-foreground border-foreground"
+                : "font-medium text-muted border-transparent hover:text-foreground"
+            }`}
+          >
+            {l.label}
+          </Link>
+        );
+      })}
+    </>
   );
 
   return (
     <ToastProvider>
-    <div className="min-h-screen flex bg-background">
-      {/* Desktop sidebar */}
-      <aside className="hidden lg:block w-[264px] shrink-0 sticky top-0 h-screen no-print">{sidebar}</aside>
+      <div className="min-h-screen flex flex-col bg-background">
+        {/* Top nav -- primary navigation for every role. Deep pages that need
+            their own sub-sections (Builder, People & Access, candidate detail)
+            layer a SidebarLayout underneath this, they don't get a second
+            top-level nav system. */}
+        <header className="sticky top-0 z-40 bg-surface border-b border-line no-print">
+          <div className="flex items-center justify-between h-14 px-5 lg:px-8">
+            <div className="flex items-center gap-8 min-w-0">
+              <Link href="/" className="flex items-center gap-2 shrink-0">
+                <LogoMark className="w-6 h-6 rounded-[6px]" />
+                <span className="text-[14px] font-semibold text-foreground tracking-tight hidden sm:inline">Vantage</span>
+              </Link>
+              <nav className="hidden lg:flex items-center gap-6 min-w-0">{topLinks}</nav>
+            </div>
 
-      {/* Mobile top bar */}
-      <div className="lg:hidden fixed inset-x-0 top-0 z-40 flex items-center justify-between bg-surface/95 backdrop-blur border-b border-line px-4 py-3 no-print">
-        <Link href="/" className="flex items-center gap-2">
-          <LogoMark className="w-7 h-7" />
-          <span className="text-sm font-semibold text-foreground [font-family:var(--font-display)]">Vantage</span>
-        </Link>
-        <button onClick={() => setOpen(true)} aria-label="Open menu" className="p-2 -mr-2 text-foreground">
-          <Icon name="menu" className="w-6 h-6" />
-        </button>
-      </div>
-
-      {/* Mobile slide-over */}
-      {open && (
-        <div className="lg:hidden fixed inset-0 z-50 no-print">
-          <div className="absolute inset-0 bg-black/40 anim-fade-in" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 left-0 w-72 shadow-2xl anim-fade-in">
-            {sidebar}
-            <button onClick={() => setOpen(false)} aria-label="Close menu" className="absolute top-4 right-3 text-muted p-2">
-              <Icon name="x" className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-3 shrink-0">
+              <div className="hidden lg:block">
+                <CommandPalette links={links} actions={actions} />
+              </div>
+              <ThemeToggle className="p-1.5 rounded-md text-faint hover:text-muted hover:bg-line-soft transition-colors hidden sm:inline-flex" />
+              <div className="hidden lg:flex items-center gap-2.5 pl-3 border-l border-line">
+                <Avatar name={name} className="w-7 h-7 text-[10.5px]" />
+                <div className="leading-tight">
+                  <p className="text-[12.5px] font-semibold text-foreground">{name.split(" ")[0]}</p>
+                  <p className="text-[10px] text-faint capitalize">{role.replace(/_/g, " ")}</p>
+                </div>
+              </div>
+              <form action="/logout" method="post" className="hidden lg:block">
+                <button aria-label="Log out" className="p-1.5 rounded-md text-faint hover:text-muted hover:bg-line-soft transition-colors">
+                  <Icon name="logout" className="w-4 h-4" />
+                </button>
+              </form>
+              <button onClick={() => setOpen(true)} aria-label="Open menu" className="lg:hidden p-2 -mr-2 text-foreground">
+                <Icon name="menu" className="w-5 h-5" />
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        </header>
 
-      <main className="flex-1 min-w-0 pt-12 lg:pt-0">{children}</main>
+        {/* Mobile slide-over -- same links, stacked, for narrow viewports */}
+        {open && (
+          <div className="lg:hidden fixed inset-0 z-50 no-print">
+            <div className="absolute inset-0 bg-black/40 anim-fade-in" onClick={() => setOpen(false)} />
+            <div className="absolute inset-y-0 right-0 w-72 bg-surface border-l border-line anim-fade-up flex flex-col">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-line">
+                <span className="text-[13px] font-semibold text-foreground">Menu</span>
+                <button onClick={() => setOpen(false)} aria-label="Close menu" className="text-muted p-1">
+                  <Icon name="x" className="w-4.5 h-4.5" />
+                </button>
+              </div>
+              <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
+                {links.map((l) => {
+                  const active = isActive(l);
+                  return (
+                    <Link
+                      key={l.href}
+                      href={l.href}
+                      onClick={() => setOpen(false)}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-md text-[13.5px] ${
+                        active ? "font-semibold text-foreground bg-line-soft" : "font-medium text-muted"
+                      }`}
+                    >
+                      <Icon name={l.icon} className="w-[17px] h-[17px] text-faint" />
+                      {l.label}
+                    </Link>
+                  );
+                })}
+              </nav>
+              <div className="px-3 py-4 border-t border-line space-y-1">
+                <div className="flex items-center gap-3 px-3 py-2">
+                  <Avatar name={name} className="w-8 h-8 text-[11px]" />
+                  <div className="min-w-0">
+                    <p className="text-[12.5px] font-semibold text-foreground truncate">{name}</p>
+                    <p className="text-[10px] text-faint capitalize">{role.replace(/_/g, " ")}</p>
+                  </div>
+                </div>
+                <form action="/logout" method="post">
+                  <button className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-[13px] font-medium text-muted">
+                    <Icon name="logout" className="w-[17px] h-[17px] text-faint" />
+                    Log out
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+        )}
 
-      <ScoutLauncher role={toScoutRole(role)} />
-    </div>
+        <main className="flex-1 min-w-0">{children}</main>
+
+        <ScoutLauncher role={toScoutRole(role)} />
+      </div>
     </ToastProvider>
+  );
+}
+
+/* ---------------- Sidebar sub-navigation ---------------- */
+// Opt-in slim left rail for deep pages (Assessment Builder, People & Access,
+// candidate detail) that have their own sub-sections. Sits below the top
+// nav, not instead of it -- this is the "B" pattern from the approved
+// navigation comparison: primary nav stays a top bar everywhere, and only
+// pages with genuine sub-navigation get a persistent rail for it.
+export type SidebarLink = { id: string; label: string; icon?: string; href?: string };
+
+export function SidebarLayout({
+  title,
+  backHref,
+  backLabel,
+  sections,
+  activeId,
+  onSelect,
+  children,
+}: {
+  title: string;
+  backHref?: string;
+  backLabel?: string;
+  sections: SidebarLink[];
+  activeId?: string;
+  onSelect?: (id: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex">
+      <aside className="hidden md:flex flex-col w-[168px] shrink-0 border-r border-line min-h-[calc(100vh-56px)] px-3 py-6 no-print">
+        {backHref && (
+          <Link href={backHref} className="flex items-center gap-1.5 text-[12px] text-faint hover:text-muted mb-5 px-1">
+            <Icon name="arrowLeft" className="w-3.5 h-3.5" />
+            {backLabel || "Back"}
+          </Link>
+        )}
+        <p className="px-1 mb-2 text-[11px] font-semibold text-foreground truncate">{title}</p>
+        <nav className="space-y-0.5">
+          {sections.map((s) => {
+            const active = s.id === activeId;
+            const content = (
+              <span
+                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-[12.5px] w-full text-left ${
+                  active ? "font-semibold text-foreground bg-line-soft" : "text-muted hover:text-foreground"
+                }`}
+              >
+                {s.icon && <Icon name={s.icon} className="w-3.5 h-3.5 shrink-0" />}
+                {s.label}
+              </span>
+            );
+            return s.href ? (
+              <Link key={s.id} href={s.href}>
+                {content}
+              </Link>
+            ) : (
+              <button key={s.id} onClick={() => onSelect?.(s.id)} className="w-full">
+                {content}
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
+      <div className="flex-1 min-w-0">{children}</div>
+    </div>
   );
 }

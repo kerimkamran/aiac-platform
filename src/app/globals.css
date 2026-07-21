@@ -1,102 +1,97 @@
 @import "tailwindcss";
 
 :root {
-  /* v3 "Signal" design system -- confident, modern B2B SaaS surface language.
-     Layered elevation (soft shadows, not just hairlines), squircle-leaning
-     radii, and a slightly warmer off-white base than the previous "Open Air"
-     pass so cards read as distinct surfaces without needing heavy borders.
-     Brand hex values below are UNCHANGED (Azerconnect Group navy/green) --
-     only how/where they're used shifts (precise accents + one confident
-     gradient moment per surface, never wall-to-wall fill). */
-  --background: #f4f5f3;
+  /* v4 "Field" design system -- deliberately plain, editorial, light-first.
+     Reaction to v3's "generic AI app" tells (purple gradients, squircles,
+     glassmorphism, wall-to-wall cards): near-white surfaces, hairline
+     dividers instead of boxed shadows, sharp minimal corners, and exactly
+     one accent color (clay/terracotta) used sparingly for the single most
+     important thing on a screen -- never as decoration, never repeated
+     across a whole page. Structure carries hierarchy, not color or shadow. */
+  --background: #ffffff;
   --surface: #ffffff;
   --surface-raised: #ffffff;
-  --surface-sunken: #ecedea;
-  --foreground: #14171b;
-  --muted: #4c525c;
-  --faint: #868c96;
-  --line: #e5e7e2;
-  --line-soft: #eef0eb;
+  --surface-sunken: #fafafa;
+  --foreground: #1a1a1a;
+  --muted: #6b6b6b;
+  --faint: #8a8a8a;
+  --line: #ececec;
+  --line-soft: #f2f2f2;
 
-  /* Elevation -- layered, soft, directional (not a flat drop shadow) */
-  --shadow-xs: 0 1px 2px rgba(20, 23, 27, 0.04);
-  --shadow-sm: 0 1px 3px rgba(20, 23, 27, 0.06), 0 1px 2px rgba(20, 23, 27, 0.04);
-  --shadow-md: 0 4px 16px rgba(20, 23, 27, 0.07), 0 1px 3px rgba(20, 23, 27, 0.05);
-  --shadow-lg: 0 12px 32px rgba(20, 23, 27, 0.10), 0 2px 8px rgba(20, 23, 27, 0.05);
-  --shadow-glow-brand: 0 8px 28px -8px color-mix(in srgb, var(--brand) 45%, transparent);
-  --shadow-glow-accent: 0 8px 28px -8px color-mix(in srgb, var(--accent) 45%, transparent);
+  --shadow-xs: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10);
+  --shadow-glow-brand: none;
+  --shadow-glow-accent: none;
 
-  /* Brand -- "Vantage" rebrand. Deep indigo-violet primary (a distinct,
-     currently-trending B2B SaaS direction) replaces the former flat navy;
-     a fresh emerald secondary keeps a green thread to Azerconnect's
-     heritage without reusing the old literal hex. This is a deliberate,
-     full rebrand per explicit request -- these values are intended to
-     change and should be treated as the new source of truth going forward. */
-  --brand: #4338ca;        /* indigo-700, primary */
-  --brand-light: #6d5ef8;  /* indigo-500 */
-  --brand-deep: #241e6b;   /* indigo-900 */
-  --brand-50: #eeecfd;
-  --accent: #0f8a5f;       /* emerald-600, primary */
-  --accent-dark: #0b6b49;  /* emerald-700 */
-  --accent-soft: #e4f7ee;  /* emerald-50 */
-  --gold: #b9861a;         /* secondary accent -- attention / in-progress states */
-  --gold-soft: #fbf1dc;
+  /* Brand -- single accent. Clay/terracotta reads as considered and
+     distinct rather than "another purple SaaS app." Used for the one
+     primary action or the one number that matters per screen, nothing
+     else. brand and accent point at the same family on purpose -- this
+     system does not use two competing brand colors. */
+  --brand: #c96f42;
+  --brand-light: #d68a63;
+  --brand-deep: #8b4423;
+  --brand-50: #fbf1ea;
+  --accent: #c96f42;
+  --accent-dark: #a35a2f;
+  --accent-soft: #fbf1ea;
+  --gold: #a35a2f;
+  --gold-soft: #fbf1ea;
 
-  /* Status (validated dataviz status palette) */
-  --good: #0f8a5f;
-  --warning: #a06a00;
-  --serious: #a01818;
-  --critical: #c62020;
-  --info: #6d5ef8;
+  --good: #3d7a4d;
+  --warning: #a35a2f;
+  --serious: #b23b3b;
+  --critical: #b23b3b;
+  --info: #6b6b6b;
 
-  /* Chart series (validated categorical slots) */
-  --chart-1: #4338ca; /* indigo  — Core */
-  --chart-2: #0f8a5f; /* emerald — Functional */
-  --chart-3: #b9861a; /* gold    — Leadership */
-  --chart-grid: #ebede8;
-  --chart-axis: #cfd3cb;
+  --chart-1: #1a1a1a;
+  --chart-2: #c4c4c4;
+  --chart-3: #c96f42;
+  --chart-grid: #f2f2f2;
+  --chart-axis: #d8d8d8;
 }
 
 .dark {
-  --background: #0a0c0f;
-  --surface: #15181d;
-  --surface-raised: #1b1f26;
-  --surface-sunken: #0e1114;
-  --foreground: #eef0f2;
-  --muted: #9da4b0;
-  --faint: #6b7280;
-  --line: #262b33;
-  --line-soft: #1c2029;
+  --background: #111111;
+  --surface: #171717;
+  --surface-raised: #1c1c1c;
+  --surface-sunken: #0d0d0d;
+  --foreground: #f0f0f0;
+  --muted: #a0a0a0;
+  --faint: #757575;
+  --line: #2a2a2a;
+  --line-soft: #212121;
 
-  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35), 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-glow-brand: 0 8px 28px -8px color-mix(in srgb, var(--brand) 55%, transparent);
-  --shadow-glow-accent: 0 8px 28px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+  --shadow-xs: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-glow-brand: none;
+  --shadow-glow-accent: none;
 
-  --brand: #8577f5;
-  --brand-light: #a89bff;
-  --brand-deep: #241e6b;
-  --brand-50: #2a2470;
+  --brand: #d68a63;
+  --brand-light: #e0a482;
+  --brand-deep: #8b4423;
+  --brand-50: #2a1d15;
+  --accent: #d68a63;
+  --accent-dark: #e0a482;
+  --accent-soft: #2a1d15;
+  --gold: #d68a63;
+  --gold-soft: #2a1d15;
 
-  --accent: #35c088;
-  --accent-dark: #6fdcae;
-  --accent-soft: #0c2a1e;
-  --gold: #d1a94a;
-  --gold-soft: #2a2010;
+  --good: #6fae7f;
+  --warning: #d68a63;
+  --serious: #d4726f;
+  --critical: #d4726f;
+  --info: #a0a0a0;
 
-  --good: #35c088;
-  --warning: #d19a2a;
-  --serious: #e05a5a;
-  --critical: #e05a5a;
-  --info: #a89bff;
-
-  --chart-1: #8577f5;
-  --chart-2: #35c088;
-  --chart-3: #d1a94a;
-  --chart-grid: #262b33;
-  --chart-axis: #3a4049;
+  --chart-1: #f0f0f0;
+  --chart-2: #4a4a4a;
+  --chart-3: #d68a63;
+  --chart-grid: #232323;
+  --chart-axis: #333333;
 }
 
 @theme inline {
@@ -146,15 +141,17 @@ body {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* ---------- Squircle -- organic corner language used on primary surfaces ---------- */
+/* ---------- Corners -- sharp and minimal, not squircle/organic. Kept the
+   same class names so existing markup does not need a mechanical rename;
+   only the values changed. ---------- */
 .squircle {
-  border-radius: 22px;
+  border-radius: 8px;
 }
 .squircle-lg {
-  border-radius: 28px;
+  border-radius: 10px;
 }
 .squircle-sm {
-  border-radius: 14px;
+  border-radius: 6px;
 }
 
 /* ---------- Motion ---------- */
@@ -270,38 +267,23 @@ body {
   .confetti-piece { display: none; }
 }
 
-/* ---------- Brand panels -- one confident gradient moment (Azerconnect navy -> forest green) ---------- */
+/* ---------- Brand panels -- flat, no gradients. A solid dark panel with a
+   thin rule is the "confident moment" now, not a mesh gradient. ---------- */
 .hero-mesh {
-  background:
-    radial-gradient(60rem 36rem at 85% -15%, rgba(15, 138, 95, 0.28), transparent 60%),
-    radial-gradient(40rem 30rem at 10% 110%, rgba(109, 94, 248, 0.28), transparent 55%),
-    linear-gradient(160deg, #241e6b 0%, #4338ca 100%);
+  background: #1a1a1a;
 }
-/* Faint architectural grid over solid-navy panels -- graphic texture that
-   doesn't compete with the white type sitting on top of it. */
 .hero-grid-overlay {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.9) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.9) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
-  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 40%, transparent 100%);
+  display: none;
 }
 .text-gradient {
-  background: linear-gradient(92deg, #a89bff 0%, #6fdcae 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
+  color: var(--accent);
 }
 
-/* ---------- Glass -- reserved for floating/overlay surfaces only (panels,
-   popovers, command palette) -- never applied to full pages or dense
-   text content, which glassmorphism actively harms. ---------- */
+/* ---------- Glass -- retired. Flat surface + border, even for floating
+   panels (popovers, command palette) -- no backdrop blur anywhere. ---------- */
 .glass-panel {
-  background: color-mix(in srgb, var(--surface) 78%, transparent);
-  backdrop-filter: blur(20px) saturate(1.4);
-  -webkit-backdrop-filter: blur(20px) saturate(1.4);
-  border: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
+  background: var(--surface);
+  border: 1px solid var(--line);
 }
 
 /* ---------- Anti-copy deterrents (assessment runner only) ---------- */

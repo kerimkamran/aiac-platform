@@ -76,17 +76,13 @@ export function Icon({ name, className = "w-5 h-5" }: { name: string; className?
 // on the new indigo -> emerald brand gradient, replacing the previous "A"
 // shield mark as part of the full rebrand.
 export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
+  // v4 "Field": flat solid fill, no gradient -- consistent with the rest of
+  // the system (exactly one accent color, used sparingly, never as a mesh).
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <defs>
-        <linearGradient id="vantageMarkGrad" x1="4" y1="4" x2="60" y2="60" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="var(--brand-light)" />
-          <stop offset="100%" stopColor="var(--brand-deep)" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx="18" fill="url(#vantageMarkGrad)" />
+      <rect width="64" height="64" rx="12" fill="#1a1a1a" />
       <path d="M14 40 L28 22 L36 32 L50 16" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="50" cy="16" r="5.5" className="fill-accent" />
+      <circle cx="50" cy="16" r="5.5" fill="var(--accent)" />
     </svg>
   );
 }
@@ -113,18 +109,18 @@ export type Band = { label: string; badge: string; bar: string; hex: string };
 
 export function bandFor(score: number): Band {
   if (score >= 85)
-    return { label: "Exceeds", badge: "bg-emerald-50 text-emerald-700 ring-emerald-600/20", bar: "bg-emerald-600", hex: "#1c400f" };
+    return { label: "Exceeds", badge: "bg-[#eef3ef] text-[#3d7a4d]", bar: "bg-[#3d7a4d]", hex: "#3d7a4d" };
   if (score >= 70)
-    return { label: "Fully Meets", badge: "bg-green-50 text-green-700 ring-green-600/20", bar: "bg-accent", hex: "#0f8a5f" };
+    return { label: "Fully Meets", badge: "bg-line-soft text-foreground", bar: "bg-foreground", hex: "#1a1a1a" };
   if (score >= 50)
-    return { label: "Partially Meets", badge: "bg-amber-50 text-amber-700 ring-amber-600/20", bar: "bg-amber-500", hex: "#eda100" };
-  return { label: "Does Not Meet", badge: "bg-red-50 text-red-700 ring-red-600/20", bar: "bg-critical", hex: "#d03b3b" };
+    return { label: "Partially Meets", badge: "bg-brand-50 text-accent-dark", bar: "bg-accent", hex: "#c96f42" };
+  return { label: "Does Not Meet", badge: "bg-[#fbeceb] text-[#b23b3b]", bar: "bg-[#b23b3b]", hex: "#b23b3b" };
 }
 
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
-  Core: { text: "text-chart-1", bg: "bg-chart-1/10", dot: "bg-chart-1", hex: "#4338ca" },
-  Leadership: { text: "text-chart-3", bg: "bg-chart-3/10", dot: "bg-chart-3", hex: "#b9861a" },
-  Functional: { text: "text-chart-2", bg: "bg-chart-2/10", dot: "bg-chart-2", hex: "#0f8a5f" },
+  Core: { text: "text-foreground", bg: "bg-line-soft", dot: "bg-foreground", hex: "#1a1a1a" },
+  Leadership: { text: "text-accent-dark", bg: "bg-brand-50", dot: "bg-accent", hex: "#c96f42" },
+  Functional: { text: "text-muted", bg: "bg-line-soft", dot: "bg-faint", hex: "#8a8a8a" },
 };
 
 export function categoryStyle(category: string) {
@@ -133,42 +129,43 @@ export function categoryStyle(category: string) {
 
 /* ---------------- Status ---------------- */
 
+// v4 "Field": three semantic hues only -- neutral (default/waiting), green
+// (good/complete), clay (needs attention/in progress) -- plus plain gray for
+// terminal/inactive states. Down from six competing hues in v3 so status
+// pills read as calm data, not a rainbow of chips.
 const STATUS_META: Record<string, { label: string; cls: string }> = {
-  invited: { label: "Invited", cls: "bg-sky-50 text-sky-700 ring-sky-600/20" },
-  in_progress: { label: "In progress", cls: "bg-amber-50 text-amber-700 ring-amber-600/20" },
-  submitted: { label: "Submitted", cls: "bg-indigo-50 text-indigo-700 ring-indigo-600/20" },
-  scored: { label: "Scored — awaiting review", cls: "bg-violet-50 text-violet-700 ring-violet-600/20" },
-  reviewed: { label: "Reviewed", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
-  draft: { label: "Draft", cls: "bg-gray-100 text-gray-600 ring-gray-500/20" },
-  published: { label: "Published", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
-  shortlist: { label: "Shortlisted", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
-  hold: { label: "On hold", cls: "bg-amber-50 text-amber-700 ring-amber-600/20" },
-  reject: { label: "Rejected", cls: "bg-red-50 text-red-700 ring-red-600/20" },
-  recommend: { label: "Recommended", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
-  needs_development_plan: { label: "Needs development plan", cls: "bg-amber-50 text-amber-700 ring-amber-600/20" },
-  not_yet_ready: { label: "Not yet ready", cls: "bg-red-50 text-red-700 ring-red-600/20" },
-  strengths_identified: { label: "Strengths identified", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
-  growth_areas_identified: { label: "Growth areas identified", cls: "bg-amber-50 text-amber-700 ring-amber-600/20" },
-  active: { label: "Active", cls: "bg-emerald-50 text-emerald-700 ring-emerald-600/20" },
-  deactivated: { label: "Deactivated", cls: "bg-gray-100 text-gray-600 ring-gray-500/20" },
+  invited: { label: "Invited", cls: "bg-line-soft text-muted" },
+  in_progress: { label: "In progress", cls: "bg-brand-50 text-accent-dark" },
+  submitted: { label: "Submitted", cls: "bg-line-soft text-muted" },
+  scored: { label: "Scored — awaiting review", cls: "bg-brand-50 text-accent-dark" },
+  reviewed: { label: "Reviewed", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  draft: { label: "Draft", cls: "bg-line-soft text-faint" },
+  published: { label: "Published", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  shortlist: { label: "Shortlisted", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  hold: { label: "On hold", cls: "bg-brand-50 text-accent-dark" },
+  reject: { label: "Rejected", cls: "bg-[#fbeceb] text-[#b23b3b]" },
+  recommend: { label: "Recommended", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  needs_development_plan: { label: "Needs development plan", cls: "bg-brand-50 text-accent-dark" },
+  not_yet_ready: { label: "Not yet ready", cls: "bg-[#fbeceb] text-[#b23b3b]" },
+  strengths_identified: { label: "Strengths identified", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  growth_areas_identified: { label: "Growth areas identified", cls: "bg-brand-50 text-accent-dark" },
+  active: { label: "Active", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  deactivated: { label: "Deactivated", cls: "bg-line-soft text-faint" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const meta = STATUS_META[status] || { label: status.replace(/_/g, " "), cls: "bg-gray-100 text-gray-600 ring-gray-500/20" };
+  const meta = STATUS_META[status] || { label: status.replace(/_/g, " "), cls: "bg-line-soft text-faint" };
   return (
-    <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset whitespace-nowrap ${meta.cls}`}>
+    <span className={`inline-flex items-center text-[10.5px] font-semibold px-2 py-[3px] rounded whitespace-nowrap ${meta.cls}`}>
       {meta.label}
     </span>
   );
 }
 
 export function ScoreBadge({ score }: { score: number }) {
-  const band = bandFor(score);
-  return (
-    <span className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset tabular-nums ${band.badge}`}>
-      {score}
-    </span>
-  );
+  // v4 "Field": the score is just bold tabular text, no pill/badge chrome --
+  // matches the approved dashboard mockup where scores read as plain numbers.
+  return <span className="text-[13px] font-semibold tabular-nums text-foreground">{score}</span>;
 }
 
 // Visible, plain-language disclosure that free-text answer scores come from a
@@ -203,17 +200,15 @@ export function Card({
   children: React.ReactNode;
   interactive?: boolean;
 }) {
-  // v3 "Signal": a distinct surface defined by soft layered elevation
-  // (--shadow-sm) plus a squircle radius, rather than a flat hairline.
-  // Depth is subtle -- one soft shadow, not a heavy card-game look -- so
-  // dense pages stay calm. `interactive` adds a hover lift for cards that
-  // are actually clickable (candidate rows, nav tiles), so affordance is
-  // honest rather than applied uniformly.
+  // v4 "Field": a surface is defined by a hairline border, not a shadow.
+  // No elevation, no squircle radius -- flat and sharp-cornered so cards
+  // read as plain content containers rather than decorative "AI app" tiles.
+  // `interactive` still gets a subtle border-darken on hover so clickable
+  // rows have honest affordance without a lift/shadow flourish.
   return (
     <div
       id={id}
-      className={`bg-surface squircle print-card ${interactive ? "lift-on-hover cursor-pointer" : ""} ${className}`}
-      style={{ boxShadow: "var(--shadow-sm)" }}
+      className={`bg-surface border border-line rounded-md print-card ${interactive ? "hover:border-faint/50 cursor-pointer transition-colors" : ""} ${className}`}
     >
       {children}
     </div>
@@ -229,30 +224,14 @@ export function PageHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
-  // v3 "Signal": headline sits in a soft-elevated squircle band (not flat
-  // on background, not a solid navy banner either) -- a confident middle
-  // ground between the two previous passes. A small brand-to-accent
-  // gradient chip replaces the flat accent dash as the recurring visual
-  // signature carried across every page.
+  // v4 "Field": plain type sets the hierarchy -- no icon chip, no gradient,
+  // no colored band. A page title is just a page title. Matches the
+  // approved dashboard mockup (title + date/context on the baseline).
   return (
-    <div className="mb-8 flex flex-wrap items-end justify-between gap-5">
-      <div className="flex items-start gap-4">
-        <span
-          className="hidden sm:grid place-items-center w-11 h-11 rounded-2xl shrink-0 mt-0.5"
-          style={{
-            background: "linear-gradient(135deg, var(--brand) 0%, var(--accent) 100%)",
-            boxShadow: "var(--shadow-glow-brand)",
-          }}
-          aria-hidden
-        >
-          <span className="block w-2.5 h-2.5 rounded-full bg-white/90" />
-        </span>
-        <div>
-          <h1 className="text-[28px] leading-tight font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">
-            {title}
-          </h1>
-          {subtitle && <p className="text-[15px] text-muted mt-1.5 max-w-2xl leading-relaxed">{subtitle}</p>}
-        </div>
+    <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">
+      <div>
+        <h1 className="text-[22px] leading-tight font-semibold tracking-tight text-foreground">{title}</h1>
+        {subtitle && <p className="text-[13px] text-faint mt-1 max-w-2xl">{subtitle}</p>}
       </div>
       {children && <div className="flex items-center gap-2.5">{children}</div>}
     </div>
@@ -274,34 +253,20 @@ export function StatCard({
   tone?: "brand" | "accent" | "amber" | "violet";
   emphasis?: boolean;
 }) {
-  // v3 "Signal": bento-aware -- an `emphasis` stat (the one number that
-  // matters most on a given page) gets a soft brand-tinted surface and
-  // slightly larger type, so the grid has real visual hierarchy instead of
-  // four uniformly-weighted boxes.
-  const tones = {
-    brand: "bg-brand-50 text-brand",
-    accent: "bg-accent-soft text-accent-dark",
-    amber: "bg-gold-soft text-gold",
-    violet: "bg-chart-3/10 text-chart-3",
-  };
+  // v4 "Field": a stat is a number, not an icon-in-a-tinted-box. `icon` and
+  // `tone` are accepted for backward compatibility with existing call sites
+  // but are no longer rendered -- the emphasis stat gets the accent color
+  // on the number itself, everything else stays plain foreground/faint.
+  void icon;
+  void tone;
   return (
-    <Card
-      className={`p-6 flex items-start gap-4 ${emphasis ? "sm:col-span-2" : ""}`}
-      interactive
-    >
-      <span className={`w-11 h-11 squircle-sm grid place-items-center shrink-0 ${tones[tone]}`}>
-        <Icon name={icon} className="w-5 h-5" />
-      </span>
-      <div className="min-w-0">
-        <p
-          className={`${emphasis ? "text-[36px] leading-10" : "text-[28px] leading-9"} font-semibold text-foreground tabular-nums [font-family:var(--font-display)]`}
-        >
-          {value}
-        </p>
-        <p className="text-[13px] font-medium text-muted mt-1">{label}</p>
-        {hint && <p className="text-[11.5px] text-faint mt-1">{hint}</p>}
-      </div>
-    </Card>
+    <div className={emphasis ? "sm:col-span-2" : ""}>
+      <p className="text-[12px] text-faint font-medium mb-1.5">{label}</p>
+      <p className={`font-semibold tabular-nums tracking-tight ${emphasis ? "text-[32px] text-accent" : "text-[26px] text-foreground"}`}>
+        {value}
+      </p>
+      {hint && <p className="text-[11.5px] text-faint mt-1">{hint}</p>}
+    </div>
   );
 }
 
@@ -311,9 +276,11 @@ export function Avatar({ name, className = "w-9 h-9 text-xs" }: { name: string; 
     .slice(0, 2)
     .map((p) => p[0]?.toUpperCase())
     .join("");
+  // v4 "Field": flat neutral fill, not a brand gradient -- avatars shouldn't
+  // compete with the one accent color reserved for the page's key action.
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full bg-gradient-to-br from-brand-light to-brand text-white font-semibold shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-line-soft text-muted font-semibold shrink-0 ${className}`}
     >
       {initials}
     </span>
@@ -458,7 +425,7 @@ const RECOMMENDATION_TONE_CLS: Record<ExecutiveSummary["recommendationTone"], st
 
 export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary }) {
   return (
-    <Card className="p-6 mb-6 border-brand/15 bg-gradient-to-br from-brand/[0.03] to-transparent">
+    <Card className="p-6 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <p className="flex items-center gap-2 text-sm font-bold text-foreground">
           <Icon name="sparkles" className="w-4 h-4 text-accent-dark" />
