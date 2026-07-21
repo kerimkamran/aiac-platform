@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Icon, Logo, LogoMark } from "@/components/ui";
+import { Icon, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ScoutLauncher } from "@/components/ScoutLauncher";
 
@@ -20,23 +20,19 @@ export default async function Home() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* ---------- Header ---------- */}
-      <header className="sticky top-0 z-40 backdrop-blur-md bg-background/80 border-b border-line">
-        <div className="max-w-6xl mx-auto px-6 py-3.5 flex items-center justify-between">
-          <Logo />
-          <nav className="hidden md:flex items-center gap-7 text-[13.5px] font-medium text-muted">
+      <header className="sticky top-0 z-40 bg-surface border-b border-line">
+        <div className="max-w-[1180px] mx-auto px-6 h-14 flex items-center justify-between">
+          <Logo compact />
+          <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted">
             <a href="#how" className="hover:text-foreground transition-colors">How it works</a>
             <a href="#framework" className="hover:text-foreground transition-colors">Competency framework</a>
-            <a href="#features" className="hover:text-foreground transition-colors">Platform</a>
+            <a href="#platform" className="hover:text-foreground transition-colors">Platform</a>
           </nav>
-          <div className="flex items-center gap-2.5 text-sm">
-            <Link href="/login" className="px-4 py-2 rounded-full text-foreground font-medium hover:bg-line/60 transition-colors">
+          <div className="flex items-center gap-4 text-[13px]">
+            <Link href="/login" className="font-medium text-muted hover:text-foreground transition-colors">
               Log in
             </Link>
-            <Link
-              href="/signup"
-              className="px-4 py-2 rounded-full bg-brand text-white font-semibold hover:bg-brand-light transition-colors"
-              style={{ boxShadow: "var(--shadow-glow-brand)" }}
-            >
+            <Link href="/signup" className="font-semibold text-background bg-foreground px-3.5 py-1.5 rounded-md hover:opacity-90 transition-opacity">
               Get started
             </Link>
           </div>
@@ -44,236 +40,198 @@ export default async function Home() {
       </header>
 
       {/* ---------- Hero ---------- */}
-      <section className="relative overflow-hidden bg-background">
-        <div className="relative max-w-6xl mx-auto px-6 pt-24 pb-20 lg:pt-32 lg:pb-28">
-          <div className="max-w-3xl mx-auto text-center">
-            <p className="anim-fade-up inline-flex items-center gap-2 text-[12px] font-semibold text-accent-dark bg-accent-soft ring-1 ring-inset ring-accent/15 rounded-full px-3.5 py-1.5 mb-9">
-              <Icon name="sparkles" className="w-3.5 h-3.5" />
-              Azerconnect Group · Vantage
-            </p>
-            <h1 className="anim-fade-up delay-1 text-[46px] md:text-[68px] font-semibold tracking-tight leading-[1.04] text-foreground [font-family:var(--font-display)]">
-              Decide on evidence,
-              <br />
-              not <em className="text-accent-dark not-italic">gut feeling</em>.
-            </h1>
-            <p className="anim-fade-up delay-2 text-lg text-muted max-w-xl mx-auto mt-8 leading-relaxed">
-              Vantage turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
-              AI-assisted scoring, and reviewer-verified decisions — for hiring, promotion, or development —
-              every score traceable back to a person&apos;s own words.
-            </p>
-            <div className="anim-fade-up delay-3 flex flex-wrap justify-center gap-3.5 mt-10">
-              <Link
-                href="/signup"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full bg-brand text-white font-semibold hover:bg-brand-light transition-colors"
-              >
-                I&apos;m a candidate
-                <Icon name="arrowRight" className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/login"
-                className="inline-flex items-center gap-2 px-7 py-3.5 rounded-full border border-line text-foreground font-semibold hover:border-faint/50 hover:bg-surface transition-colors"
-              >
-                HR / Staff login
-              </Link>
-            </div>
-          </div>
-
-          {/* Floating product preview */}
-          <div className="anim-fade-up delay-4 mt-20 lg:mt-24 flex justify-center">
-            <HeroPreview />
+      <section className="max-w-[1180px] mx-auto px-6 pt-20 pb-16 w-full">
+        <div className="max-w-2xl">
+          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent mb-5">
+            Azerconnect Group — Vantage
+          </p>
+          <h1 className="text-[40px] md:text-[52px] font-semibold tracking-tight leading-[1.08] text-foreground">
+            Decide on evidence, not gut feeling.
+          </h1>
+          <p className="text-[16px] text-muted max-w-xl mt-6 leading-relaxed">
+            Vantage turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
+            AI-assisted scoring, and reviewer-verified decisions — for hiring, promotion, or development —
+            every score traceable back to a person&apos;s own words.
+          </p>
+          <div className="flex flex-wrap gap-3 mt-8">
+            <Link
+              href="/signup"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-foreground text-background font-semibold text-[13.5px] hover:opacity-90 transition-opacity"
+            >
+              I&apos;m a candidate
+              <Icon name="arrowRight" className="w-3.5 h-3.5" />
+            </Link>
+            <Link
+              href="/login"
+              className="inline-flex items-center px-5 py-2.5 rounded-md border border-line text-foreground font-semibold text-[13.5px] hover:border-faint/50 transition-colors"
+            >
+              HR / Staff login
+            </Link>
           </div>
         </div>
 
         {/* Stat strip */}
-        <div className="relative border-t border-line">
-          <div className="max-w-6xl mx-auto px-6 py-10 grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            {[
-              ["37", "governed competencies"],
-              ["3", "competency categories"],
-              ["4", "proficiency bands"],
-              ["100%", "decisions with evidence"],
-            ].map(([v, l], i) => (
-              <div key={l} className={`anim-fade-up delay-${i + 2}`}>
-                <p className="text-[34px] leading-10 font-semibold [font-family:var(--font-display)] text-foreground">{v}</p>
-                <p className="text-[12.5px] text-faint mt-1">{l}</p>
-              </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-16 pt-10 border-t border-line">
+          {[
+            ["37", "governed competencies"],
+            ["3", "competency categories"],
+            ["4", "proficiency bands"],
+            ["100%", "decisions with evidence"],
+          ].map(([v, l]) => (
+            <div key={l}>
+              <p className="text-[30px] font-semibold tracking-tight text-foreground tabular-nums">{v}</p>
+              <p className="text-[12.5px] text-faint mt-1">{l}</p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ---------- How it works ---------- */}
-      <section id="how" className="max-w-6xl mx-auto px-6 py-24 w-full">
+      <section id="how" className="max-w-[1180px] mx-auto px-6 py-16 w-full border-t border-line">
         <SectionHead
           eyebrow="How it works"
           title="From competency library to hiring decision"
           body="One governed loop — build, assess, decide — with a human reviewer confirming every AI-assisted score."
         />
-        <div className="grid md:grid-cols-3 gap-6 mt-12">
+        <div className="grid md:grid-cols-3 gap-x-10 gap-y-10 mt-12">
           {[
             {
-              icon: "layers",
-              step: "01 · Build",
-              title: "Compose from the framework",
+              step: "01",
+              title: "Build — compose from the framework",
               body: "HR admins assemble assessments section by section, mapping every question to one of the 37 governed competencies — MCQ, scenario, or open response.",
             },
             {
-              icon: "brain",
-              step: "02 · Assess",
-              title: "Candidates respond, AI scores",
+              step: "02",
+              title: "Assess — candidates respond, AI scores",
               body: "Candidates work through a guided, timed flow. Each answer is scored against the competency's behavioural anchors, with a written rationale for every score.",
             },
             {
-              icon: "shield",
-              step: "03 · Decide",
-              title: "Humans confirm, evidence stays",
+              step: "03",
+              title: "Decide — humans confirm, evidence stays",
               body: "Recruiters review the competency profile, read the evidence behind each score, and shortlist, hold, or reject — the full trail is preserved.",
             },
-          ].map((s, i) => (
-            <div key={s.step} className="relative bg-surface squircle p-7 lift-on-hover" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <span className="absolute -top-3 left-7 text-[11px] font-bold tracking-widest uppercase text-accent-dark bg-accent-soft rounded-full px-3 py-1">
-                {s.step}
-              </span>
-              <span className="w-11 h-11 squircle-sm bg-brand/8 text-brand grid place-items-center mb-5 mt-2">
-                <Icon name={s.icon} className="w-5.5 h-5.5" />
-              </span>
-              <h3 className="font-bold text-foreground text-lg [font-family:var(--font-display)]">{s.title}</h3>
-              <p className="text-sm text-muted leading-relaxed mt-2.5">{s.body}</p>
-              {i < 2 && (
-                <Icon
-                  name="arrowRight"
-                  className="hidden md:block absolute top-1/2 -right-4.5 w-5 h-5 text-faint z-10"
-                />
-              )}
+          ].map((s) => (
+            <div key={s.step}>
+              <p className="text-[13px] font-semibold text-faint tabular-nums mb-3">{s.step}</p>
+              <h3 className="font-semibold text-foreground text-[15px]">{s.title}</h3>
+              <p className="text-[13.5px] text-muted leading-relaxed mt-2">{s.body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ---------- Competency framework ---------- */}
-      <section id="framework" className="bg-brand-deep text-white py-24">
-        <div className="max-w-6xl mx-auto px-6">
+      <section id="framework" className="border-t border-line bg-surface">
+        <div className="max-w-[1180px] mx-auto px-6 py-16">
           <SectionHead
-            dark
             eyebrow="The competency model"
             title="One governed framework. 37 competencies."
             body="Every question, score, and decision on the platform maps back to Azerconnect's competency dictionary — organised into three categories, measured on four proficiency bands."
           />
-          <div className="grid md:grid-cols-3 gap-6 mt-12">
-            <FrameworkCard
-              color="#7fb2f0"
-              name="Core · 4"
+
+          <div className="grid md:grid-cols-3 gap-x-10 gap-y-8 mt-12 pb-12 border-b border-line">
+            <FrameworkColumn
+              name="Core"
+              count={4}
               blurb="The mandatory behaviours every Azerconnect employee is measured on, with Basic / Skilled / Expert behavioural indicators."
               samples={["Innovating", "Collaborative", "Leading Through Change", "Resourcefulness"]}
               full
             />
-            <FrameworkCard
-              color="#d9b45e"
-              name="Leadership · 2"
+            <FrameworkColumn
+              name="Leadership"
+              count={2}
               blurb="What we expect from people who set direction — inspiring others and driving a clear, compelling vision of the future."
               samples={["Engages & Inspires", "Drives Vision & Purpose"]}
               full
             />
-            <FrameworkCard
-              color="#8cc972"
-              name="Functional · 31"
+            <FrameworkColumn
+              name="Functional"
+              count={31}
               blurb="Role-specific depth — from business acumen to data-driven decision making — assessed with the same rigour as behaviour."
               samples={["Business Acumen", "Strategic Thinking", "Customer Centricity", "Data-Driven Decision Making", "Effective Communication"]}
             />
           </div>
 
-          {/* Proficiency bands */}
-          <div className="mt-14 bg-white/5 border border-white/10 squircle-lg p-7">
-            <p className="text-[12px] font-semibold uppercase tracking-[0.16em] text-white/45 mb-5">
-              Four proficiency bands, one shared language
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {[
-                ["Does Not Meet", "0–49", "#c62020"],
-                ["Partially Meets", "50–69", "#a06a00"],
-                ["Fully Meets", "70–84", "#3a8820"],
-                ["Exceeds", "85–100", "#0f8a5f"],
-              ].map(([label, range, color]) => (
-                <div key={label} className="flex items-center gap-3">
-                  <span className="w-2.5 h-9 rounded-full shrink-0" style={{ background: color as string }} />
-                  <div>
-                    <p className="text-sm font-semibold">{label}</p>
-                    <p className="text-xs text-white/45 tabular-nums">{range}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint mt-12 mb-5">
+            Four proficiency bands, one shared language
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[
+              ["Does Not Meet", "0–49"],
+              ["Partially Meets", "50–69"],
+              ["Fully Meets", "70–84"],
+              ["Exceeds", "85–100"],
+            ].map(([label, range]) => (
+              <div key={label}>
+                <p className="text-[13.5px] font-semibold text-foreground">{label}</p>
+                <p className="text-[12px] text-faint tabular-nums mt-0.5">{range}</p>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ---------- Features ---------- */}
-      <section id="features" className="max-w-6xl mx-auto px-6 py-24 w-full">
+      {/* ---------- Platform ---------- */}
+      <section id="platform" className="max-w-[1180px] mx-auto px-6 py-16 w-full">
         <SectionHead
           eyebrow="The platform"
           title="Everything the hiring loop needs, in one place"
           body="Purpose-built portals for candidates, recruiters, hiring managers, and HR admins."
         />
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mt-12">
+        <div className="mt-10 border-t border-line">
           {[
-            ["clipboard", "Guided assessment flow", "One question at a time, live timer, progress tracking, and automatic draft saving — candidates focus on answers, not the interface."],
-            ["wand", "AI-assisted scoring", "Every response is scored against competency anchors with a written rationale. Low-confidence scores are flagged for human review."],
-            ["chart", "Talent analytics", "Score distributions, pipeline funnels, and per-competency radar profiles turn assessment data into hiring insight."],
-            ["target", "Competency mapping", "Sections and questions bind to the governed dictionary, so results roll up into a comparable competency profile per candidate."],
-            ["shield", "Human-in-the-loop", "AI proposes, people decide. Reviewers confirm scores and record shortlist / hold / reject decisions with full audit history."],
-            ["file", "Printable reports", "Every candidate profile exports as a clean, print-ready competency report for panel discussions."],
-          ].map(([icon, title, body]) => (
-            <div key={title} className="bg-surface squircle p-6 lift-on-hover" style={{ boxShadow: "var(--shadow-sm)" }}>
-              <span className="w-10 h-10 squircle-sm bg-accent-soft text-accent-dark grid place-items-center mb-4">
-                <Icon name={icon} className="w-5 h-5" />
-              </span>
-              <h3 className="font-semibold text-foreground">{title}</h3>
-              <p className="text-[13.5px] text-muted leading-relaxed mt-2">{body}</p>
+            ["Guided assessment flow", "One question at a time, live timer, progress tracking, and automatic draft saving — candidates focus on answers, not the interface."],
+            ["AI-assisted scoring", "Every response is scored against competency anchors with a written rationale. Low-confidence scores are flagged for human review."],
+            ["Talent analytics", "Score distributions, pipeline funnels, and per-competency profiles turn assessment data into hiring insight."],
+            ["Competency mapping", "Sections and questions bind to the governed dictionary, so results roll up into a comparable competency profile per candidate."],
+            ["Human-in-the-loop", "AI proposes, people decide. Reviewers confirm scores and record shortlist / hold / reject decisions with full audit history."],
+            ["Printable reports", "Every candidate profile exports as a clean, print-ready competency report for panel discussions."],
+          ].map(([title, body]) => (
+            <div key={title} className="grid md:grid-cols-[280px_1fr] gap-4 py-6 border-b border-line">
+              <h3 className="font-semibold text-foreground text-[14.5px]">{title}</h3>
+              <p className="text-[13.5px] text-muted leading-relaxed max-w-xl">{body}</p>
             </div>
           ))}
         </div>
       </section>
 
       {/* ---------- CTA ---------- */}
-      <section className="max-w-6xl mx-auto px-6 pb-24 w-full">
-        <div className="relative overflow-hidden hero-mesh squircle-lg text-white px-8 py-14 md:px-14 text-center" style={{ boxShadow: "var(--shadow-lg)" }}>
-          <div className="absolute inset-0 hero-grid-overlay" aria-hidden />
-          <div className="relative">
-            <LogoMark className="w-12 h-12 mx-auto mb-6 anim-float" />
-            <h2 className="text-3xl md:text-4xl font-bold tracking-tight [font-family:var(--font-display)]">
+      <section className="border-t border-line">
+        <div className="max-w-[1180px] mx-auto px-6 py-16 flex flex-wrap items-end justify-between gap-8">
+          <div className="max-w-lg">
+            <h2 className="text-[26px] font-semibold tracking-tight text-foreground">
               Ready to see the full picture of every candidate?
             </h2>
-            <p className="text-white/65 max-w-xl mx-auto mt-4">
+            <p className="text-[13.5px] text-muted mt-3 leading-relaxed">
               Candidates sign up and complete their invited assessments. Recruiters and HR admins log in to
               build, review, and decide.
             </p>
-            <div className="flex flex-wrap justify-center gap-3.5 mt-8">
-              <Link href="/signup" className="px-6 py-3 squircle-sm bg-accent font-semibold hover:bg-accent-dark transition-colors" style={{ boxShadow: "var(--shadow-glow-accent)" }}>
-                Create candidate account
-              </Link>
-              <Link href="/login" className="px-6 py-3 rounded-xl border border-white/25 font-semibold hover:bg-white/10 transition-colors">
-                Staff login
-              </Link>
-            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href="/signup" className="px-5 py-2.5 rounded-md bg-foreground text-background font-semibold text-[13.5px] hover:opacity-90 transition-opacity">
+              Create candidate account
+            </Link>
+            <Link href="/login" className="px-5 py-2.5 rounded-md border border-line text-foreground font-semibold text-[13.5px] hover:border-faint/50 transition-colors">
+              Staff login
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ---------- Footer ---------- */}
-      <footer className="border-t border-line bg-surface mt-auto">
-        <div className="max-w-6xl mx-auto px-6 py-8 flex flex-col md:flex-row items-center justify-between gap-4">
-          <Logo />
-          <p className="text-[12.5px] text-faint text-center">
-            Azerconnect Group — Internal Use Only · Vantage Platform v1.0 · Phase 1 scoring is simulated; the
-            production LLM engine ships per SRS Part 4.
-          </p>
+      <footer className="border-t border-line mt-auto">
+        <div className="max-w-[1180px] mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3">
+          <span className="text-[11.5px] text-faint">
+            Azerconnect Group — Internal Use Only · Vantage v1.0 · Phase 1 scoring is simulated; the production
+            LLM engine ships per SRS Part 4.
+          </span>
           <div className="flex items-center gap-4">
-            <ThemeToggle className="text-[12.5px] text-faint hover:text-brand transition-colors" />
+            <ThemeToggle className="text-[11.5px] text-faint hover:text-muted transition-colors" />
             <a
               href="https://www.linkedin.com/in/thekmrnkrml/"
               target="_blank"
               rel="noreferrer"
-              className="text-[12.5px] text-faint hover:text-brand transition-colors whitespace-nowrap"
+              className="text-[11.5px] text-faint hover:text-muted transition-colors whitespace-nowrap"
             >
               Developed by Kamran Karimli
             </a>
@@ -288,104 +246,44 @@ export default async function Home() {
 
 /* ---------- helpers ---------- */
 
-function SectionHead({ eyebrow, title, body, dark = false }: { eyebrow: string; title: string; body: string; dark?: boolean }) {
+function SectionHead({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
   return (
     <div className="max-w-2xl">
-      <p className={`text-[12px] font-semibold uppercase tracking-[0.18em] ${dark ? "text-accent" : "text-accent-dark"}`}>{eyebrow}</p>
-      <h2 className={`text-3xl md:text-4xl font-semibold tracking-tight mt-3 [font-family:var(--font-display)] ${dark ? "text-white" : "text-foreground"}`}>
-        {title}
-      </h2>
-      <p className={`mt-4 leading-relaxed ${dark ? "text-white/60" : "text-muted"}`}>{body}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">{eyebrow}</p>
+      <h2 className="text-[26px] font-semibold tracking-tight mt-2.5 text-foreground">{title}</h2>
+      <p className="mt-3 text-[13.5px] leading-relaxed text-muted">{body}</p>
     </div>
   );
 }
 
-function FrameworkCard({
-  color,
+function FrameworkColumn({
   name,
+  count,
   blurb,
   samples,
   full = false,
 }: {
-  color: string;
   name: string;
+  count: number;
   blurb: string;
   samples: string[];
   full?: boolean;
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 squircle-lg p-7 hover:bg-white/[0.08] transition-colors">
-      <span className="inline-flex items-center gap-2 text-sm font-bold" style={{ color }}>
-        <span className="w-2 h-2 rounded-full" style={{ background: color }} />
-        {name}
-      </span>
-      <p className="text-sm text-white/60 leading-relaxed mt-3">{blurb}</p>
-      <ul className="mt-5 space-y-2">
+    <div>
+      <p className="text-[14px] font-semibold text-foreground">
+        {name} <span className="text-faint font-normal tabular-nums">· {count}</span>
+      </p>
+      <p className="text-[13px] text-muted leading-relaxed mt-2">{blurb}</p>
+      <ul className="mt-4 space-y-1.5">
         {samples.map((s) => (
-          <li key={s} className="flex items-center gap-2.5 text-[13px] text-white/80">
-            <Icon name="check" className="w-3.5 h-3.5 shrink-0" />
+          <li key={s} className="text-[12.5px] text-muted flex items-center gap-2">
+            <span className="w-1 h-1 rounded-full bg-faint shrink-0" />
             {s}
           </li>
         ))}
-        {!full && <li className="text-[12px] text-white/40 pl-6">…and more in the governed dictionary</li>}
+        {!full && <li className="text-[11.5px] text-faint pl-3">and more in the governed dictionary</li>}
       </ul>
-    </div>
-  );
-}
-
-/* A stylised, hand-built product mock — no screenshots needed. */
-function HeroPreview() {
-  const bars = [
-    ["Innovating", 88, "Core"],
-    ["Engages & Inspires", 76, "Leadership"],
-    ["Data-Driven Decision Making", 91, "Functional"],
-    ["Collaborative", 64, "Core"],
-  ] as const;
-  const catColor: Record<string, string> = { Core: "#1050a8", Leadership: "#b9861a", Functional: "#3a8820" };
-  return (
-    <div className="bg-surface squircle-lg p-2 max-w-4xl" style={{ boxShadow: "var(--shadow-lg)" }}>
-      <div className="bg-surface squircle-sm overflow-hidden text-foreground">
-        <div className="flex items-center gap-1.5 px-4 py-2.5 border-b border-line bg-background/60">
-          <span className="w-2.5 h-2.5 rounded-full bg-red-300" />
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-300" />
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-300" />
-          <span className="ml-3 text-[11px] text-faint font-medium">insight-azerconnect.vercel.app / staff / candidates / leyla-mammadova</span>
-        </div>
-        <div className="grid md:grid-cols-[1fr_1.6fr] gap-6 p-6">
-          <div className="flex flex-col items-center justify-center gap-3 squircle-sm p-5 bg-background/40" style={{ boxShadow: "var(--shadow-xs)" }}>
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Overall Role Fit</p>
-            <div className="relative w-28 h-28">
-              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-                <circle cx="50" cy="50" r="42" fill="none" stroke="var(--line)" strokeWidth="9" />
-                <circle cx="50" cy="50" r="42" fill="none" stroke="#0f8a5f" strokeWidth="9" strokeLinecap="round" strokeDasharray="264" strokeDashoffset="55" />
-              </svg>
-              <span className="absolute inset-0 grid place-items-center text-3xl font-bold rotate-0">79</span>
-            </div>
-            <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-green-50 text-green-700 ring-1 ring-inset ring-green-600/20">
-              Fully Meets
-            </span>
-          </div>
-          <div className="space-y-4 self-center">
-            {bars.map(([label, v, cat]) => (
-              <div key={label}>
-                <div className="flex items-center justify-between text-[12px] mb-1.5">
-                  <span className="font-medium text-foreground flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full" style={{ background: catColor[cat] }} />
-                    {label}
-                  </span>
-                  <span className="font-bold tabular-nums">{v}</span>
-                </div>
-                <div className="h-2 rounded-full bg-line/70 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${v}%`, background: catColor[cat] }} />
-                </div>
-              </div>
-            ))}
-            <p className="text-[11px] text-faint pt-1">
-              AI rationale attached to every score · confirmed by a human reviewer
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
