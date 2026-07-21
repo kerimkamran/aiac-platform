@@ -4,6 +4,7 @@ import Link from "next/link";
 import { PageHeader, Card, Icon, Avatar, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { CopyInviteLinkButton } from "@/components/CopyInviteLinkButton";
+import { SetPasswordButton } from "@/components/SetPasswordButton";
 import { SelectAllCheckbox } from "@/components/SelectAllCheckbox";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import {
@@ -118,6 +119,7 @@ export default async function PeoplePage({
     role_updated: "updated the role of",
     user_deactivated: "deactivated",
     user_reactivated: "reactivated",
+    password_set: "set a new password for",
   };
 
   return (
@@ -180,6 +182,15 @@ export default async function PeoplePage({
             <p className="text-[11px] text-faint mt-3">
               Only the super admin can grant Admin or Super Admin. You can grant Recruiter or Hiring Manager.
             </p>
+          )}
+          {(isSuperAdmin || editingUser.role !== "system_admin") && (
+            <div className="mt-4 pt-4 border-t border-line">
+              <p className="text-[11px] font-semibold text-muted mb-2">Set password directly</p>
+              <p className="text-[11px] text-faint mb-2">
+                Sets their password immediately — no email or link. Use when they need working credentials right now.
+              </p>
+              <SetPasswordButton userId={editingUser.id} userName={editingUser.full_name} />
+            </div>
           )}
         </Card>
       )}
