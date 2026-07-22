@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { startAssessment, submitAssessment } from "./actions";
 import { AssessmentRunner, type RunnerSection } from "./runner";
+import { AssessmentTimer } from "@/components/AssessmentTimer";
 import { ProctoredAssessmentRunner } from "./proctoring-gate";
 import { PracticeQuestion } from "@/components/PracticeQuestion";
 import { Card, Icon } from "@/components/ui";
@@ -129,6 +130,8 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
 
   const deadlineMs = new Date(startedAt).getTime() + (meta?.time_limit_minutes || 60) * 60_000;
 
+  const totalQuestions = runnerSections.reduce((n, s) => n + s.questions.length, 0);
+
   if (proctoring?.camera_enabled) {
     return (
       <ProctoredAssessmentRunner
@@ -136,6 +139,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
         title={meta?.title || "Assessment"}
         description={meta?.description || ""}
         deadlineMs={deadlineMs}
+        totalQuestions={totalQuestions}
         sections={runnerSections}
         submitAction={submitWithId}
         watermarkLabel={user?.email || "confidential"}
@@ -150,6 +154,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
       title={meta?.title || "Assessment"}
       description={meta?.description || ""}
       deadlineMs={deadlineMs}
+      totalQuestions={totalQuestions}
       sections={runnerSections}
       submitAction={submitWithId}
       watermarkLabel={user?.email || "confidential"}

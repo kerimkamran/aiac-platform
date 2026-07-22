@@ -4,12 +4,14 @@ import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Icon } from "@/components/ui";
 import { AssessmentRunner, type RunnerSection } from "./runner";
+import { AssessmentTimer } from "@/components/AssessmentTimer";
 
 export function ProctoredAssessmentRunner({
   caId,
   title,
   description,
   deadlineMs,
+  totalQuestions,
   sections,
   submitAction,
   watermarkLabel,
@@ -19,6 +21,7 @@ export function ProctoredAssessmentRunner({
   title: string;
   description: string;
   deadlineMs: number;
+  totalQuestions: number;
   sections: RunnerSection[];
   submitAction: (formData: FormData) => Promise<void>;
   watermarkLabel: string;
@@ -151,6 +154,7 @@ export function ProctoredAssessmentRunner({
       title={title}
       description={description}
       deadlineMs={deadlineMs}
+      totalQuestions={totalQuestions}
       sections={sections}
       submitAction={wrappedSubmitAction}
       watermarkLabel={watermarkLabel}

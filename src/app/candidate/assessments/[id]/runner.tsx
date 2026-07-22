@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Card, Icon, ProgressBar } from "@/components/ui";
 import { SwipeToConfirm } from "@/components/SwipeToConfirm";
+import { AssessmentTimer } from "@/components/AssessmentTimer";
 
 export type RunnerSection = {
   id: string;
@@ -20,6 +21,7 @@ export function AssessmentRunner({
   sections,
   submitAction,
   watermarkLabel = "confidential",
+  totalQuestions,
 }: {
   caId: string;
   title: string;
@@ -28,6 +30,7 @@ export function AssessmentRunner({
   sections: RunnerSection[];
   submitAction: (formData: FormData) => Promise<void>;
   watermarkLabel?: string;
+  totalQuestions: number;
 }) {
   const steps: Step[] = useMemo(
     () => sections.flatMap((s, si) => s.questions.map((q) => ({ sectionTitle: s.title, sectionIndex: si, q }))),
@@ -182,8 +185,21 @@ export function AssessmentRunner({
     );
   }
 
+  const handleExpire = () => {
+    if (submittedRef.current) return;
+    submittedRef.current = true;
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.append("answers", JSON.stringify(answers));
+      fd.append("tabSwitches", String(tabSwitches));
+      await submitAction(fd);
+    });
+  };
+
   return (
-    <div className="no-copy relative p-5 lg:p-10 max-w-3xl mx-auto">
+    <>
+      <AssessmentTimer deadlineMs={deadlineMs} totalQuestions={totalQuestions} onExpire={handleExpire} />
+      <div className="no-copy relative p-5 lg:p-10 max-w-3xl mx-auto">
       <div className="watermark-overlay" aria-hidden>
         {Array.from({ length: 8 }).map((_, i) => (
           <div key={i} className="row">
@@ -407,5 +423,6 @@ export function AssessmentRunner({
         </div>
       )}
     </div>
+    </>
   );
 }
