@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { createAssessment, deleteAssessment, assignAssessment } from "./actions";
+import { createAssessment, deleteAssessment, assignAssessment, duplicateAssessment, setAssessmentArchived } from "./actions";
 import { AssignAssessmentButton } from "@/components/AssignAssessmentButton";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -32,9 +32,10 @@ const ENGINE_LABEL: Record<string, string> = {
 export default async function BuilderListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; archived?: string }>;
 }) {
-  await searchParams;
+  const { archived: archivedParam } = await searchParams;
+  const showArchived = archivedParam === "1";
   const supabase = await createClient();
 
   const {
@@ -82,7 +83,21 @@ export default async function BuilderListPage({
 
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
-          {(assessments || []).map((a) => {
+          {(() => {
+            const archivedCount = (assessments || []).filter((x) => x.status === "archived").length;
+            if (archivedCount === 0 && !showArchived) return null;
+            return (
+              <div className="flex justify-end">
+                <Link
+                  href={showArchived ? "/staff/builder" : "/staff/builder?archived=1"}
+                  className="text-xs font-semibold text-muted hover:text-foreground"
+                >
+                  {showArchived ? "← Back to active assessments" : `Show archived (${archivedCount})`}
+                </Link>
+              </div>
+            );
+          })()}
+          {(assessments || []).filter((a) => (showArchived ? a.status === "archived" : a.status !== "archived")).map((a) => {
             const generator = a.generator as unknown as { full_name: string } | null;
             return (
               <Card key={a.id} className={`relative p-5 group hover:border-accent transition-colors ${isAdmin ? "pr-12" : ""}`}>
@@ -118,10 +133,20 @@ export default async function BuilderListPage({
                     )}
                   </p>
                 </Link>
-                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-3">
-                  <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
-                  {a.status !== "published" && (
-                    <span className="text-[11px] text-faint">Still a draft — assigned people won&apos;t see it until you publish.</span>
+                <div className="mt-3 pt-3 border-t border-line flex flex-wrap items-center gap-x-4 gap-y-2">
+                  {a.status !== "archived" && (
+                    <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
+                  )}
+                  <form action={duplicateAssessment.bind(null, a.id)}>
+                    <button className="text-[11px] font-semibold text-accent-dark hover:underline">Duplicate</button>
+                  </form>
+                  <form action={setAssessmentArchived.bind(null, a.id, a.status !== "archived")}>
+                    <button className="text-[11px] font-semibold text-faint hover:text-foreground hover:underline">
+                      {a.status === "archived" ? "Restore" : "Archive"}
+                    </button>
+                  </form>
+                  {a.status === "draft" && (
+                    <span className="text-[11px] text-faint ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
                   )}
                 </div>
                 {isAdmin && (

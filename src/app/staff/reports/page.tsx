@@ -185,6 +185,13 @@ export default async function ReportsPage({
         >
           Candidates
         </Link>
+        <a
+          href="/api/staff/analytics-export"
+          className="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline pb-2"
+        >
+          <Icon name="download" className="w-3.5 h-3.5" />
+          Analytics workbook (XLSX)
+        </a>
       </div>
 
       {/* Filters */}

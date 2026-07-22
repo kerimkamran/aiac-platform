@@ -94,6 +94,7 @@ export function CreateAssessmentPanel({
   const [purpose, setPurpose] = useState<PurposeKey>("hiring");
   const [engine, setEngine] = useState<string>(() => engines.find((e) => e.enabled && e.configured)?.key || "");
   const [showBlank, setShowBlank] = useState(false);
+  const [language, setLanguage] = useState<"en" | "az" | "ru">("en");
 
   const anyConfigured = engines.some((e) => e.enabled && e.configured);
   const activeScope = SCOPES.find((s) => s.key === scope)!;
@@ -220,11 +221,31 @@ export function CreateAssessmentPanel({
           })}
         </div>
 
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-2">Case language</p>
+          <div className="flex gap-2">
+            {([["en", "English"], ["az", "Azərbaycanca"], ["ru", "Русский"]] as const).map(([code, label]) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setLanguage(code)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
+                  language === code ? "border-brand bg-brand/5 text-foreground" : "border-line text-muted hover:border-faint"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10.5px] text-faint mt-1.5">All generated cases, questions, and options are written in this language.</p>
+        </div>
+
         {/* Step 3: details + submit, per scope */}
         {scope === "Custom" ? (
           <form action={generateCustomAssessment} className="space-y-3">
             <input type="hidden" name="engine" value={engine} />
             <input type="hidden" name="purpose" value={purpose} />
+            <input type="hidden" name="language" value={language} />
             <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">3. Title &amp; competencies</p>
             <input
               name="title"
@@ -264,6 +285,7 @@ export function CreateAssessmentPanel({
           <form action={boundDefaultAction!} className="space-y-3">
             <input type="hidden" name="engine" value={engine} />
             <input type="hidden" name="purpose" value={purpose} />
+            <input type="hidden" name="language" value={language} />
             <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">3. Optional title</p>
             <input
               name="title"

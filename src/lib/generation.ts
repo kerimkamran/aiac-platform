@@ -24,7 +24,15 @@ export type GeneratedAssessment = {
 
 const MIN_TOTAL_QUESTIONS = 10;
 
-function systemInstructions(questionsPerCompetency: number): string {
+export type GenerationLanguage = "en" | "az" | "ru";
+
+const LANGUAGE_INSTRUCTION: Record<GenerationLanguage, string> = {
+  en: "",
+  az: "\n- Write ALL candidate-facing content (case narratives, questions, every answer option) in natural, professional Azerbaijani (Azərbaycan dili). Keep the JSON keys in English exactly as specified.",
+  ru: "\n- Write ALL candidate-facing content (case narratives, questions, every answer option) in natural, professional Russian (русский язык). Keep the JSON keys in English exactly as specified.",
+};
+
+function systemInstructions(questionsPerCompetency: number, language: GenerationLanguage = "en"): string {
   return `You are a senior assessment-center designer with the caliber of practice used at Korn Ferry, Mercer, WTW (Willis Towers Watson), and Thomas International. You write situational judgment cases and competency-based interview-style questions for mid-to-senior management candidates in real organizations.
 
 Rules you must follow:
@@ -39,7 +47,7 @@ Rules you must follow:
 
 {"sections": [{"competencyCode": string, "questions": [{"type": "mcq" | "text", "prompt": string, "options"?: [{"text": string, "correct"?: boolean}]}]}]}
 
-Generate exactly ${questionsPerCompetency} questions per competency provided. The assessment must contain at least ${MIN_TOTAL_QUESTIONS} questions in total across all competencies — this is a hard requirement.`;
+Generate exactly ${questionsPerCompetency} questions per competency provided. The assessment must contain at least ${MIN_TOTAL_QUESTIONS} questions in total across all competencies — this is a hard requirement.${LANGUAGE_INSTRUCTION[language]}`;
 }
 
 function buildUserPrompt(competencies: CompetencyForPrompt[]): string {
@@ -98,7 +106,7 @@ function validateGenerated(data: unknown): GeneratedAssessment {
   return { sections };
 }
 
-async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
+async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], qpc: number, language: GenerationLanguage = "en"): Promise<GeneratedAssessment> {
   const res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
@@ -109,7 +117,7 @@ async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], q
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: 4096,
-      system: systemInstructions(qpc),
+      system: systemInstructions(qpc, language),
       messages: [{ role: "user", content: buildUserPrompt(competencies) }],
     }),
   });
@@ -125,7 +133,7 @@ async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], q
   return validateGenerated(extractJson(text));
 }
 
-async function callFugu(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
+async function callFugu(apiKey: string, competencies: CompetencyForPrompt[], qpc: number, language: GenerationLanguage = "en"): Promise<GeneratedAssessment> {
   // Sakana Fugu is an OpenAI-compatible multi-agent orchestration API.
   // https://console.sakana.ai/models — Chat Completions endpoint.
   const res = await fetch("https://api.sakana.ai/v1/chat/completions", {
@@ -138,7 +146,7 @@ async function callFugu(apiKey: string, competencies: CompetencyForPrompt[], qpc
       model: "fugu",
       reasoning_effort: "high",
       messages: [
-        { role: "system", content: systemInstructions(qpc) },
+        { role: "system", content: systemInstructions(qpc, language) },
         { role: "user", content: buildUserPrompt(competencies) },
       ],
     }),
@@ -155,7 +163,7 @@ async function callFugu(apiKey: string, competencies: CompetencyForPrompt[], qpc
   return validateGenerated(extractJson(text));
 }
 
-async function callKimi(apiKey: string, competencies: CompetencyForPrompt[], qpc: number): Promise<GeneratedAssessment> {
+async function callKimi(apiKey: string, competencies: CompetencyForPrompt[], qpc: number, language: GenerationLanguage = "en"): Promise<GeneratedAssessment> {
   const res = await fetch("https://api.moonshot.ai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -166,7 +174,7 @@ async function callKimi(apiKey: string, competencies: CompetencyForPrompt[], qpc
       model: "moonshot-v1-32k",
       temperature: 0.4,
       messages: [
-        { role: "system", content: systemInstructions(qpc) },
+        { role: "system", content: systemInstructions(qpc, language) },
         { role: "user", content: buildUserPrompt(competencies) },
       ],
     }),
@@ -188,7 +196,8 @@ export type GenerationEngine = "claude" | "fugu" | "kimi";
 export async function generateAssessmentContent(
   engine: GenerationEngine,
   apiKey: string,
-  competencies: CompetencyForPrompt[]
+  competencies: CompetencyForPrompt[],
+  language: GenerationLanguage = "en"
 ): Promise<GeneratedAssessment> {
   if (competencies.length === 0) throw new Error("No competencies were selected for generation.");
 
@@ -198,10 +207,10 @@ export async function generateAssessmentContent(
 
   const result =
     engine === "claude"
-      ? await callClaude(apiKey, competencies, questionsPerCompetency)
+      ? await callClaude(apiKey, competencies, questionsPerCompetency, language)
       : engine === "kimi"
-        ? await callKimi(apiKey, competencies, questionsPerCompetency)
-        : await callFugu(apiKey, competencies, questionsPerCompetency);
+        ? await callKimi(apiKey, competencies, questionsPerCompetency, language)
+        : await callFugu(apiKey, competencies, questionsPerCompetency, language);
 
   const totalQuestions = result.sections.reduce((n, s) => n + s.questions.length, 0);
   if (totalQuestions < MIN_TOTAL_QUESTIONS) {

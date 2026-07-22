@@ -127,6 +127,13 @@ export default async function BuilderDetailPage({
 
       <PageHeader title={assessment.title} subtitle={assessment.description || undefined}>
         <StatusBadge status={assessment.status} />
+        <Link
+          href={`/staff/builder/${id}/preview`}
+          className="inline-flex items-center gap-2 border border-line text-sm font-semibold px-4 py-2.5 rounded-xl text-foreground hover:border-accent hover:text-accent-dark transition-colors"
+        >
+          <Icon name="eye" className="w-4 h-4" />
+          Preview as candidate
+        </Link>
         {assessment.status !== "published" && (
           <form
             action={async () => {

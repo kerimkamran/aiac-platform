@@ -362,6 +362,8 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
   const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
   const customTitle = String(formData.get("title") || "").trim();
   const purpose = normalizePurpose(formData.get("purpose"));
+  const langRaw = String(formData.get("language") || "en");
+  const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
 
   if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
     redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
@@ -382,7 +384,7 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
     }
 
     const competencies = await loadCompetenciesForPrompt(supabase, comps);
-    const generated = await generateAssessmentContent(engineKey, apiKey, competencies);
+    const generated = await generateAssessmentContent(engineKey, apiKey, competencies, language);
 
     const modeMap = { Core: "default_core", Leadership: "default_leadership", Mix: "default_mix" } as const;
     const labelMap = { Core: "Core", Leadership: "Leadership", Mix: "Core + Leadership (mixed)" } as const;
@@ -457,6 +459,8 @@ export async function generateCustomAssessment(formData: FormData) {
 
   const title = String(formData.get("title") || "").trim();
   const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
+  const langRaw = String(formData.get("language") || "en");
+  const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
   const competencyIds = formData.getAll("competency_ids") as string[];
   const purpose = normalizePurpose(formData.get("purpose"));
 
@@ -475,7 +479,7 @@ export async function generateCustomAssessment(formData: FormData) {
       supabase.from("competencies").select("id, code, name, category, description").in("id", competencyIds),
     ]);
     const competencies = await loadCompetenciesForPrompt(supabase, comps || []);
-    const generated = await generateAssessmentContent(engineKey, apiKey, competencies);
+    const generated = await generateAssessmentContent(engineKey, apiKey, competencies, language);
 
     newId = await insertGeneratedAssessment(supabase, {
       title,
@@ -568,4 +572,101 @@ export async function updateSectionTarget(sectionId: string, assessmentId: strin
     redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
   }
   revalidatePath(`/staff/builder/${assessmentId}`);
+}
+
+// Clones an assessment -- sections (including targets), questions, weights,
+// proctoring settings -- as a fresh draft. Regenerating via AI produces
+// different content and burns tokens; duplicating preserves a known-good
+// assessment exactly.
+export async function duplicateAssessment(assessmentId: string) {
+  await requireStaff();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: source }, { data: sections }, { data: proctoring }] = await Promise.all([
+    supabase.from("assessments").select("*").eq("id", assessmentId).single(),
+    supabase
+      .from("assessment_sections")
+      .select("id, title, sequence, competency_id, target_score, questions(question_type, prompt, options, competency_id, weight, sequence)")
+      .eq("assessment_id", assessmentId)
+      .order("sequence"),
+    supabase.from("proctoring_settings").select("*").eq("assessment_id", assessmentId).maybeSingle(),
+  ]);
+
+  if (!source) redirect("/staff/builder?error=" + encodeURIComponent("Assessment not found."));
+
+  const { data: created, error } = await supabase
+    .from("assessments")
+    .insert({
+      organization_id: source.organization_id,
+      title: `${source.title} (copy)`,
+      description: source.description,
+      time_limit_minutes: source.time_limit_minutes,
+      created_by: user!.id,
+      status: "draft",
+      purpose: source.purpose,
+      mode: source.mode,
+      engine: source.engine,
+    })
+    .select("id")
+    .single();
+
+  if (error || !created) redirect("/staff/builder?error=" + encodeURIComponent(error?.message || "Couldn't duplicate."));
+
+  for (const s of sections || []) {
+    const { data: newSection, error: sErr } = await supabase
+      .from("assessment_sections")
+      .insert({
+        assessment_id: created.id,
+        title: s.title,
+        sequence: s.sequence,
+        competency_id: s.competency_id,
+        target_score: s.target_score,
+      })
+      .select("id")
+      .single();
+    if (sErr || !newSection) continue;
+
+    const qs = ((s.questions || []) as unknown as {
+      question_type: string;
+      prompt: string;
+      options: unknown;
+      competency_id: string | null;
+      weight: number;
+      sequence: number;
+    }[]).map((q) => ({
+      section_id: newSection.id,
+      question_type: q.question_type,
+      prompt: q.prompt,
+      options: q.options,
+      competency_id: q.competency_id,
+      weight: q.weight,
+      sequence: q.sequence,
+    }));
+    if (qs.length > 0) await supabase.from("questions").insert(qs);
+  }
+
+  if (proctoring) {
+    const { id: _omit, assessment_id: _omit2, ...rest } = proctoring as Record<string, unknown>;
+    await supabase.from("proctoring_settings").insert({ ...rest, assessment_id: created.id });
+  }
+
+  revalidatePath("/staff/builder");
+  redirect(`/staff/builder/${created.id}`);
+}
+
+// Archives / restores an assessment. Archived assessments keep all candidate
+// data but drop out of the default Builder list and can't be assigned.
+export async function setAssessmentArchived(assessmentId: string, archived: boolean) {
+  await requireStaff();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("assessments")
+    .update({ status: archived ? "archived" : "draft" })
+    .eq("id", assessmentId);
+  if (error) redirect("/staff/builder?error=" + encodeURIComponent(error.message));
+  revalidatePath("/staff/builder");
+  redirect("/staff/builder?added=" + encodeURIComponent(archived ? "Assessment archived." : "Assessment restored to draft."));
 }
