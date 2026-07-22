@@ -22,7 +22,7 @@ export default async function StaffCandidatesPage({
   let query = supabase
     .from("candidate_assessments")
     .select(
-      "id, status, overall_score, invited_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title)"
+      "id, status, overall_score, invited_at, submitted_at, due_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title)"
     )
     .order("invited_at", { ascending: false });
   if (status) query = query.eq("status", status);
@@ -35,6 +35,7 @@ export default async function StaffCandidatesPage({
     overall_score: number | null;
     invited_at: string;
     submitted_at: string | null;
+    due_at: string | null;
     candidate: { full_name: string; email: string; department: string | null } | null;
     assessments: { title: string; vacancy_title: string | null } | null;
   }[];
@@ -69,6 +70,7 @@ export default async function StaffCandidatesPage({
     id: r.id,
     status: r.status,
     overall_score: r.overall_score,
+    due_at: r.due_at,
     candidate: r.candidate ? { full_name: r.candidate.full_name, email: r.candidate.email } : null,
     assessments: r.assessments ? { title: r.assessments.title } : null,
   }));

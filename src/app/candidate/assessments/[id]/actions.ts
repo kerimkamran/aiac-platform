@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { scoreMcqResponse, scoreTextResponse } from "@/lib/scoring";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 
 type QuestionOption = { key: string; text: string; correct?: boolean };
 
@@ -13,6 +14,7 @@ export async function startAssessment(candidateAssessmentId: string) {
     .update({ status: "in_progress", started_at: new Date().toISOString() })
     .eq("id", candidateAssessmentId)
     .eq("status", "invited");
+  revalidatePath(`/candidate/assessments/${candidateAssessmentId}`);
 }
 
 export async function submitAssessment(candidateAssessmentId: string, formData: FormData) {

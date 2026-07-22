@@ -79,11 +79,15 @@ export async function addCandidate(formData: FormData) {
 
   const candidateId = provisioned?.[0]?.profile_id as string | undefined;
 
+  const dueDateRaw = String(formData.get("due_date") || "").trim();
+  const dueAt = dueDateRaw ? new Date(`${dueDateRaw}T23:59:59Z`).toISOString() : null;
+
   if (assessmentId && candidateId) {
     const { error: linkError } = await supabase.from("candidate_assessments").insert({
       assessment_id: assessmentId,
       candidate_id: candidateId,
       status: "invited",
+      due_at: dueAt,
     });
     // A duplicate link (candidate already assigned to this assessment) isn't
     // worth failing the whole invite over -- the account is still created

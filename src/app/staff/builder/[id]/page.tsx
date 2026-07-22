@@ -9,6 +9,7 @@ import {
   updateProctoringSettings,
   deleteAssessment,
   updateAssessmentMeta,
+  updateSectionTarget,
   deleteSection,
   deleteQuestion,
 } from "../actions";
@@ -86,7 +87,7 @@ export default async function BuilderDetailPage({
   const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }, { data: cases }] = await Promise.all([
     supabase
       .from("assessment_sections")
-      .select("id, title, sequence, competency_id, competencies(name, category), questions(id, question_type, prompt, options, weight, sequence)")
+      .select("id, title, sequence, competency_id, target_score, competencies(name, category), questions(id, question_type, prompt, options, weight, sequence)")
       .eq("assessment_id", id)
       .order("sequence"),
     supabase.from("competencies").select("id, name, category").order("category").order("name"),
@@ -265,6 +266,22 @@ export default async function BuilderDetailPage({
                         {comp.name}
                       </span>
                     )}
+                    <form action={updateSectionTarget.bind(null, section.id, id)} className="flex items-center gap-1.5">
+                      <label className="text-[10.5px] font-semibold text-faint" htmlFor={`target-${section.id}`}>
+                        Target
+                      </label>
+                      <input
+                        id={`target-${section.id}`}
+                        name="target_score"
+                        type="number"
+                        min={0}
+                        max={100}
+                        defaultValue={section.target_score ?? ""}
+                        placeholder="—"
+                        className="w-14 bg-surface border border-line rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-accent"
+                      />
+                      <button className="text-[10.5px] font-semibold text-accent-dark hover:underline">Set</button>
+                    </form>
                     <form action={deleteSection.bind(null, section.id, id)}>
                       <ConfirmSubmitButton
                         confirmMessage={`Delete section "${section.title}" and all its questions?`}

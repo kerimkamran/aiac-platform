@@ -525,10 +525,16 @@ export async function assignAssessment(assessmentId: string, formData: FormData)
     redirect("/staff/builder?added=" + encodeURIComponent("Already assigned to that assessment."));
   }
 
+  // Optional deadline: date-only input, stored as end-of-day UTC so the
+  // candidate has the full final day.
+  const dueDateRaw = String(formData.get("due_date") || "").trim();
+  const dueAt = dueDateRaw ? new Date(`${dueDateRaw}T23:59:59Z`).toISOString() : null;
+
   const { error } = await supabase.from("candidate_assessments").insert({
     assessment_id: assessmentId,
     candidate_id: userId,
     status: "invited",
+    due_at: dueAt,
   });
 
   if (error) {
@@ -538,4 +544,28 @@ export async function assignAssessment(assessmentId: string, formData: FormData)
   revalidatePath("/staff/builder");
   revalidatePath("/staff/people");
   redirect("/staff/builder?added=" + encodeURIComponent("Assessment assigned."));
+}
+
+// Sets (or clears) the target competency level for one section -- the bar
+// this assessment's reports compare each candidate's competency score
+// against (meets / below / exceeds). Empty input clears the target.
+export async function updateSectionTarget(sectionId: string, assessmentId: string, formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const raw = String(formData.get("target_score") || "").trim();
+  const target = raw === "" ? null : Math.max(0, Math.min(100, Number(raw)));
+
+  if (raw !== "" && Number.isNaN(target)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Target must be a number from 0 to 100."));
+  }
+
+  const { error } = await supabase
+    .from("assessment_sections")
+    .update({ target_score: target })
+    .eq("id", sectionId);
+
+  if (error) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+  }
+  revalidatePath(`/staff/builder/${assessmentId}`);
 }

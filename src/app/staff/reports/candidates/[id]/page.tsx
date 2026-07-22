@@ -36,10 +36,25 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     .eq("assessment_id", ca.assessment_id)
     .not("overall_score", "is", null);
 
+  // Role-profile bar: per-competency target levels set on this assessment's
+  // sections in the Builder. Competencies without a target are unaffected.
+  const { data: targetRows } = await supabase
+    .from("assessment_sections")
+    .select("competency_id, target_score")
+    .eq("assessment_id", ca.assessment_id)
+    .not("target_score", "is", null);
+  const targetByCompetency = new Map<string, number>();
+  for (const t of targetRows || []) {
+    if (t.competency_id && t.target_score !== null) {
+      const existing = targetByCompetency.get(t.competency_id);
+      targetByCompetency.set(t.competency_id, existing === undefined ? Number(t.target_score) : Math.max(existing, Number(t.target_score)));
+    }
+  }
+
   const [{ data: competencyScores }, { data: responses }, { data: reviews }, { data: allDecisionMakers }, { data: assignedDMs }] = await Promise.all([
     supabase
       .from("candidate_competency_scores")
-      .select("score, level, competencies(name, category)")
+      .select("score, level, competency_id, competencies(name, category)")
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_responses")
@@ -103,6 +118,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const scores = ((competencyScores || []) as unknown as {
     score: number;
     level: string;
+    competency_id: string | null;
     competencies: { name: string; category: string } | null;
   }[])
     .filter((s) => s.competencies)
@@ -113,7 +129,11 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     category: s.competencies!.category,
     score: s.score,
     level: s.level,
+    target: s.competency_id ? targetByCompetency.get(s.competency_id) ?? null : null,
   }));
+
+  const targeted = competencyLines.filter((l) => l.target !== null && l.target !== undefined);
+  const meetingBar = targeted.filter((l) => l.score >= (l.target as number));
   const byCategory = categoryRollups(competencyLines);
 
   const peerScores = ((peerScoresRaw || []) as { id: string; overall_score: number }[]).map((p) => p.overall_score);
@@ -207,6 +227,19 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             boxLabel={boxLabel}
           />
 
+          {targeted.length > 0 && (
+            <Card className="p-5 mb-5 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm font-semibold text-foreground">
+                Role-profile bar: meets or exceeds the target on{" "}
+                <span className={meetingBar.length === targeted.length ? "text-[#3d7a4d]" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
+                  {meetingBar.length} of {targeted.length}
+                </span>{" "}
+                targeted competenc{targeted.length === 1 ? "y" : "ies"}.
+              </p>
+              <p className="text-xs text-faint">Targets are set per section in the Assessment Builder.</p>
+            </Card>
+          )}
+
           {/* Competency bars by category */}
           {byCategory.map(({ cat, rows, avg }) => {
             const style = categoryStyle(cat);
@@ -220,19 +253,43 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 <div className="space-y-4">
                   {rows.map((s, i) => {
                     const b = bandFor(s.score);
+                    const target = s.target ?? null;
+                    const barState =
+                      target === null ? null : s.score >= target + 10 ? "Exceeds bar" : s.score >= target ? "Meets bar" : "Below bar";
                     return (
                       <div key={i}>
                         <div className="flex items-center justify-between text-[13px] mb-1.5">
                           <span className="font-medium text-foreground">{s.name}</span>
                           <span className="flex items-center gap-2.5">
+                            {barState && (
+                              <span
+                                className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                                  barState === "Below bar"
+                                    ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
+                                    : barState === "Exceeds bar"
+                                      ? "bg-[#eef3ef] text-[#3d7a4d] ring-emerald-200"
+                                      : "bg-line-soft text-foreground ring-line"
+                                }`}
+                                title={`Target for this role: ${target}`}
+                              >
+                                {barState} · {target}
+                              </span>
+                            )}
                             <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
                               {s.level}
                             </span>
                             <span className="font-bold tabular-nums w-8 text-right">{Math.round(s.score)}</span>
                           </span>
                         </div>
-                        <div className="h-2 rounded-full bg-line/70 overflow-hidden">
+                        <div className="relative h-2 rounded-full bg-line/70 overflow-hidden">
                           <div className="h-full rounded-full anim-grow" style={{ width: `${s.score}%`, background: style.hex }} />
+                          {target !== null && (
+                            <div
+                              className="absolute top-0 bottom-0 w-0.5 bg-foreground/70"
+                              style={{ left: `${target}%` }}
+                              title={`Target: ${target}`}
+                            />
+                          )}
                         </div>
                       </div>
                     );

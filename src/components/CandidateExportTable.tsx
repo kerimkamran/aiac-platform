@@ -8,6 +8,7 @@ export type CandidateExportRow = {
   id: string;
   status: string;
   overall_score: number | null;
+  due_at?: string | null;
   candidate: { full_name: string; email: string } | null;
   assessments: { title: string } | null;
 };
@@ -95,7 +96,20 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
                 </td>
                 <td className="px-5 py-3.5 text-muted">{r.assessments?.title}</td>
                 <td className="px-5 py-3.5">
-                  <StatusBadge status={r.status} />
+                  <span className="inline-flex items-center gap-2">
+                    <StatusBadge status={r.status} />
+                    {r.due_at && ["invited", "in_progress"].includes(r.status) && (
+                      <span
+                        className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                          new Date(r.due_at).getTime() < Date.now()
+                            ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
+                            : "bg-line-soft text-muted ring-line"
+                        }`}
+                      >
+                        {new Date(r.due_at).getTime() < Date.now() ? "Overdue" : `Due ${new Date(r.due_at).toLocaleDateString()}`}
+                      </span>
+                    )}
+                  </span>
                 </td>
                 <td className="px-5 py-3.5">
                   {r.overall_score !== null ? <ScoreBadge score={Math.round(r.overall_score)} /> : <span className="text-faint">—</span>}

@@ -10,7 +10,7 @@ export default async function CandidateAssessmentsPage() {
 
   const { data: assessments } = await supabase
     .from("candidate_assessments")
-    .select("id, status, invited_at, assessments(title, description, time_limit_minutes)")
+    .select("id, status, invited_at, due_at, assessments(title, description, time_limit_minutes)")
     .eq("candidate_id", user!.id)
     .order("invited_at", { ascending: false });
 
@@ -18,8 +18,10 @@ export default async function CandidateAssessmentsPage() {
     id: string;
     status: string;
     invited_at: string;
+    due_at: string | null;
     assessments: { title: string; description: string; time_limit_minutes: number } | null;
   }[];
+  const now = Date.now();
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
@@ -49,7 +51,21 @@ export default async function CandidateAssessmentsPage() {
                   <Icon name="timer" className="w-3.5 h-3.5" />
                   {a.assessments?.time_limit_minutes} min limit
                 </span>
-                {["invited", "in_progress"].includes(a.status) ? (
+                {a.due_at && ["invited", "in_progress"].includes(a.status) && (
+                  <span
+                    className={`inline-flex items-center gap-1.5 text-xs font-semibold ${
+                      new Date(a.due_at).getTime() < now ? "text-critical" : "text-muted"
+                    }`}
+                  >
+                    <Icon name="clock" className="w-3.5 h-3.5" />
+                    {new Date(a.due_at).getTime() < now
+                      ? `Deadline passed ${new Date(a.due_at).toLocaleDateString()}`
+                      : `Due ${new Date(a.due_at).toLocaleDateString()}`}
+                  </span>
+                )}
+                {["invited", "in_progress"].includes(a.status) && a.due_at && new Date(a.due_at).getTime() < now ? (
+                  <span className="text-xs font-medium text-critical">Expired — contact HR if you still need access</span>
+                ) : ["invited", "in_progress"].includes(a.status) ? (
                   <Link
                     href={`/candidate/assessments/${a.id}`}
                     className="inline-flex items-center gap-2 text-sm bg-brand text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand-light transition-colors"

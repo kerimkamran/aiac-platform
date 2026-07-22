@@ -61,7 +61,7 @@ export function computeBenchmark(score: number | null, peerScores: number[]): Be
 /* Template-generated, matching the Phase-1 rule-based scoring engine's       */
 /* approach — deterministic, not a live LLM call.                            */
 
-export type CompetencyLine = { name: string; category: string; score: number; level: string };
+export type CompetencyLine = { name: string; category: string; score: number; level: string; target?: number | null };
 
 export type ExecutiveSummary = {
   headline: string;

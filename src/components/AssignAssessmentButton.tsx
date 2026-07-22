@@ -57,6 +57,12 @@ export function AssignAssessmentButton({
           </option>
         ))}
       </select>
+      <input
+        type="date"
+        name="due_date"
+        title="Optional deadline — candidate is reminded 3 days before and can't start after it passes"
+        className="bg-surface border border-line rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-accent"
+      />
       <button
         type="submit"
         disabled={!userId}

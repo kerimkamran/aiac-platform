@@ -199,6 +199,15 @@ export default async function PeoplePage({
                 <p className="text-[11px] text-faint mt-1">No published assessments yet — publish one in the Builder first.</p>
               )}
             </div>
+            <div>
+              <label className="text-[11px] font-semibold text-muted block mb-1">Deadline (optional)</label>
+              <input
+                type="date"
+                name="due_date"
+                title="Candidate is reminded 3 days before and can't start after this date"
+                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              />
+            </div>
             <button className="inline-flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
               <Icon name="plus" className="w-4 h-4" />
               Add & invite candidate
