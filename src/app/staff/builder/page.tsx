@@ -118,11 +118,12 @@ export default async function BuilderListPage({
                     )}
                   </p>
                 </Link>
-                {a.status === "published" && (
-                  <div className="mt-3 pt-3 border-t border-line">
-                    <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
-                  </div>
-                )}
+                <div className="mt-3 pt-3 border-t border-line flex items-center justify-between gap-3">
+                  <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
+                  {a.status !== "published" && (
+                    <span className="text-[11px] text-faint">Still a draft — assigned people won&apos;t see it until you publish.</span>
+                  )}
+                </div>
                 {isAdmin && (
                   <form action={deleteAssessment.bind(null, a.id)} className="absolute top-4 right-4">
                     <ConfirmSubmitButton

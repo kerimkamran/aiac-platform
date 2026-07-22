@@ -496,7 +496,7 @@ export async function generateCustomAssessment(formData: FormData) {
   redirect(`/staff/builder/${newId}`);
 }
 
-// Lets staff assign a published assessment to any existing account
+// Lets staff assign an assessment (draft or published) to any existing account
 // (candidate, decision maker, staff, admin) directly from its row in the
 // Builder list -- an alternative to the candidate-only "Add a candidate"
 // flow in People & Access, for cases where the account already exists
