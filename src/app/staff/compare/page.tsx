@@ -38,7 +38,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           icon="chart"
           title="Nothing to compare yet"
           body="Select 2–4 candidates from the Candidates list, then use the Compare bar that appears at the bottom of the screen."
-          action={{ href: "/staff/candidates", label: "Go to Candidates" }}
+          action={{ href: "/staff/reports/candidates", label: "Go to Candidates" }}
         />
       </div>
     );
@@ -75,7 +75,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           icon="chart"
           title="Couldn't load enough candidates"
           body="Fewer than two of the selected candidates could be found. They may have been removed, or the link is out of date."
-          action={{ href: "/staff/candidates", label: "Go to Candidates" }}
+          action={{ href: "/staff/reports/candidates", label: "Go to Candidates" }}
         />
       </div>
     );
@@ -152,7 +152,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         title="Compare candidates"
         subtitle={`${cols} candidates side by side — competency overlay, per-competency winners, and category rollups.`}
       >
-        <Link href="/staff/candidates" className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-dark hover:underline">
+        <Link href="/staff/reports/candidates" className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-dark hover:underline">
           <Icon name="users" className="w-4 h-4" />
           Change selection
         </Link>
@@ -200,7 +200,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                 </div>
               </div>
               <Link
-                href={`/staff/candidates/${c.id}`}
+                href={`/staff/reports/candidates/${c.id}`}
                 className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-dark hover:underline"
               >
                 Full profile

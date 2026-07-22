@@ -29,7 +29,7 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
     .update({ status: "reviewed" })
     .eq("id", candidateAssessmentId);
 
-  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }
 
 export async function requestManagerSignoff(candidateAssessmentId: string) {
@@ -48,7 +48,7 @@ export async function requestManagerSignoff(candidateAssessmentId: string) {
   const candidate = ca?.candidate as unknown as { full_name: string; manager_id: string | null } | null;
   const assessment = ca?.assessments as unknown as { title: string } | null;
   if (!candidate?.manager_id) {
-    revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+    revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
     return;
   }
 
@@ -66,7 +66,7 @@ export async function requestManagerSignoff(candidateAssessmentId: string) {
     link: `/candidate/signoffs`,
   });
 
-  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }
 
 export async function deleteProctoringRecording(candidateAssessmentId: string, recordingId: string, storagePath: string | null) {
@@ -78,5 +78,5 @@ export async function deleteProctoringRecording(candidateAssessmentId: string, r
   }
   await supabase.from("proctoring_recordings").update({ deleted_at: new Date().toISOString() }).eq("id", recordingId);
 
-  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }

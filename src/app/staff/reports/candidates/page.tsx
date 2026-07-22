@@ -63,7 +63,7 @@ export default async function StaffCandidatesPage({
     return s ? `?${s}` : "";
   };
 
-  const exportBase = `/staff/candidates/export${qs({})}`;
+  const exportBase = `/staff/reports/candidates/export${qs({})}`;
 
   const exportRows: CandidateExportRow[] = list.map((r) => ({
     id: r.id,
@@ -77,13 +77,25 @@ export default async function StaffCandidatesPage({
     <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-10">
       <PageHeader title="Candidates" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
 
+      <div className="flex items-center gap-1 mb-6 border-b border-line">
+        <Link
+          href="/staff/reports"
+          className="px-3.5 py-2.5 text-sm font-semibold text-muted hover:text-foreground transition-colors"
+        >
+          Overview
+        </Link>
+        <span className="px-3.5 py-2.5 text-sm font-semibold text-foreground border-b-2 border-brand -mb-px">
+          Candidates
+        </span>
+      </div>
+
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-5 mb-4 pb-4 border-b border-line">
         <div className="flex items-center gap-4">
           {FILTERS.map((f) => (
             <Link
               key={f.key}
-              href={`/staff/candidates${qs({ status: f.key })}`}
+              href={`/staff/reports/candidates${qs({ status: f.key })}`}
               className={`text-[13px] pb-1 border-b-2 transition-colors ${
                 status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-faint border-transparent hover:text-muted"
               }`}
@@ -92,7 +104,7 @@ export default async function StaffCandidatesPage({
             </Link>
           ))}
         </div>
-        <form className="flex-1 min-w-52 max-w-sm relative ml-auto" action="/staff/candidates">
+        <form className="flex-1 min-w-52 max-w-sm relative ml-auto" action="/staff/reports/candidates">
           {status && <input type="hidden" name="status" value={status} />}
           {department && <input type="hidden" name="department" value={department} />}
           {vacancy && <input type="hidden" name="vacancy" value={vacancy} />}
@@ -108,7 +120,7 @@ export default async function StaffCandidatesPage({
 
       <div className="flex flex-wrap items-center gap-2.5 mb-8">
         <span className="text-[11.5px] text-faint">Export filter:</span>
-        <form action="/staff/candidates" className="flex items-center gap-2">
+        <form action="/staff/reports/candidates" className="flex items-center gap-2">
           {status && <input type="hidden" name="status" value={status} />}
           {q && <input type="hidden" name="q" value={q} />}
           <select

@@ -495,3 +495,47 @@ export async function generateCustomAssessment(formData: FormData) {
   revalidatePath("/staff/builder");
   redirect(`/staff/builder/${newId}`);
 }
+
+// Lets staff assign a published assessment to any existing account
+// (candidate, decision maker, staff, admin) directly from its row in the
+// Builder list -- an alternative to the candidate-only "Add a candidate"
+// flow in People & Access, for cases where the account already exists
+// and just needs this assessment attached.
+export async function assignAssessment(assessmentId: string, formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const userId = String(formData.get("user_id") || "").trim();
+
+  if (!userId) {
+    redirect("/staff/builder?error=" + encodeURIComponent("Choose someone to assign this to."));
+  }
+
+  // No DB-level uniqueness on (assessment_id, candidate_id), so check first
+  // rather than rely on an insert error -- keeps repeated clicks idempotent
+  // (same person already has this exact assessment) instead of creating
+  // duplicate rows silently.
+  const { data: existing } = await supabase
+    .from("candidate_assessments")
+    .select("id")
+    .eq("assessment_id", assessmentId)
+    .eq("candidate_id", userId)
+    .maybeSingle();
+
+  if (existing) {
+    redirect("/staff/builder?added=" + encodeURIComponent("Already assigned to that assessment."));
+  }
+
+  const { error } = await supabase.from("candidate_assessments").insert({
+    assessment_id: assessmentId,
+    candidate_id: userId,
+    status: "invited",
+  });
+
+  if (error) {
+    redirect("/staff/builder?error=" + encodeURIComponent(error.message));
+  }
+
+  revalidatePath("/staff/builder");
+  revalidatePath("/staff/people");
+  redirect("/staff/builder?added=" + encodeURIComponent("Assessment assigned."));
+}

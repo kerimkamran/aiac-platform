@@ -157,7 +157,7 @@ export async function sendReportChatMessage(
   await supabase.from("report_ai_messages").insert({ thread_id: threadId, role: "assistant", content: reply });
   await supabase.from("report_ai_threads").update({ updated_at: new Date().toISOString() }).eq("id", threadId);
 
-  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
   revalidatePath(`/decision/candidates/${candidateAssessmentId}`);
 
   return reply;

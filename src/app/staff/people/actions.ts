@@ -96,7 +96,7 @@ export async function addCandidate(formData: FormData) {
   const inviteError = await sendInviteEmail(supabase, email);
 
   revalidatePath("/staff/people");
-  revalidatePath("/staff/candidates");
+  revalidatePath("/staff/reports/candidates");
   const assignedNote = assessmentId ? " and assigned their assessment" : "";
   redirect(
     inviteError
@@ -164,7 +164,7 @@ export async function assignDecisionMaker(candidateAssessmentId: string, formDat
     assigned_by: user!.id,
   });
 
-  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }
 
 export async function unassignDecisionMaker(candidateAssessmentId: string, profileId: string) {
@@ -175,7 +175,7 @@ export async function unassignDecisionMaker(candidateAssessmentId: string, profi
     .delete()
     .eq("candidate_assessment_id", candidateAssessmentId)
     .eq("profile_id", profileId);
-  revalidatePath(`/staff/candidates/${candidateAssessmentId}`);
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }
 
 function parseCsv(text: string): Record<string, string>[] {

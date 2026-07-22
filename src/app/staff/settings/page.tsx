@@ -27,6 +27,32 @@ export default async function SettingsPage({
     .select("key, display_name, api_key_secret_id, enabled, updated_at")
     .order("key");
 
+  const { data: auditRows } = await supabase
+    .from("admin_audit_log")
+    .select(
+      "id, action, details, created_at, actor:profiles!admin_audit_log_actor_id_fkey(full_name), target:profiles!admin_audit_log_target_user_id_fkey(full_name)"
+    )
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  type AuditRow = {
+    id: string;
+    action: string;
+    details: Record<string, unknown> | null;
+    created_at: string;
+    actor: { full_name: string } | null;
+    target: { full_name: string } | null;
+  };
+  const audit = (auditRows || []) as unknown as AuditRow[];
+
+  const AUDIT_LABEL: Record<string, string> = {
+    user_invited: "invited",
+    role_updated: "updated the role of",
+    user_deactivated: "deactivated",
+    user_reactivated: "reactivated",
+    password_set: "set a new password for",
+  };
+
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
       <PageHeader
@@ -153,7 +179,7 @@ export default async function SettingsPage({
         </div>
       </Card>
 
-      <Card className="p-6 bg-surface/60 border-dashed">
+      <Card className="p-6 bg-surface/60 border-dashed mb-6">
         <p className="text-xs text-muted leading-relaxed">
           <strong className="text-foreground">How delivery works:</strong> invite emails are sent through Supabase
           Auth&apos;s built-in transactional email (no extra service required). The subject, body, and image saved
@@ -162,6 +188,40 @@ export default async function SettingsPage({
           integration — that requires an API key we don&apos;t have in this environment. Ask your engineering contact
           to add one if fully custom, dynamic email content is required.
         </p>
+      </Card>
+
+      <Card className="p-0 overflow-hidden">
+        <div className="px-6 pt-5 pb-1 flex items-center justify-between gap-4">
+          <p className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Icon name="clock" className="w-4 h-4 text-brand" />
+            Activity log
+          </p>
+          <a
+            href="/api/staff/audit-log-export"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline"
+          >
+            <Icon name="download" className="w-3.5 h-3.5" />
+            Download CSV
+          </a>
+        </div>
+        <p className="text-xs text-muted px-6 pb-4">
+          Showing the most recent {audit.length} action{audit.length === 1 ? "" : "s"} — invites, role changes,
+          deactivations, and password resets. Download the CSV for the complete history.
+        </p>
+        {audit.length === 0 ? (
+          <p className="px-6 pb-6 text-sm text-faint">No admin actions logged yet.</p>
+        ) : (
+          <div className="divide-y divide-line border-t border-line">
+            {audit.map((a) => (
+              <div key={a.id} className="px-6 py-3 text-sm flex flex-wrap items-baseline gap-x-1.5">
+                <span className="font-semibold text-foreground">{a.actor?.full_name || "Someone"}</span>
+                <span className="text-muted">{AUDIT_LABEL[a.action] || a.action.replace(/_/g, " ")}</span>
+                {a.target?.full_name && <span className="font-semibold text-foreground">{a.target.full_name}</span>}
+                <span className="text-faint text-xs ml-auto">{new Date(a.created_at).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

@@ -44,7 +44,7 @@ export const SCOUT_INTENTS: ScoutIntent[] = [
   {
     id: "staff-candidates",
     roles: ["staff"],
-    href: "/staff/candidates",
+    href: "/staff/reports/candidates",
     label: "Candidates",
     explain: "Every assessment attempt across the org, with Role Fit scores and filters by status, department, or vacancy.",
     keywords: ["candidates", "find a candidate", "candidate list", "who applied", "search candidate"],
@@ -52,7 +52,7 @@ export const SCOUT_INTENTS: ScoutIntent[] = [
   {
     id: "staff-review-queue",
     roles: ["staff"],
-    href: "/staff/candidates?status=scored",
+    href: "/staff/reports/candidates?status=scored",
     label: "Candidates awaiting review",
     explain: "Filtered to candidates the AI has scored but a human hasn't confirmed yet -- start here to clear the review queue.",
     keywords: ["review queue", "awaiting review", "pending review", "need review", "unreviewed"],

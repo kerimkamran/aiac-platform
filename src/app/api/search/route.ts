@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         type: "candidate",
         label: row.candidate?.full_name || "Unknown",
         sublabel: [row.candidate?.email, row.assessments?.title].filter(Boolean).join(" · "),
-        href: `/staff/candidates/${row.id}`,
+        href: `/staff/reports/candidates/${row.id}`,
         icon: "users",
       });
     }

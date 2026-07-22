@@ -102,7 +102,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
                 </td>
                 <td className="px-5 py-3.5 text-right">
                   <Link
-                    href={`/staff/candidates/${r.id}`}
+                    href={`/staff/reports/candidates/${r.id}`}
                     className="inline-flex items-center gap-1.5 text-accent-dark font-semibold whitespace-nowrap hover:underline"
                   >
                     Review

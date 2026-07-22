@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitReview, deleteProctoringRecording, requestManagerSignoff } from "./actions";
-import { assignDecisionMaker, unassignDecisionMaker } from "../../people/actions";
+import { assignDecisionMaker, unassignDecisionMaker } from "../../../people/actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
@@ -142,7 +142,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   return (
     <div className="p-6 lg:p-10 max-w-5xl print-page">
       <Link
-        href="/staff/candidates"
+        href="/staff/reports/candidates"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-5 font-medium no-print"
       >
         <Icon name="arrowLeft" className="w-4 h-4" />

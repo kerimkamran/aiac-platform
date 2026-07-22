@@ -68,18 +68,11 @@ export default async function PeoplePage({
   const grantableStaffRoles = isSuperAdmin ? STAFF_ROLE_OPTIONS : (["recruiter", "hiring_manager"] as const);
   const grantableAllRoles = isSuperAdmin ? ALL_ROLE_OPTIONS : (["candidate", "decision_maker", "recruiter", "hiring_manager"] as const);
 
-  const [{ data: profiles }, { data: auditRows }, { data: assessmentOptions }] = await Promise.all([
+  const [{ data: profiles }, { data: assessmentOptions }] = await Promise.all([
     supabase
       .from("profiles")
       .select("id, full_name, email, role, department, status, created_at, is_employee, job_title")
       .order("created_at", { ascending: false }),
-    supabase
-      .from("admin_audit_log")
-      .select(
-        "id, action, details, created_at, actor:profiles!admin_audit_log_actor_id_fkey(full_name), target:profiles!admin_audit_log_target_user_id_fkey(full_name)"
-      )
-      .order("created_at", { ascending: false })
-      .limit(50),
     supabase.from("assessments").select("id, title").eq("status", "published").order("title"),
   ]);
 
@@ -102,24 +95,6 @@ export default async function PeoplePage({
     for (const [k, v] of Array.from(params.entries())) if (!v) params.delete(k);
     const s = params.toString();
     return s ? `?${s}` : "";
-  };
-
-  type AuditRow = {
-    id: string;
-    action: string;
-    details: Record<string, unknown> | null;
-    created_at: string;
-    actor: { full_name: string } | null;
-    target: { full_name: string } | null;
-  };
-  const audit = (auditRows || []) as unknown as AuditRow[];
-
-  const AUDIT_LABEL: Record<string, string> = {
-    user_invited: "invited",
-    role_updated: "updated the role of",
-    user_deactivated: "deactivated",
-    user_reactivated: "reactivated",
-    password_set: "set a new password for",
   };
 
   return (
@@ -591,27 +566,6 @@ export default async function PeoplePage({
         </table>
       </Card>
 
-      <Card className="p-0 overflow-hidden">
-        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-1 flex items-center gap-2">
-          <Icon name="clock" className="w-4 h-4 text-brand" />
-          Activity log
-        </p>
-        <p className="text-xs text-muted px-6 pb-4">Last {audit.length} admin action{audit.length === 1 ? "" : "s"} — invites, role changes, and deactivations.</p>
-        {audit.length === 0 ? (
-          <p className="px-6 pb-6 text-sm text-faint">No admin actions logged yet.</p>
-        ) : (
-          <div className="divide-y divide-line border-t border-line">
-            {audit.map((a) => (
-              <div key={a.id} className="px-6 py-3 text-sm flex flex-wrap items-baseline gap-x-1.5">
-                <span className="font-semibold text-foreground">{a.actor?.full_name || "Someone"}</span>
-                <span className="text-muted">{AUDIT_LABEL[a.action] || a.action.replace(/_/g, " ")}</span>
-                {a.target?.full_name && <span className="font-semibold text-foreground">{a.target.full_name}</span>}
-                <span className="text-faint text-xs ml-auto">{new Date(a.created_at).toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </Card>
     </div>
   );
 }

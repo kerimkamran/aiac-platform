@@ -156,6 +156,18 @@ export default async function ReportsPage({
         subtitle="Aggregate view across every candidate and assessment — score distribution, pipeline health, decision outcomes, and org-wide competency strengths and gaps."
       />
 
+      <div className="flex items-center gap-1 mb-6 border-b border-line">
+        <span className="px-3.5 py-2.5 text-sm font-semibold text-foreground border-b-2 border-brand -mb-px">
+          Overview
+        </span>
+        <Link
+          href="/staff/reports/candidates"
+          className="px-3.5 py-2.5 text-sm font-semibold text-muted hover:text-foreground transition-colors"
+        >
+          Candidates
+        </Link>
+      </div>
+
       {/* Filters */}
       <form action="/staff/reports" className="flex flex-wrap items-center gap-2.5 mb-8">
         <Icon name="filter" className="w-4 h-4 text-faint" />
@@ -320,7 +332,7 @@ export default async function ReportsPage({
                     <span className="text-xs text-faint shrink-0">not yet scored</span>
                   )}
                   <Link
-                    href={`/staff/candidates${a.id ? `?vacancy=${encodeURIComponent(a.title)}` : ""}`}
+                    href={`/staff/reports/candidates${a.id ? `?vacancy=${encodeURIComponent(a.title)}` : ""}`}
                     className="text-xs font-semibold text-accent-dark hover:underline shrink-0"
                   >
                     View

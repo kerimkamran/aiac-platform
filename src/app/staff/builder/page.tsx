@@ -1,12 +1,16 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { createAssessment, deleteAssessment } from "./actions";
+import { createAssessment, deleteAssessment, assignAssessment } from "./actions";
+import { AssignAssessmentButton } from "@/components/AssignAssessmentButton";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { CreateAssessmentPanel } from "./CreateAssessmentPanel";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 
-const TOAST_SPECS: ToastSpec[] = [{ param: "error", variant: "error" }];
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "added", variant: "success" },
+];
 
 // AI generation can legitimately take 30-90+ seconds; give the underlying
 // Server Action room to finish instead of racing an unnecessarily tight default.
@@ -40,7 +44,7 @@ export default async function BuilderListPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
   const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
 
-  const [{ data: assessments }, { data: competencies }, { data: engines }] = await Promise.all([
+  const [{ data: assessments }, { data: competencies }, { data: engines }, { data: assignableUsers }] = await Promise.all([
     supabase
       .from("assessments")
       .select(
@@ -51,7 +55,17 @@ export default async function BuilderListPage({
       ? supabase.from("competencies").select("id, name, category").order("category").order("name")
       : Promise.resolve({ data: [] }),
     isAdmin ? supabase.from("generation_engines").select("key, display_name, enabled, api_key_secret_id") : Promise.resolve({ data: [] }),
+    supabase
+      .from("profiles")
+      .select("id, full_name, email, role")
+      .eq("status", "active")
+      .order("full_name"),
   ]);
+
+  const userOptions = (assignableUsers || []).map((u) => ({
+    id: u.id,
+    label: `${u.full_name} — ${u.email}`,
+  }));
 
   const compGroups = ["Core", "Leadership", "Functional"]
     .map((cat) => ({ cat, items: (competencies || []).filter((c) => c.category === cat) }))
@@ -104,6 +118,11 @@ export default async function BuilderListPage({
                     )}
                   </p>
                 </Link>
+                {a.status === "published" && (
+                  <div className="mt-3 pt-3 border-t border-line">
+                    <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
+                  </div>
+                )}
                 {isAdmin && (
                   <form action={deleteAssessment.bind(null, a.id)} className="absolute top-4 right-4">
                     <ConfirmSubmitButton

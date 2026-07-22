@@ -66,7 +66,7 @@ export default async function StaffHomePage() {
 
       {pendingReview.length > 0 && (
         <Link
-          href={`/staff/candidates/${pendingReview[0].id}`}
+          href={`/staff/reports/candidates/${pendingReview[0].id}`}
           className="flex items-center justify-between gap-4 py-3.5 mb-8 border-t border-b border-line group"
         >
           <p className="text-[13.5px] text-muted flex items-center gap-2.5">
@@ -86,7 +86,7 @@ export default async function StaffHomePage() {
         <div className="lg:pr-14 lg:border-r border-line pb-14">
           <div className="flex items-center justify-between mb-4">
             <p className="text-[13.5px] font-semibold text-foreground">Recent submissions</p>
-            <Link href="/staff/candidates" className="text-[12.5px] font-medium text-faint hover:text-muted">
+            <Link href="/staff/reports/candidates" className="text-[12.5px] font-medium text-faint hover:text-muted">
               All candidates
             </Link>
           </div>
@@ -100,7 +100,7 @@ export default async function StaffHomePage() {
               {recent.map((r) => (
                 <Link
                   key={r.id}
-                  href={`/staff/candidates/${r.id}`}
+                  href={`/staff/reports/candidates/${r.id}`}
                   className="flex items-center gap-3.5 py-3.5 border-b border-line-soft hover:bg-line-soft/40 transition-colors -mx-2 px-2"
                 >
                   <Avatar name={r.candidate?.full_name || "?"} className="w-7 h-7 text-[10.5px]" />

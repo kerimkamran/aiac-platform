@@ -34,7 +34,6 @@ export default async function StaffLayout({ children }: { children: React.ReactN
 
   const links: NavLink[] = [
     { href: "/staff", label: "Home", icon: "home", exact: true },
-    { href: "/staff/candidates", label: "Candidates", icon: "users" },
     { href: "/staff/reports", label: "Reports & Analytics", icon: "chart" },
     { href: "/staff/builder", label: "Assessment Builder", icon: "layers" },
   ];
