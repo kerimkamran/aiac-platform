@@ -173,3 +173,32 @@ export function categoryRollups(competencies: CompetencyLine[]) {
     })
     .filter((g) => g.rows.length > 0);
 }
+
+// ---------------------------------------------------------------------------
+// Development feedback (Phase 2): the candidate-facing developmental view an
+// admin can explicitly release after review. Deliberately built from the same
+// competency data the staff report uses, but framed as growth guidance --
+// no internal reviewer comments, no benchmark percentile, no talent-box.
+export type DevelopmentFeedback = {
+  strengths: { name: string; score: number; blurb: string }[];
+  growthAreas: { name: string; score: number; blurb: string }[];
+};
+
+export function buildDevelopmentFeedback(competencies: CompetencyLine[]): DevelopmentFeedback {
+  const sorted = [...competencies].sort((a, b) => b.score - a.score);
+  const strengths = sorted.slice(0, 3).map((c) => ({
+    name: c.name,
+    score: Math.round(c.score),
+    blurb: `One of your strongest areas in this assessment — keep looking for chances to apply ${c.name.toLowerCase()} visibly, and consider mentoring others on it.`,
+  }));
+  const growthAreas = sorted
+    .slice(-3)
+    .reverse()
+    .filter((c) => !strengths.some((s) => s.name === c.name))
+    .map((c) => ({
+      name: c.name,
+      score: Math.round(c.score),
+      blurb: `An area with headroom. Practical next step: pick one real work situation in the next month where ${c.name.toLowerCase()} matters, plan your approach in advance, and ask someone you trust for feedback afterwards.`,
+    }));
+  return { strengths, growthAreas };
+}

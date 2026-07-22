@@ -75,6 +75,25 @@ export default async function ReportsPage({
   const scored = rows.filter((r) => r.overall_score !== null);
   const submittedCount = rows.filter((r) => r.submitted_at !== null).length;
   const completionRate = rows.length ? Math.round((submittedCount / rows.length) * 100) : null;
+
+  // AI-reviewer agreement (Phase 2): does the human decision align with the
+  // AI score band? >=70 aligns with a positive decision, 50-69 with hold,
+  // <50 with reject. Divergences aren't errors -- they're the calibration
+  // signal that tells you whether the AI bar is set right.
+  const scoreByCa = new Map(allRows.filter((r) => r.overall_score !== null).map((r) => [r.id, r.overall_score as number]));
+  const visibleCaIds = new Set(rows.map((r) => r.id));
+  let agreeCount = 0;
+  let overrideCount = 0;
+  for (const rv of allReviews) {
+    if (!visibleCaIds.has(rv.candidate_assessment_id)) continue;
+    const score = scoreByCa.get(rv.candidate_assessment_id);
+    if (score === undefined) continue;
+    const aiBucket = score >= 70 ? "shortlist" : score >= 50 ? "hold" : "reject";
+    if (rv.decision === aiBucket) agreeCount += 1;
+    else overrideCount += 1;
+  }
+  const judged = agreeCount + overrideCount;
+  const agreementRate = judged > 0 ? Math.round((agreeCount / judged) * 100) : null;
   const avgScore = scored.length
     ? Math.round((scored.reduce((s, r) => s + (r.overall_score || 0), 0) / scored.length) * 10) / 10
     : null;
@@ -215,12 +234,26 @@ export default async function ReportsPage({
       ) : (
         <>
           {/* KPIs */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
             <StatCard label="Candidates in view" value={rows.length} icon="users" tone="brand" />
             <StatCard label="Completion rate" value={completionRate !== null ? `${completionRate}%` : "—"} icon="checkCircle" tone="accent" />
             <StatCard label="Avg. Role Fit Score" value={avgScore ?? "—"} icon="target" tone="amber" />
             <StatCard label="Awaiting human review" value={pendingReview} icon="eye" tone="violet" />
           </div>
+
+          {agreementRate !== null && (
+            <Card className="p-5 mb-8 flex flex-wrap items-center justify-between gap-3">
+              <p className="text-sm text-muted">
+                <span className="font-bold text-foreground">AI–reviewer agreement: {agreementRate}%</span>{" "}
+                — reviewers overrode the AI score band on {overrideCount} of {judged} decision
+                {judged === 1 ? "" : "s"} in view.
+              </p>
+              <p className="text-xs text-faint max-w-sm">
+                Frequent overrides in one direction usually mean the scoring bar needs recalibrating, not that either
+                side is wrong.
+              </p>
+            </Card>
+          )}
 
           {/* Charts row 1 */}
           <div className="grid lg:grid-cols-2 gap-5 mb-5">

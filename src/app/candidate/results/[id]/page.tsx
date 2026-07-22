@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Card, Icon, PageHeader, ScoreRing, ScoringDisclosure, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
+import { buildDevelopmentFeedback } from "@/lib/reporting";
 
 export default async function CandidateResultDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -13,7 +14,7 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
-    .select("id, status, overall_score, candidate_id, submitted_at, assessments(title, description)")
+    .select("id, status, overall_score, candidate_id, submitted_at, feedback_released_at, assessments(title, description)")
     .eq("id", id)
     .single();
 
@@ -35,6 +36,17 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
     .map((cat) => ({ cat, rows: items.filter((i) => i.competencies!.category === cat) }))
     .filter((g) => g.rows.length > 0);
   const strongest = items[0];
+
+  const feedback = ca.feedback_released_at
+    ? buildDevelopmentFeedback(
+        items.map((i) => ({
+          name: i.competencies!.name,
+          category: i.competencies!.category,
+          score: i.score,
+          level: i.level,
+        }))
+      )
+    : null;
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
@@ -81,6 +93,46 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
             <span className="font-semibold text-foreground tabular-nums">{Math.round(strongest.score)}</span> —{" "}
             {bandFor(strongest.score).label}.
           </p>
+        </Card>
+      )}
+
+      {feedback && (
+        <Card className="p-6 mb-6">
+          <p className="flex items-center gap-2 text-sm font-bold text-foreground mb-1">
+            <Icon name="wand" className="w-4 h-4 text-brand" />
+            Your development feedback
+          </p>
+          <p className="text-xs text-muted mb-5">
+            Prepared by the assessment team — a short, honest read on where you're strong and where to grow next.
+          </p>
+          <div className="grid md:grid-cols-2 gap-5">
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-3">Build on these strengths</p>
+              <div className="space-y-3">
+                {feedback.strengths.map((s) => (
+                  <div key={s.name} className="border border-line rounded-xl p-4">
+                    <p className="text-sm font-semibold text-foreground mb-1">
+                      {s.name} <span className="text-faint font-normal tabular-nums">· {s.score}</span>
+                    </p>
+                    <p className="text-[13px] text-muted leading-relaxed">{s.blurb}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-3">Focus your growth here</p>
+              <div className="space-y-3">
+                {feedback.growthAreas.map((g) => (
+                  <div key={g.name} className="border border-line rounded-xl p-4">
+                    <p className="text-sm font-semibold text-foreground mb-1">
+                      {g.name} <span className="text-faint font-normal tabular-nums">· {g.score}</span>
+                    </p>
+                    <p className="text-[13px] text-muted leading-relaxed">{g.blurb}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </Card>
       )}
 

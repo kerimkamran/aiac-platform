@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback } from "./actions";
 import { assignDecisionMaker, unassignDecisionMaker } from "../../../people/actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
@@ -14,10 +14,18 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const { id } = await params;
   const supabase = await createClient();
 
+  const {
+    data: { user: viewer },
+  } = await supabase.auth.getUser();
+  const { data: viewerProfile } = viewer
+    ? await supabase.from("profiles").select("role").eq("id", viewer.id).maybeSingle()
+    : { data: null };
+  const viewerIsAdmin = !!viewerProfile && ["hr_admin", "system_admin"].includes(viewerProfile.role);
+
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, candidate_id, status, overall_score, invited_at, started_at, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, manager_id), assessments(title, description, purpose)"
+      "id, assessment_id, candidate_id, status, overall_score, invited_at, started_at, submitted_at, feedback_released_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, manager_id), assessments(title, description, purpose)"
     )
     .eq("id", id)
     .single();
@@ -550,24 +558,81 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           </button>
         </form>
 
-        {reviews && reviews.length > 0 && (
-          <div className="mt-6 space-y-3 border-t border-line pt-5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Decision history</p>
-            {(reviews as unknown as { decision: string; comment: string; created_at: string; reviewer: { full_name: string } | null }[]).map(
-              (r, i) => (
-                <div key={i} className="flex items-start gap-3 text-sm">
-                  <StatusBadge status={r.decision} />
-                  <p className="text-muted">
-                    <span className="font-semibold text-foreground">{r.reviewer?.full_name}</span>
-                    {r.comment ? ` — “${r.comment}”` : ""}
-                    <span className="text-faint text-xs"> · {new Date(r.created_at).toLocaleString()}</span>
+        {reviews && reviews.length > 0 && (() => {
+          const reviewRows = reviews as unknown as {
+            decision: string;
+            comment: string;
+            created_at: string;
+            reviewer: { full_name: string } | null;
+          }[];
+          const distinctDecisions = Array.from(new Set(reviewRows.map((r) => r.decision)));
+          const diverges = reviewRows.length >= 2 && distinctDecisions.length > 1;
+          return (
+            <div className="mt-6 space-y-3 border-t border-line pt-5">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-faint">
+                {reviewRows.length >= 2 ? "Reviewer calibration" : "Decision history"}
+              </p>
+              {diverges && (
+                <div className="flex items-start gap-2.5 bg-[#fbeceb] text-[#b23b3b] rounded-xl px-4 py-3 text-sm">
+                  <Icon name="alertTriangle" className="w-4 h-4 mt-0.5 shrink-0" />
+                  <p>
+                    <span className="font-semibold">Reviewers disagree</span> — {distinctDecisions.join(" vs. ")}. Worth a
+                    calibration conversation before the final decision.
                   </p>
                 </div>
-              )
+              )}
+              {reviewRows.length >= 2 ? (
+                <div className="grid sm:grid-cols-2 gap-3">
+                  {reviewRows.map((r, i) => (
+                    <div key={i} className="border border-line rounded-xl p-4">
+                      <div className="flex items-center justify-between gap-2 mb-2">
+                        <p className="font-semibold text-foreground text-sm">{r.reviewer?.full_name || "Reviewer"}</p>
+                        <StatusBadge status={r.decision} />
+                      </div>
+                      {r.comment && <p className="text-[13px] text-muted">“{r.comment}”</p>}
+                      <p className="text-faint text-xs mt-2">{new Date(r.created_at).toLocaleString()}</p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                reviewRows.map((r, i) => (
+                  <div key={i} className="flex items-start gap-3 text-sm">
+                    <StatusBadge status={r.decision} />
+                    <p className="text-muted">
+                      <span className="font-semibold text-foreground">{r.reviewer?.full_name}</span>
+                      {r.comment ? ` — “${r.comment}”` : ""}
+                      <span className="text-faint text-xs"> · {new Date(r.created_at).toLocaleString()}</span>
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          );
+        })()}
+      </Card>
+
+      {viewerIsAdmin && ca.status === "reviewed" && (
+        <Card className="p-6 mt-5 no-print">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-sm font-bold text-foreground mb-1">Development feedback for the candidate</p>
+              <p className="text-xs text-muted max-w-xl">
+                {ca.feedback_released_at
+                  ? `Released ${new Date(ca.feedback_released_at).toLocaleString()} — the candidate now sees a growth-framed summary (top strengths and development areas) on their results page. No reviewer comments or benchmarks are shared.`
+                  : "Release a growth-framed summary (top strengths, development areas) to the candidate's results page. Reviewer comments, benchmarks, and internal notes are never included."}
+              </p>
+            </div>
+            {!ca.feedback_released_at && (
+              <form action={releaseFeedback.bind(null, id)}>
+                <button className="inline-flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+                  <Icon name="send" className="w-4 h-4" />
+                  Release feedback
+                </button>
+              </form>
             )}
           </div>
-        )}
-      </Card>
+        </Card>
+      )}
     </div>
   );
 }
