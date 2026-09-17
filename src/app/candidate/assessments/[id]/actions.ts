@@ -1,11 +1,20 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { scoreMcqResponse, scoreTextResponse } from "@/lib/scoring";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { scoreTextResponse, type CompetencyContext, type ScoringEngine } from "@/lib/scoring";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-type QuestionOption = { key: string; text: string; correct?: boolean };
+type RunnerRow = {
+  section_id: string;
+  section_competency_id: string;
+  question_id: string;
+  question_type: string;
+  prompt: string;
+  weight: number;
+  question_competency_id: string | null;
+};
 
 export async function startAssessment(candidateAssessmentId: string) {
   const supabase = await createClient();
@@ -22,61 +31,120 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
-    .select("id, assessment_id, candidate_id")
+    .select("id, assessment_id, candidate_id, assessments(engine)")
     .eq("id", candidateAssessmentId)
     .single();
 
   if (!ca) redirect("/candidate");
 
-  const { data: sections } = await supabase
-    .from("assessment_sections")
-    .select("id, competency_id, questions(id, question_type, options, weight)")
-    .eq("assessment_id", ca.assessment_id);
+  const engineRaw = (ca.assessments as unknown as { engine: string | null } | null)?.engine || null;
+  const engine: ScoringEngine | null =
+    engineRaw === "claude" || engineRaw === "fugu" || engineRaw === "kimi" ? engineRaw : null;
 
-  type QRow = { id: string; question_type: string; options: QuestionOption[] | null; weight: number };
-  type SRow = { id: string; competency_id: string; questions: QRow[] };
+  // The AI-provider API key never touches this action's own RLS-scoped
+  // client: generation_engines is staff-only, and get_engine_api_key_for_scoring
+  // is revoked from authenticated/anon at the grant level (see
+  // supabase/migrations/0012_secure_mcq_scoring.sql) -- only the
+  // service-role admin client can call it. No engine configured, or no
+  // service role key in this environment, just means text scoring falls
+  // back to the heuristic below; it never blocks the submission.
+  let apiKey: string | null = null;
+  if (engine) {
+    const admin = createAdminClient();
+    if (admin) {
+      const { data } = await admin.rpc("get_engine_api_key_for_scoring", { p_engine_key: engine });
+      apiKey = (data as string | null) || null;
+    }
+  }
 
-  const allSections = (sections || []) as unknown as SRow[];
+  // Enumerates this assessment's questions through the same SECURITY
+  // DEFINER RPC the runner page uses -- the base `questions` table is
+  // staff-only now, and this action never needs `options` at all (MCQ
+  // grading happens inside submit_mcq_answer, entirely in Postgres).
+  const { data: runnerRows } = await supabase.rpc("get_runner_questions", {
+    p_candidate_assessment_id: candidateAssessmentId,
+  });
+
+  const rows = (runnerRows || []) as unknown as RunnerRow[];
+
+  // Preload competency name/description/behavioural indicators for every
+  // competency referenced -- text scoring grades against these, not a
+  // generic rubric. (competencies/competency_indicators stay readable by
+  // any authenticated user, unlike questions.)
+  const competencyIds = Array.from(
+    new Set(rows.map((r) => r.question_competency_id || r.section_competency_id).filter(Boolean))
+  ) as string[];
+
+  const competencyMap = new Map<string, CompetencyContext>();
+  if (competencyIds.length > 0) {
+    const [{ data: comps }, { data: indicators }] = await Promise.all([
+      supabase.from("competencies").select("id, name, description").in("id", competencyIds),
+      supabase.from("competency_indicators").select("competency_id, level, indicator_text").in("competency_id", competencyIds),
+    ]);
+    for (const c of comps || []) {
+      competencyMap.set(c.id, { name: c.name, description: c.description, indicators: [] });
+    }
+    for (const i of indicators || []) {
+      competencyMap.get(i.competency_id)?.indicators.push({ level: i.level, indicator_text: i.indicator_text });
+    }
+  }
 
   const competencyTotals: Record<string, { weighted: number; totalWeight: number }> = {};
   let overallWeighted = 0;
   let overallWeight = 0;
 
-  for (const section of allSections) {
-    for (const q of section.questions || []) {
-      let result;
-      if (q.question_type === "mcq") {
-        const selected = String(formData.get(`q_${q.id}`) || "");
-        result = scoreMcqResponse(q.options || [], selected || null);
-        await supabase.from("candidate_responses").insert({
-          candidate_assessment_id: candidateAssessmentId,
-          question_id: q.id,
-          selected_option: selected || null,
-          score: result.score,
-          ai_rationale: result.rationale,
-        });
-      } else {
-        const text = String(formData.get(`q_${q.id}`) || "");
-        result = scoreTextResponse(text);
-        await supabase.from("candidate_responses").insert({
-          candidate_assessment_id: candidateAssessmentId,
-          question_id: q.id,
-          response_text: text,
-          score: result.score,
-          ai_rationale: result.rationale,
-        });
-      }
+  for (const q of rows) {
+    let result: { score: number } | null = null;
 
-      const w = Number(q.weight) || 1;
-      competencyTotals[section.competency_id] = competencyTotals[section.competency_id] || {
-        weighted: 0,
-        totalWeight: 0,
+    if (q.question_type === "mcq") {
+      const selected = String(formData.get(`q_${q.question_id}`) || "") || null;
+      // Graded entirely inside Postgres -- the correct option never
+      // travels through this server action or the browser. A rejection
+      // (e.g. a retried submit hitting the one-response-per-question
+      // guard) just skips re-scoring this question rather than throwing
+      // the whole submission away; the first, successful call already
+      // recorded and counted its score.
+      const { data, error } = await supabase.rpc("submit_mcq_answer", {
+        p_candidate_assessment_id: candidateAssessmentId,
+        p_question_id: q.question_id,
+        p_selected_key: selected,
+      });
+      if (!error && data && data.length > 0) {
+        result = { score: Number(data[0].score) };
+      }
+    } else {
+      const text = String(formData.get(`q_${q.question_id}`) || "");
+      const competencyId = q.question_competency_id || q.section_competency_id;
+      const competency = (competencyId && competencyMap.get(competencyId)) || {
+        name: "General",
+        description: null,
+        indicators: [],
       };
-      competencyTotals[section.competency_id].weighted += result.score * w;
-      competencyTotals[section.competency_id].totalWeight += w;
-      overallWeighted += result.score * w;
-      overallWeight += w;
+      const scored = await scoreTextResponse({ questionPrompt: q.prompt, responseText: text, competency, engine, apiKey });
+      const { error } = await supabase.from("candidate_responses").insert({
+        candidate_assessment_id: candidateAssessmentId,
+        question_id: q.question_id,
+        response_text: text,
+        score: scored.score,
+        ai_rationale: scored.rationale,
+      });
+      // 23505 = unique_violation -- a retried submit for a question already
+      // recorded. Same "skip, don't throw" handling as the MCQ branch above.
+      if (!error) result = { score: scored.score };
+      else if (error.code !== "23505") throw error;
     }
+
+    if (!result) continue;
+
+    const w = Number(q.weight) || 1;
+    competencyTotals[q.section_competency_id] = competencyTotals[q.section_competency_id] || {
+      weighted: 0,
+      totalWeight: 0,
+    };
+    competencyTotals[q.section_competency_id].weighted += result.score * w;
+    competencyTotals[q.section_competency_id].totalWeight += w;
+    overallWeighted += result.score * w;
+    overallWeight += w;
   }
 
   for (const [competencyId, totals] of Object.entries(competencyTotals)) {

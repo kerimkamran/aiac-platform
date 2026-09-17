@@ -103,7 +103,7 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
             Your development feedback
           </p>
           <p className="text-xs text-muted mb-5">
-            Prepared by the assessment team — a short, honest read on where you're strong and where to grow next.
+            Prepared by the assessment team — a short, honest read on where you&apos;re strong and where to grow next.
           </p>
           <div className="grid md:grid-cols-2 gap-5">
             <div>

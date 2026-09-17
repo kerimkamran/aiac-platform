@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Card, EmptyState, Icon, JourneyTracker, PageHeader, StatusBadge } from "@/components/ui";
+import { nowMs } from "@/lib/time";
 
 export default async function CandidateAssessmentsPage() {
   const supabase = await createClient();
@@ -21,7 +22,7 @@ export default async function CandidateAssessmentsPage() {
     due_at: string | null;
     assessments: { title: string; description: string; time_limit_minutes: number } | null;
   }[];
-  const now = Date.now();
+  const now = nowMs();
 
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
