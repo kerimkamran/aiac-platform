@@ -36,9 +36,9 @@ Supabase (Auth + Postgres with RLS). Charts are hand-rolled SVG — no chart dep
 ## Setup
 
 1. Create a Supabase project.
-2. Run `supabase/migrations/0001_schema.sql` (tables, RLS policies, auth trigger), then
-   `supabase/seed.sql` (37 competencies, demo accounts, two published assessments, pre-scored
-   candidate journeys) in the SQL editor.
+2. Run `supabase/migrations/0001_schema.sql` (tables, RLS policies, auth trigger), then every later
+   file in `supabase/migrations/` in order, then `supabase/seed.sql` (37 competencies, demo accounts,
+   two published assessments, pre-scored candidate journeys) in the SQL editor.
 3. `cp .env.example .env.local` and fill in the project URL + anon key.
 4. `npm install && npm run dev`
 
@@ -50,9 +50,17 @@ Supabase (Auth + Postgres with RLS). Charts are hand-rolled SVG — no chart dep
 | Hiring manager | `manager@aiac-demo.com` |
 | Candidate (fresh invitation to take) | `candidate@aiac-demo.com` |
 
-## Phase-1 notes
+## Scoring notes
 
-- Scoring (`src/lib/scoring.ts`) is a deterministic simulation of the LLM engine specified in SRS Part 4;
-  every rationale says so, and low-confidence scores are flagged for the human reviewer.
-- Known limitation: MCQ `options` JSON (including the `correct` flag) is readable by authenticated
-  candidates via the API; the production phase should serve options through a view that strips it.
+- MCQ answers are graded entirely inside Postgres (`submit_mcq_answer()`,
+  `supabase/migrations/0012_secure_mcq_scoring.sql`): the correct option is looked up and compared
+  server-side and never travels through the Next.js server action or the browser, and each question can
+  only be scored once per attempt. This closes the earlier known limitation, where the `options` JSON
+  (including the `correct` flag) was readable by any authenticated candidate directly via the Supabase
+  API, ahead of answering.
+- Free-text answers (`src/lib/scoring.ts`) are scored by the same generation engine (Claude / Sakana Fugu
+  / Kimi) configured for assessment generation, graded against the competency's own behavioural
+  indicators, with a written rationale for every score. If no engine is configured/enabled, or the AI call
+  fails, scoring falls back to a deterministic word-count/keyword heuristic so a candidate's submission is
+  never blocked — the rationale always says which path produced the score, and low-confidence scores are
+  still flagged for human reviewer confirmation (human-in-the-loop, per AIAC-SRS Part 4).
