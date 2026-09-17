@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Avatar, Card, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
+import { nowMs } from "@/lib/time";
 
 export type CandidateExportRow = {
   id: string;
@@ -101,12 +102,12 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
                     {r.due_at && ["invited", "in_progress"].includes(r.status) && (
                       <span
                         className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
-                          new Date(r.due_at).getTime() < Date.now()
+                          new Date(r.due_at).getTime() < nowMs()
                             ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
                             : "bg-line-soft text-muted ring-line"
                         }`}
                       >
-                        {new Date(r.due_at).getTime() < Date.now() ? "Overdue" : `Due ${new Date(r.due_at).toLocaleDateString()}`}
+                        {new Date(r.due_at).getTime() < nowMs() ? "Overdue" : `Due ${new Date(r.due_at).toLocaleDateString()}`}
                       </span>
                     )}
                   </span>

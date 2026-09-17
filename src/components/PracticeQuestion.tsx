@@ -61,9 +61,9 @@ export function PracticeQuestion() {
       </div>
       {picked && (
         <p className="text-xs text-muted mt-4 leading-relaxed">
-          Thanks — that's exactly how the real questions work. There are no trick options: choose the response closest
-          to what you would actually do. In the real assessment your answers are scored against this role's competency
-          model, so answer honestly rather than trying to guess a "right" answer.
+          Thanks — that&apos;s exactly how the real questions work. There are no trick options: choose the response closest
+          to what you would actually do. In the real assessment your answers are scored against this role&apos;s competency
+          model, so answer honestly rather than trying to guess a &quot;right&quot; answer.
         </p>
       )}
     </div>
