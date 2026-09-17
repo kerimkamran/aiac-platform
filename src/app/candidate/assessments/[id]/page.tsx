@@ -97,36 +97,45 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
 
   const startedAt = ca.started_at || new Date().toISOString();
 
-  const [{ data: sections }, { data: proctoring }] = await Promise.all([
-    supabase
-      .from("assessment_sections")
-      .select("id, title, sequence, questions(id, question_type, prompt, options, sequence)")
-      .eq("assessment_id", ca.assessment_id)
-      .order("sequence"),
+  // Fetched through get_runner_questions() (SECURITY DEFINER) rather than a
+  // direct assessment_sections/questions select -- the base `questions`
+  // table is staff-only now (options.correct is not safe for a direct,
+  // client-reachable table read), and this RPC's options are already
+  // stripped of `correct` regardless of caller. See
+  // supabase/migrations/0012_secure_mcq_scoring.sql.
+  const [{ data: runnerRows }, { data: proctoring }] = await Promise.all([
+    supabase.rpc("get_runner_questions", { p_candidate_assessment_id: id }),
     supabase.from("proctoring_settings").select("camera_enabled, storage_backend").eq("assessment_id", ca.assessment_id).maybeSingle(),
   ]);
 
+  type RunnerRow = {
+    section_id: string;
+    section_title: string;
+    question_id: string;
+    question_type: string;
+    prompt: string;
+    options: { key: string; text: string }[] | null;
+  };
+
+  const rows = (runnerRows || []) as unknown as RunnerRow[];
+  const sectionOrder: string[] = [];
+  const sectionMap = new Map<string, RunnerSection>();
+  for (const r of rows) {
+    if (!sectionMap.has(r.section_id)) {
+      sectionMap.set(r.section_id, { id: r.section_id, title: r.section_title, questions: [] });
+      sectionOrder.push(r.section_id);
+    }
+    sectionMap.get(r.section_id)!.questions.push({
+      id: r.question_id,
+      type: r.question_type,
+      prompt: r.prompt,
+      options: r.options || [],
+    });
+  }
+  const runnerSections: RunnerSection[] = sectionOrder.map((sid) => sectionMap.get(sid)!);
+
   const meta = ca.assessments as unknown as { title: string; description: string; time_limit_minutes: number };
   const submitWithId = submitAssessment.bind(null, id);
-
-  const runnerSections: RunnerSection[] = (sections || []).map((s) => ({
-    id: s.id,
-    title: s.title,
-    questions: ((s.questions || []) as unknown as {
-      id: string;
-      question_type: string;
-      prompt: string;
-      options: { key: string; text: string }[] | null;
-      sequence: number;
-    }[])
-      .sort((a, b) => a.sequence - b.sequence)
-      .map((q) => ({
-        id: q.id,
-        type: q.question_type,
-        prompt: q.prompt,
-        options: (q.options || []).map((o) => ({ key: o.key, text: o.text })),
-      })),
-  }));
 
   const deadlineMs = new Date(startedAt).getTime() + (meta?.time_limit_minutes || 60) * 60_000;
 
