@@ -7,6 +7,7 @@ import { AssessmentTimer } from "@/components/AssessmentTimer";
 import { ProctoredAssessmentRunner } from "./proctoring-gate";
 import { PracticeQuestion } from "@/components/PracticeQuestion";
 import { Card, Icon } from "@/components/ui";
+import { nowMs } from "@/lib/time";
 
 export default async function TakeAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -29,7 +30,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
 
   // Deadline gate: once due_at has passed, the assessment can no longer be
   // started or continued -- HR can extend/re-invite from People & Access.
-  if (ca.due_at && new Date(ca.due_at).getTime() < Date.now()) {
+  if (ca.due_at && new Date(ca.due_at).getTime() < nowMs()) {
     return (
       <div className="p-6 lg:p-10 max-w-2xl mx-auto">
         <Card className="p-8 text-center">
