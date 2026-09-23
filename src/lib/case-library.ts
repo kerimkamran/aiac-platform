@@ -1,4 +1,4 @@
-import { extractJson, type CompetencyForPrompt } from "@/lib/generation";
+import { extractJson, indicatorsForGeneration, type CompetencyForPrompt } from "@/lib/generation";
 
 // Synthesized from a dedicated research pass (five parallel briefs, each citing
 // only publicly published methodology — no proprietary test content) covering
@@ -48,11 +48,11 @@ export type GeneratedCase = {
 function systemInstructions(count: number): string {
   return `You are a senior assessment-center case designer building a large, reusable case library for a governed competency-based hiring platform, at the caliber of Hogan Assessments, Mercer|Mettl, WTW/Saville, and Korn Ferry.
 
-Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material. Do not reproduce any real vendor's actual test content — everything you write must be original.
+Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material. Do not reproduce any real vendor's actual test content — everything you write must be original. The indicators you are given are deliberately limited to this platform's "Skilled" and "Expert" proficiency tiers (never "Basic"/entry-level) — write to that level.
 
 ${CASE_DESIGN_PLAYBOOK}
 
-Difficulty must be mid-to-high: genuine trade-offs, ambiguity, incomplete information, or competing stakeholder interests — not an obvious right-vs-wrong choice.
+Difficulty must be intermediate-to-advanced, never basic or entry-level: genuine trade-offs, ambiguity, incomplete information, or competing stakeholder interests — not an obvious right-vs-wrong choice. The candidate should have to work for the right answer; avoid any question a manager with only basic/junior-level competence could answer correctly on instinct.
 
 Return ONLY valid JSON, no markdown fences, no commentary:
 {"cases": [{"title": string, "scenarioText": string, "questionStem": string, "questionType": "mcq" | "text", "options"?: [{"text": string, "correct"?: boolean}], "difficulty": "mid" | "high", "methodologyTag": "Hogan-style derailment" | "Mettl-style SJT" | "WTW/Saville-style situation" | "Korn Ferry-style exercise" | "McLean-style behavioral anchor" | "Blended", "methodologyNotes": string}]}
@@ -61,10 +61,11 @@ Return ONLY valid JSON, no markdown fences, no commentary:
 }
 
 function buildUserPrompt(competency: CompetencyForPrompt): string {
-  const indicatorLines = competency.indicators.length
-    ? competency.indicators.map((i) => `  - [${i.level}] ${i.indicator_text}`).join("\n")
+    const indicators = indicatorsForGeneration(competency.indicators);
+  const indicatorLines = indicators.length
+    ? indicators.map((i) => `  - [${i.level}] ${i.indicator_text}`).join("\n")
     : "  (no behavioral indicators on file — rely on the description only, do not invent indicators)";
-  return `Competency code: ${competency.code}\nName: ${competency.name}\nCategory: ${competency.category}\nDescription: ${competency.description || "(none provided)"}\nBehavioral indicators:\n${indicatorLines}\n\nGenerate the case library entries now as JSON.`;
+  return `Competency code: ${competency.code}\nName: ${competency.name}\nCategory: ${competency.category}\nDescription: ${competency.description || "(none provided)"}\nBehavioral indicators (Skilled/Expert tier only):\n${indicatorLines}\n\nGenerate the case library entries now as JSON.`;
 }
 
 export function validateCases(data: unknown): GeneratedCase[] {
