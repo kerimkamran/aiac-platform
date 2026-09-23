@@ -23,6 +23,22 @@ export type GeneratedAssessment = {
 };
 
 const MIN_TOTAL_QUESTIONS = 10;
+// Follow-up ask: "make sure built assessments are intermediate to advance,
+// challenge candidates." The system prompt already told the model to write
+// mid-to-high difficulty cases, but the *grounding material* it was handed
+// included "Basic"-tier behavioral indicators (the entry-level rung of this
+// app's Basic/Skilled/Expert proficiency framework) right alongside
+// Skilled/Expert ones -- so a case could be fully "grounded" per the rules
+// and still be anchored on entry-level behavior. Anchoring generation only
+// on Skilled/Expert indicators makes "intermediate to advanced" a structural
+// property of the input, not just a prose instruction the model has to
+// remember to apply. Falls back to whatever indicators exist if a
+// competency happens to have only Basic ones on file, so a thinly-populated
+// competency doesn't lose its grounding material entirely.
+export function indicatorsForGeneration<T extends { level: string }>(indicators: T[]): T[] {
+  const advanced = indicators.filter((i) => i.level !== "Basic");
+  return advanced.length > 0 ? advanced : indicators;
+}
 
 export type GenerationLanguage = "en" | "az" | "ru";
 
