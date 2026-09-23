@@ -62,7 +62,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
   return (
     <Card className="p-6 mb-8">
       <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-        <Icon name="trending" className="w-4 h-4 text-brand" />
+        <Icon name="trending" className="w-4 h-4 text-accent-dark" />
         Your growth over time
       </p>
       <p className="text-xs text-muted mb-5">
@@ -75,9 +75,9 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
         <div>
           <p className="text-2xl font-bold text-foreground tabular-nums">
             {last}
-            <span className="text-sm font-medium text-faint"> / 100</span>
+            <span className="text-sm font-medium text-muted"> / 100</span>
           </p>
-          <p className={`text-xs font-semibold ${delta > 0 ? "text-emerald-700" : delta < 0 ? "text-amber-700" : "text-faint"}`}>
+          <p className={`text-xs font-semibold ${delta > 0 ? "text-emerald-700" : delta < 0 ? "text-amber-700" : "text-muted"}`}>
             {delta > 0 ? `+${delta}` : delta} since your first tracked assessment
           </p>
         </div>
@@ -86,10 +86,10 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
       <div className="grid sm:grid-cols-2 gap-4">
         {improved.length > 0 && (
           <div>
-            <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">Most improved</p>
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Most improved</p>
             <div className="space-y-1.5">
               {improved.map((m) => (
-                <div key={m.name} className="flex items-center justify-between text-[13px] bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                <div key={m.name} className="flex items-center justify-between text-xs bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
                   <span className="text-foreground font-medium">{m.name}</span>
                   <span className="font-bold text-emerald-700 tabular-nums">+{m.delta}</span>
                 </div>
@@ -99,10 +99,10 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
         )}
         {growthAreas.length > 0 && (
           <div>
-            <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">Keep developing</p>
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Keep developing</p>
             <div className="space-y-1.5">
               {growthAreas.map((m) => (
-                <div key={m.name} className="flex items-center justify-between text-[13px] bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <div key={m.name} className="flex items-center justify-between text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
                   <span className="text-foreground font-medium">{m.name}</span>
                   <span className="font-bold text-amber-700 tabular-nums">{m.delta > 0 ? "+" : ""}{m.delta}</span>
                 </div>

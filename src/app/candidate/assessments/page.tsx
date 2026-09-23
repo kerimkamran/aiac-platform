@@ -48,7 +48,7 @@ export default async function CandidateAssessmentsPage() {
             <div className="flex flex-wrap items-center justify-between gap-5 pt-4 border-t border-line">
               <JourneyTracker status={a.status} />
               <div className="flex items-center gap-4">
-                <span className="inline-flex items-center gap-1.5 text-xs text-faint">
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                   <Icon name="timer" className="w-3.5 h-3.5" />
                   {a.assessments?.time_limit_minutes} min limit
                 </span>
@@ -69,7 +69,7 @@ export default async function CandidateAssessmentsPage() {
                 ) : ["invited", "in_progress"].includes(a.status) ? (
                   <Link
                     href={`/candidate/assessments/${a.id}`}
-                    className="inline-flex items-center gap-2 text-sm bg-brand text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand-light transition-colors"
+                    className="inline-flex items-center gap-2 text-sm bg-brand-deep text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand transition-colors"
                   >
                     {a.status === "invited" ? "Start assessment" : "Continue"}
                     <Icon name="arrowRight" className="w-3.5 h-3.5" />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Card, Icon, ProgressBar } from "@/components/ui";
 import { SwipeToConfirm } from "@/components/SwipeToConfirm";
 import { AssessmentTimer } from "@/components/AssessmentTimer";
@@ -22,6 +22,7 @@ export function AssessmentRunner({
   submitAction,
   watermarkLabel = "confidential",
   totalQuestions,
+  contentLanguage,
 }: {
   caId: string;
   title: string;
@@ -31,7 +32,17 @@ export function AssessmentRunner({
   submitAction: (formData: FormData) => Promise<void>;
   watermarkLabel?: string;
   totalQuestions: number;
+  // Design-execution-plan Phase 2 / T2.5: the app chrome around this
+  // component is English; the prompts/options below are generated in
+  // whatever language the assessment was authored in (assessments.
+  // content_language). Passed through so a screen reader switches voice
+  // for the generated text specifically, without mislabeling the English
+  // chrome (timer, "Question X of Y", buttons) around it -- WCAG 3.1.2.
+  contentLanguage?: string | null;
 }) {
+  // undefined for English/unset content -- omitting `lang` there just
+  // inherits the page's own (English) lang, which is already correct.
+  const contentLangAttr = contentLanguage && contentLanguage !== "en" ? { lang: contentLanguage } : {};
   const steps: Step[] = useMemo(
     () => sections.flatMap((s, si) => s.questions.map((q) => ({ sectionTitle: s.title, sectionIndex: si, q }))),
     [sections]
@@ -61,17 +72,31 @@ export function AssessmentRunner({
     } catch {}
   }, [answers, storageKey]);
 
-  /* Integrity deterrents: block copy/cut/paste/context-menu/print and common
+  /* Integrity deterrents: block copy/cut/context-menu/print and common
      dev-tools / save shortcuts, and flag when the candidate leaves the tab.
      Note: these are best-effort client-side deterrents. No website can fully
-     prevent an OS-level screenshot, screen recording, or a second device. */
+     prevent an OS-level screenshot, screen recording, or a second device.
+     Design-execution-plan Phase 4 / T4.3: these used to fire regardless of
+     what was focused, which meant a candidate typing their own answer
+     couldn't paste a drafted response back into the textarea, couldn't copy
+     their own in-progress text to paste it into the next question, and lost
+     any assistive input method (voice dictation, some switch-access and IME
+     tools) that inserts text via a synthetic paste. None of that helps
+     integrity -- the risk this deterrent is for is copying the *prompt* off
+     the page, not the candidate's own typing -- so paste/copy/cut/selection
+     are now only blocked when the focused element isn't a text field. */
   const [tabSwitches, setTabSwitches] = useState(0);
   useEffect(() => {
-    const block = (e: Event) => e.preventDefault();
+    const isTextField = (t: EventTarget | null) =>
+      t instanceof HTMLTextAreaElement || (t instanceof HTMLInputElement && !["radio", "checkbox"].includes(t.type));
+    const block = (e: Event) => {
+      if (!isTextField(e.target)) e.preventDefault();
+    };
     const onKeyDown = (e: KeyboardEvent) => {
       const k = e.key.toLowerCase();
       const mod = e.ctrlKey || e.metaKey;
-      if (mod && ["c", "x", "v", "p", "s", "u"].includes(k)) e.preventDefault();
+      if (mod && ["c", "x", "v"].includes(k) && !isTextField(e.target)) e.preventDefault();
+      if (mod && ["p", "s", "u"].includes(k)) e.preventDefault();
       if (e.key === "PrintScreen") e.preventDefault();
       if (mod && e.shiftKey && ["i", "j", "c"].includes(k)) e.preventDefault();
       if (e.key === "F12") e.preventDefault();
@@ -95,35 +120,80 @@ export function AssessmentRunner({
     };
   }, []);
 
-  const doSubmit = useMemo(
-    () => () => {
+  // Refs mirroring the latest answers/tabSwitches so doSubmit can read
+  // current values without needing them in its dependency list -- those two
+  // change on every keystroke and every tab switch, and this is the ONE
+  // submit function used both by the manual "slide to submit" action and by
+  // the countdown's auto-submit-on-expiry below. Design-execution-plan
+  // Phase 0 / T0.1: this used to be a useMemo depending on [answers, ...,
+  // tabSwitches], which meant a brand new function on every keystroke --
+  // and the countdown effect below depended on it, so it was torn down and
+  // rebuilt on every keystroke too. Worse, a *second*, independent expiry
+  // path lived in AssessmentTimer's onExpire callback, built with an
+  // incompatible payload shape (`answers/tabSwitches` fields) that the
+  // server action never reads (it reads `q_<questionId>`/`tab_switch_count`
+  // -- see actions.ts). AssessmentTimer's effect ran its expiry check
+  // synchronously on mount, so reopening an already-expired assessment
+  // fired that broken path before this correct one ever got a chance to
+  // run, silently submitting an empty paper. Fix: one payload builder, used
+  // by exactly one expiry trigger (this component's own countdown, right
+  // below); AssessmentTimer is now purely a display and owns no expiry
+  // logic at all.
+  const answersRef = useRef(answers);
+  const tabSwitchesRef = useRef(tabSwitches);
+  useEffect(() => {
+    answersRef.current = answers;
+    tabSwitchesRef.current = tabSwitches;
+  }, [answers, tabSwitches]);
+
+  // Design-execution-plan Phase 6 / T6.4: the submitted page used to
+  // celebrate every submission the same way, including one the countdown
+  // forced through at zero -- which reads as tone-deaf, not delightful, to
+  // someone who ran out of time. `reason` travels in the form payload so the
+  // server action (and the page it redirects to) can tell the two apart and
+  // never render a celebratory "you did it" for a timer-expiry submit.
+  const doSubmit = useCallback(
+    (reason: "manual" | "expiry" = "manual") => {
       if (submittedRef.current) return;
       submittedRef.current = true;
       const fd = new FormData();
-      for (const s of steps) fd.set(`q_${s.q.id}`, answers[s.q.id] || "");
-      fd.set("tab_switch_count", String(tabSwitches));
+      for (const s of steps) fd.set(`q_${s.q.id}`, answersRef.current[s.q.id] || "");
+      fd.set("tab_switch_count", String(tabSwitchesRef.current));
+      fd.set("submit_reason", reason);
       try {
         localStorage.removeItem(storageKey);
       } catch {}
       startTransition(() => submitAction(fd));
     },
-    [answers, steps, storageKey, submitAction, tabSwitches]
+    [steps, storageKey, submitAction]
   );
 
-  /* Countdown — auto-submit on expiry */
+  /* Countdown — auto-submit on expiry. This is the single source of truth
+     for what happens at zero; nothing else in this tree triggers a submit
+     on expiry (see the T0.1 note on doSubmit above). */
   useEffect(() => {
     const t = setInterval(() => {
       const left = Math.max(0, Math.round((deadlineMs - Date.now()) / 1000));
       setSecondsLeft(left);
       if (left <= 0) {
         clearInterval(t);
-        doSubmit();
+        doSubmit("expiry");
       }
     }, 1000);
     return () => clearInterval(t);
   }, [deadlineMs, doSubmit]);
 
   const answered = steps.filter((s) => (answers[s.q.id] || "").trim().length > 0).length;
+  // Design-execution-plan Phase 4 / T4.4: a single "X of Y answered" count
+  // hides that MCQs (already grouped first in `steps`, see the module-level
+  // comment on Step) take a couple of seconds each while written answers can
+  // take minutes -- a candidate at "8 of 10" with two open questions left has
+  // very different work ahead than one with two MCQs left. Composing the
+  // existing ordering into two honest counts, not building a second one.
+  const mcqSteps = steps.filter((s) => s.q.type === "mcq");
+  const writtenSteps = steps.filter((s) => s.q.type !== "mcq");
+  const mcqAnswered = mcqSteps.filter((s) => (answers[s.q.id] || "").trim().length > 0).length;
+  const writtenAnswered = writtenSteps.filter((s) => (answers[s.q.id] || "").trim().length > 0).length;
   const current = steps[idx];
   const set = (qid: string, val: string) => setAnswers((a) => ({ ...a, [qid]: val }));
 
@@ -185,23 +255,12 @@ export function AssessmentRunner({
     );
   }
 
-  const handleExpire = () => {
-    if (submittedRef.current) return;
-    submittedRef.current = true;
-    startTransition(async () => {
-      const fd = new FormData();
-      fd.append("answers", JSON.stringify(answers));
-      fd.append("tabSwitches", String(tabSwitches));
-      await submitAction(fd);
-    });
-  };
-
   return (
     <>
-      <AssessmentTimer deadlineMs={deadlineMs} totalQuestions={totalQuestions} onExpire={handleExpire} />
+      <AssessmentTimer deadlineMs={deadlineMs} totalQuestions={totalQuestions} />
       <div className="no-copy relative p-5 lg:p-10 max-w-3xl mx-auto">
       <div className="watermark-overlay" aria-hidden>
-        {Array.from({ length: 8 }).map((_, i) => (
+        {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="row">
             {watermarkLabel} · {new Date().toLocaleDateString()} · {caId.slice(0, 8)}
           </div>
@@ -221,13 +280,19 @@ export function AssessmentRunner({
         <div className="flex items-center justify-between gap-4 mb-3">
           <div className="min-w-0">
             <h1 className="font-bold text-foreground truncate [font-family:var(--font-display)]">{title}</h1>
-            <p className="text-[11.5px] text-faint">
-              {answered} of {steps.length} answered · autosaves as you type
+            <p className="text-2xs text-muted">
+              {mcqSteps.length > 0 && writtenSteps.length > 0
+                ? `${mcqAnswered} of ${mcqSteps.length} quick questions · ${writtenAnswered} of ${writtenSteps.length} written answers`
+                : `${answered} of ${steps.length} answered`}{" "}
+              · autosaves as you type
             </p>
           </div>
           <span
             className={`inline-flex items-center gap-2 text-sm font-bold tabular-nums px-3.5 py-2 rounded-xl ring-1 ring-inset shrink-0 ${
-              low ? "bg-red-50 text-critical ring-red-200" : "bg-surface text-foreground ring-line"
+              // Design-execution-plan Phase 4 / T4.5: amber `warning`, not
+              // `critical`/red -- a countdown running low isn't a failure
+              // state, and T0.1 already guarantees a safe auto-submit at 0:00.
+              low ? "bg-warning/10 text-warning ring-warning/30" : "bg-surface text-foreground ring-line"
             }`}
             aria-live="polite"
           >
@@ -260,21 +325,24 @@ export function AssessmentRunner({
                 >
                   <div className="flex items-center gap-3">
                     {val ? (
-                      <span className="w-5 h-5 rounded-full bg-accent text-white grid place-items-center shrink-0">
+                      <span className="w-5 h-5 rounded-full bg-brand-deep text-white grid place-items-center shrink-0">
                         <Icon name="check" className="w-3 h-3" />
                       </span>
                     ) : (
                       <span className="w-5 h-5 rounded-full ring-2 ring-inset ring-amber-400 shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
-                      <p className="text-[13px] font-medium text-foreground truncate">
+                      <p className="text-xs font-medium text-foreground truncate" {...contentLangAttr}>
                         {i + 1}. {s.q.prompt}
                       </p>
-                      <p className={`text-xs truncate ${val ? "text-muted" : "text-amber-600 font-medium"}`}>
+                      <p
+                        className={`text-xs truncate ${val ? "text-muted" : "text-amber-600 font-medium"}`}
+                        {...(val && s.q.type === "mcq" ? contentLangAttr : {})}
+                      >
                         {val ? (s.q.type === "mcq" ? optText : val) : "Not answered yet"}
                       </p>
                     </div>
-                    <Icon name="arrowRight" className="w-4 h-4 text-faint shrink-0" />
+                    <Icon name="arrowRight" className="w-4 h-4 text-muted shrink-0" />
                   </div>
                 </button>
               );
@@ -310,14 +378,16 @@ export function AssessmentRunner({
       ) : (
         /* ---------- Question stepper ---------- */
         <div className="anim-fade-in" key={current.q.id}>
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-accent-dark mb-2">
+          <p className="text-2xs font-bold uppercase tracking-[0.16em] text-accent-dark mb-2">
             Section {current.sectionIndex + 1} · {current.sectionTitle}
           </p>
           <Card className="p-6 md:p-8">
-            <p className="text-xs text-faint font-semibold mb-3 tabular-nums">
+            <p className="text-xs text-muted font-semibold mb-3 tabular-nums">
               Question {idx + 1} of {steps.length}
             </p>
-            <p className="text-lg font-semibold text-foreground leading-relaxed mb-6">{current.q.prompt}</p>
+            <p className="text-lg font-semibold text-foreground leading-relaxed mb-6" {...contentLangAttr}>
+              {current.q.prompt}
+            </p>
 
             {current.q.type === "mcq" ? (
               <div className="space-y-2.5" role="radiogroup">
@@ -329,7 +399,7 @@ export function AssessmentRunner({
                       className={`flex items-center gap-3.5 rounded-xl px-4 py-3.5 text-sm cursor-pointer border transition-all ${
                         selected
                           ? "border-accent bg-accent-soft ring-1 ring-accent"
-                          : "border-line bg-surface hover:border-faint"
+                          : "border-line bg-surface hover:border-line-strong"
                       }`}
                     >
                       <input
@@ -341,13 +411,15 @@ export function AssessmentRunner({
                         className="sr-only"
                       />
                       <span
-                        className={`w-6 h-6 rounded-lg grid place-items-center text-[11px] font-bold shrink-0 ${
-                          selected ? "bg-accent text-white" : "bg-background text-muted ring-1 ring-inset ring-line"
+                        className={`w-6 h-6 rounded-lg grid place-items-center text-2xs font-bold shrink-0 ${
+                          selected ? "bg-brand-deep text-white" : "bg-background text-muted ring-1 ring-inset ring-line"
                         }`}
                       >
                         {opt.key}
                       </span>
-                      <span className={selected ? "font-medium text-foreground" : "text-foreground"}>{opt.text}</span>
+                      <span className={selected ? "font-medium text-foreground" : "text-foreground"} {...contentLangAttr}>
+                        {opt.text}
+                      </span>
                     </label>
                   );
                 })}
@@ -359,9 +431,9 @@ export function AssessmentRunner({
                   onChange={(e) => set(current.q.id, e.target.value)}
                   rows={7}
                   placeholder="Describe a specific situation, the action you took, and the result…"
-                  className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm leading-relaxed placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
+                  className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm leading-relaxed placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent"
                 />
-                <p className="text-[11px] text-faint mt-2 tabular-nums">
+                <p className="text-2xs text-muted mt-2 tabular-nums">
                   {(answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length} words — aim for a concrete
                   situation → action → result story.
                 </p>
@@ -380,23 +452,31 @@ export function AssessmentRunner({
               Back
             </button>
 
-            <div className="hidden sm:flex items-center gap-1.5 flex-wrap justify-center">
+            <div className="hidden sm:flex items-center flex-wrap justify-center">
+              {/* Design-execution-plan Phase 4 / T4.2: the dot itself stays a
+                  small 10px visual, but the clickable button around it is
+                  24x24 -- WCAG 2.5.8. */}
               {steps.map((s, i) => (
                 <button
                   key={s.q.id}
                   onClick={() => setIdx(i)}
                   aria-label={`Go to question ${i + 1}`}
-                  className={`w-2.5 h-2.5 rounded-full transition-all ${
-                    i === idx ? "bg-brand scale-125" : (answers[s.q.id] || "").trim() ? "bg-accent" : "bg-line"
-                  }`}
-                />
+                  aria-current={i === idx ? "step" : undefined}
+                  className="w-6 h-6 grid place-items-center shrink-0"
+                >
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full transition-all ${
+                      i === idx ? "bg-brand scale-125" : (answers[s.q.id] || "").trim() ? "bg-accent" : "bg-line"
+                    }`}
+                  />
+                </button>
               ))}
             </div>
 
             {idx < steps.length - 1 ? (
               <button
                 onClick={() => setIdx((i) => Math.min(steps.length - 1, i + 1))}
-                className="inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors"
+                className="inline-flex items-center gap-2 bg-brand-deep text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors"
               >
                 Next
                 <Icon name="arrowRight" className="w-4 h-4" />
@@ -404,7 +484,7 @@ export function AssessmentRunner({
             ) : (
               <button
                 onClick={() => setReviewing(true)}
-                className="inline-flex items-center gap-2 bg-accent text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent-dark transition-colors"
+                className="inline-flex items-center gap-2 bg-brand-deep text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-accent-dark transition-colors"
               >
                 Review &amp; submit
                 <Icon name="checkCircle" className="w-4 h-4" />
@@ -412,14 +492,14 @@ export function AssessmentRunner({
             )}
           </div>
 
-          <p className="text-[11px] text-faint mt-4 flex items-center gap-1.5">
+          <p className="text-2xs text-muted mt-4 flex items-center gap-1.5">
             <Icon name="keyboard" className="w-3 h-3 shrink-0" />
             {current.q.type === "mcq"
               ? "Press A\u2013D to choose an answer, Enter for next, \u2190 \u2192 to navigate."
               : "Press Enter to continue, \u2190 \u2192 to navigate between questions."}
           </p>
 
-          {description && idx === 0 && <p className="text-xs text-faint mt-3 max-w-lg">{description}</p>}
+          {description && idx === 0 && <p className="text-xs text-muted mt-3 max-w-lg">{description}</p>}
         </div>
       )}
     </div>

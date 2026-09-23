@@ -16,6 +16,7 @@ export function ProctoredAssessmentRunner({
   submitAction,
   watermarkLabel,
   storageBackend,
+  contentLanguage,
 }: {
   caId: string;
   title: string;
@@ -26,6 +27,7 @@ export function ProctoredAssessmentRunner({
   submitAction: (formData: FormData) => Promise<void>;
   watermarkLabel: string;
   storageBackend: "supabase" | "local";
+  contentLanguage?: string | null;
 }) {
   const [stage, setStage] = useState<"consent" | "requesting" | "recording" | "error">("consent");
   const [errorMsg, setErrorMsg] = useState("");
@@ -130,7 +132,7 @@ export function ProctoredAssessmentRunner({
               ? "Your recording is uploaded securely and only visible to authorized staff and assigned decision makers."
               : "Your recording stays on this device only and is not uploaded or stored centrally."}
           </p>
-          <p className="text-xs text-faint leading-relaxed mb-6">
+          <p className="text-xs text-muted leading-relaxed mb-6">
             We record video only — this is not analyzed automatically for gestures, expressions, or emotion. You can
             decline, but the assessment can&apos;t start without camera access.
           </p>
@@ -138,7 +140,7 @@ export function ProctoredAssessmentRunner({
           <button
             onClick={requestAccess}
             disabled={stage === "requesting"}
-            className="w-full inline-flex items-center justify-center gap-2 bg-brand text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-brand-light transition-colors disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 bg-brand-deep text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-brand transition-colors disabled:opacity-60"
           >
             <Icon name="camera" className="w-4 h-4" />
             {stage === "requesting" ? "Requesting access…" : "Allow camera & begin"}
@@ -158,6 +160,7 @@ export function ProctoredAssessmentRunner({
       sections={sections}
       submitAction={wrappedSubmitAction}
       watermarkLabel={watermarkLabel}
+      contentLanguage={contentLanguage}
     />
   );
 }

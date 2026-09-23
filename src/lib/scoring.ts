@@ -28,52 +28,44 @@ export type CompetencyContext = {
 
 export type ScoringEngine = "claude" | "fugu" | "kimi";
 
-const OUTCOME_SIGNALS = [
-  "result",
-  "achiev",
-  "improv",
-  "increas",
-  "reduc",
-  "success",
-  "impact",
-  "outcome",
-  "deliver",
-];
-
-const ACTION_SIGNALS = [
-  "led",
-  "implement",
-  "develop",
-  "organiz",
-  "initiat",
-  "collaborat",
-  "resolv",
-  "communicat",
-  "propose",
-  "analyz",
-];
-
 /** Deterministic fallback -- used when no scoring engine is configured/enabled,
- *  or the AI call fails. Never blocks a submission on an outage. */
+ *  or the AI call fails. Never blocks a submission on an outage.
+ *
+ *  Design-execution-plan Phase 0 / T0.2 (fairness): this used to add points
+ *  for hitting English word stems ("result", "achiev...", "led",
+ *  "implement...", etc.) via a plain substring search. The platform
+ *  generates assessments in English, Azerbaijani and Russian, but those
+ *  stems only ever match English text -- an Azerbaijani or Russian answer
+ *  of identical quality could score at most 55 (word-count credit only),
+ *  while an equivalent English answer could reach 100. That is a real,
+ *  systematic disadvantage for two of the three languages this scorer
+ *  runs against, not a rounding difference.
+ *
+ *  Fixed by scoring length and structure only, using signals that count
+ *  the same way regardless of script: word count, and sentence-ending
+ *  punctuation (".", "!", "?" are used the same way in English,
+ *  Azerbaijani and Russian). No keyword or stem list, in any language --
+ *  the real reading-for-substance grading already happens in the LLM
+ *  prompt above when an engine is configured; this heuristic only ever
+ *  runs as its fallback, and should stay honestly "directional only"
+ *  rather than pretending to read for content it can't judge fairly. */
 function scoreTextHeuristic(text: string): ScoreResult {
   const clean = (text || "").trim();
   const words = clean.split(/\s+/).filter(Boolean);
   const wordCount = words.length;
-  const lower = clean.toLowerCase();
-
-  const outcomeHits = OUTCOME_SIGNALS.filter((s) => lower.includes(s)).length;
-  const actionHits = ACTION_SIGNALS.filter((s) => lower.includes(s)).length;
+  const sentenceEnders = (clean.match(/[.!?]/g) || []).length;
 
   let score = 30;
-  if (wordCount >= 25) score += 15;
-  if (wordCount >= 60) score += 10;
-  score += Math.min(outcomeHits, 3) * 10;
-  score += Math.min(actionHits, 3) * 5;
+  if (wordCount >= 20) score += 15;
+  if (wordCount >= 50) score += 15;
+  if (wordCount >= 90) score += 10;
+  if (sentenceEnders >= 2) score += 15;
+  if (sentenceEnders >= 4) score += 15;
   score = Math.max(0, Math.min(100, Math.round(score)));
 
   const needsReview = score < 55 || wordCount < 15;
 
-  let rationale = `Heuristic fallback scoring (no AI scoring engine configured/available): ${wordCount} words; ${actionHits} action-oriented and ${outcomeHits} outcome-oriented signal(s) detected. This is a word-count/keyword heuristic, not a model reading for substance -- directional only.`;
+  let rationale = `Heuristic fallback scoring (no AI scoring engine configured/available): ${wordCount} words, ${sentenceEnders} sentence-ending marks. This is a length/structure heuristic, scored the same way in every language the platform generates assessments in -- not a model reading for substance, directional only.`;
   if (needsReview) {
     rationale += " Flagged for human reviewer confirmation (human-in-the-loop requirement, Part 4).";
   }
@@ -95,6 +87,8 @@ Score on a 0-100 scale, matching these bands:
 Set needsReview to true whenever the score is below 55, the answer is short or ambiguous, or you are otherwise not confident. A human reviewer always confirms the final score regardless (human-in-the-loop) -- this flag only tells them where to look first.
 
 Write a rationale of 1-3 sentences, professional and factual, citing what the candidate actually said and which behavioural indicator it does or doesn't meet. Write it as a reviewer's note about the candidate, not addressed to them ("the candidate..." not "you...").
+
+The question and the candidate's answer may be in English, Azerbaijani, or Russian -- Vantage generates assessments in all three. Always write the rationale in English regardless: it's read by HR staff and decision-makers reviewing the report, not by the candidate, and the rest of that report is English throughout.
 
 Return ONLY valid JSON matching this exact shape, with no markdown fences, no commentary, no leading or trailing text:
 {"score": number, "rationale": string, "needsReview": boolean}`;

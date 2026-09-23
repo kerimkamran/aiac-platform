@@ -48,7 +48,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
         {state === "copied" ? "Link copied!" : state === "loading" ? "Generating…" : "Copy invite link"}
       </button>
       {state === "error" && (
-        <span className="absolute z-50 top-full right-0 mt-1 w-56 bg-surface border border-line rounded-lg shadow-lg px-3 py-2 text-[11px] text-critical">
+        <span className="absolute z-50 top-full right-0 mt-1 w-56 bg-surface border border-line rounded-lg shadow-lg px-3 py-2 text-2xs text-critical">
           {message}
         </span>
       )}

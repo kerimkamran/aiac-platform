@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import Link from "next/link";
 import { Icon } from "@/components/ui";
+import { InlineFormError } from "@/components/InlineFormError";
 import { generateDefaultAssessment, generateCustomAssessment, createAssessment } from "./actions";
 
 // Generation is a real, multi-step LLM call — it can legitimately take
@@ -16,7 +17,7 @@ function GenerateSubmitButton({ label, disabled }: { label: string; disabled: bo
   return (
     <button
       disabled={disabled || pending}
-      className="w-full inline-flex items-center justify-center gap-2 bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+      className="w-full inline-flex items-center justify-center gap-2 bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
     >
       {pending ? (
         <>
@@ -127,25 +128,25 @@ export function CreateAssessmentPanel({
               key={p.key}
               type="button"
               onClick={() => setPurpose(p.key)}
-              className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-[12.5px] font-semibold transition-colors text-center ${
+              className={`flex flex-col items-center gap-1.5 rounded-xl border px-3 py-3 text-xs font-semibold transition-colors text-center ${
                 purpose === p.key
-                  ? "border-brand bg-brand/5 text-brand"
+                  ? "border-brand bg-brand/5 text-accent-dark"
                   : "border-line text-muted hover:border-brand/40 hover:text-foreground"
               }`}
             >
-              <Icon name={p.icon} className={`w-4 h-4 ${purpose === p.key ? "text-brand" : "text-faint"}`} />
+              <Icon name={p.icon} className={`w-4 h-4 ${purpose === p.key ? "text-accent-dark" : "text-muted"}`} />
               {p.label}
             </button>
           ))}
         </div>
-        <p className="text-[11.5px] text-faint">{activePurpose.blurb}</p>
+        <p className="text-2xs text-muted">{activePurpose.blurb}</p>
       </div>
 
       <div className="bg-surface border border-line rounded-2xl shadow-[0_1px_2px_rgba(16,28,44,0.04)] p-6">
         <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
           <Icon name="wand" className="w-4 h-4 text-accent-dark" />
           Create assessment
-          <span className="text-[9.5px] font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-2 py-0.5 rounded-full ml-auto">
+          <span className="text-2xs font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-2 py-0.5 rounded-full ml-auto">
             AI-generated
           </span>
         </p>
@@ -165,28 +166,28 @@ export function CreateAssessmentPanel({
         )}
 
         {/* Step 1: scope */}
-        <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">1. Auto-generate</p>
+        <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">1. Auto-generate</p>
         <div className="grid grid-cols-2 gap-2 mb-4">
           {SCOPES.map((s) => (
             <button
               key={s.key}
               type="button"
               onClick={() => setScope(s.key)}
-              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-[13px] font-semibold transition-colors ${
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-xs font-semibold transition-colors ${
                 scope === s.key
-                  ? "border-brand bg-brand/5 text-brand"
+                  ? "border-brand bg-brand/5 text-accent-dark"
                   : "border-line text-muted hover:border-brand/40 hover:text-foreground"
               }`}
             >
-              <Icon name={s.icon} className={`w-4 h-4 ${scope === s.key ? "text-brand" : "text-faint"}`} />
+              <Icon name={s.icon} className={`w-4 h-4 ${scope === s.key ? "text-accent-dark" : "text-muted"}`} />
               {s.label}
             </button>
           ))}
         </div>
-        <p className="text-[11.5px] text-faint mb-4 -mt-2">{activeScope.blurb}</p>
+        <p className="text-2xs text-muted mb-4 -mt-2">{activeScope.blurb}</p>
 
         {/* Step 2: engine, with cost/quality info */}
-        <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">2. Choose an engine</p>
+        <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">2. Choose an engine</p>
         <div className="space-y-1.5 mb-3">
           {(["claude", "fugu", "kimi"] as const).map((key) => {
             const info = ENGINE_INFO[key];
@@ -208,21 +209,22 @@ export function CreateAssessmentPanel({
                   onChange={() => setEngine(key)}
                 />
                 <span className="min-w-0">
-                  <span className="flex items-center gap-2 text-[12.5px] font-bold text-foreground">
+                  <span className="flex items-center gap-2 text-xs font-bold text-foreground">
                     {meta?.display_name || key}
-                    <span className="text-[9.5px] font-semibold uppercase tracking-wide text-faint">{info.quality}</span>
-                    {!ready && <span className="text-[9.5px] font-semibold text-amber-600">(not configured)</span>}
+                    <span className="text-2xs font-semibold uppercase tracking-wide text-muted">{info.quality}</span>
+                    {!ready && <span className="text-2xs font-semibold text-amber-600">(not configured)</span>}
                   </span>
-                  <span className="block text-[11.5px] text-muted">{info.tagline}</span>
-                  <span className="block text-[10.5px] text-faint mt-0.5">{info.cost}</span>
+                  <span className="block text-2xs text-muted">{info.tagline}</span>
+                  <span className="block text-2xs text-muted mt-0.5">{info.cost}</span>
                 </span>
               </label>
             );
           })}
         </div>
+        <InlineFormError field="engine" className="text-xs font-medium text-critical -mt-1.5 mb-3" />
 
         <div>
-          <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-2">Case language</p>
+          <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Case language</p>
           <div className="flex gap-2">
             {([["en", "English"], ["az", "Azərbaycanca"], ["ru", "Русский"]] as const).map(([code, label]) => (
               <button
@@ -230,14 +232,14 @@ export function CreateAssessmentPanel({
                 type="button"
                 onClick={() => setLanguage(code)}
                 className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors ${
-                  language === code ? "border-brand bg-brand/5 text-foreground" : "border-line text-muted hover:border-faint"
+                  language === code ? "border-brand bg-brand/5 text-foreground" : "border-line text-muted hover:border-line-strong"
                 }`}
               >
                 {label}
               </button>
             ))}
           </div>
-          <p className="text-[10.5px] text-faint mt-1.5">All generated cases, questions, and options are written in this language.</p>
+          <p className="text-2xs text-muted mt-1.5">All generated cases, questions, and options are written in this language.</p>
         </div>
 
         {/* Step 3: details + submit, per scope */}
@@ -246,24 +248,25 @@ export function CreateAssessmentPanel({
             <input type="hidden" name="engine" value={engine} />
             <input type="hidden" name="purpose" value={purpose} />
             <input type="hidden" name="language" value={language} />
-            <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">3. Title &amp; competencies</p>
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted">3. Title &amp; competencies</p>
             <input
               name="title"
               required
               placeholder="Assessment title"
               disabled={!anyConfigured}
-              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             />
+            <InlineFormError field="title" />
             {compGroups.length === 0 ? (
-              <p className="text-xs text-faint">No competencies found in the library yet.</p>
+              <p className="text-xs text-muted">No competencies found in the library yet.</p>
             ) : (
               <div className="max-h-56 overflow-y-auto border border-line rounded-xl p-3 space-y-3 bg-background">
                 {compGroups.map((g) => (
                   <div key={g.cat}>
-                    <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-1.5">{g.cat}</p>
+                    <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-1.5">{g.cat}</p>
                     <div className="space-y-1">
                       {g.items.map((c) => (
-                        <label key={c.id} className="flex items-center gap-2 text-[13px] cursor-pointer">
+                        <label key={c.id} className="flex items-center gap-2 text-xs cursor-pointer">
                           <input
                             type="checkbox"
                             name="competency_ids"
@@ -279,6 +282,7 @@ export function CreateAssessmentPanel({
                 ))}
               </div>
             )}
+            <InlineFormError field="competencies" />
             <GenerateSubmitButton label="Generate assessment" disabled={!anyConfigured || !engine} />
           </form>
         ) : (
@@ -286,12 +290,12 @@ export function CreateAssessmentPanel({
             <input type="hidden" name="engine" value={engine} />
             <input type="hidden" name="purpose" value={purpose} />
             <input type="hidden" name="language" value={language} />
-            <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">3. Optional title</p>
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted">3. Optional title</p>
             <input
               name="title"
               placeholder={`${activeScope.label} Competency Assessment (Default)`}
               disabled={!anyConfigured}
-              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
+              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50"
             />
             <GenerateSubmitButton label={`Generate ${activeScope.label} assessment`} disabled={!anyConfigured || !engine} />
           </form>
@@ -302,7 +306,7 @@ export function CreateAssessmentPanel({
         <button
           type="button"
           onClick={() => setShowBlank((v) => !v)}
-          className="w-full flex items-center justify-between text-[12.5px] font-semibold text-muted hover:text-foreground"
+          className="w-full flex items-center justify-between text-xs font-semibold text-muted hover:text-foreground"
         >
           Prefer to start from a blank draft instead?
           <Icon name={showBlank ? "x" : "plus"} className="w-4 h-4" />
@@ -314,13 +318,13 @@ export function CreateAssessmentPanel({
               name="title"
               required
               placeholder="e.g. Graduate Trainee — Core Assessment"
-              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <textarea
               name="description"
               placeholder="What this assessment measures and who it's for…"
               rows={2}
-              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <div>
               <label className="text-xs font-semibold text-muted block mb-1.5">Time limit (minutes)</label>
@@ -332,7 +336,7 @@ export function CreateAssessmentPanel({
                 className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
-            <button className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors">
+            <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">
               Create empty draft
             </button>
           </form>

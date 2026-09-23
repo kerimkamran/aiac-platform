@@ -1,54 +1,11 @@
 "use client";
 
-// A warm, tasteful "you did it" moment for candidates right after they submit
-// a timed assessment — small delight, deterministic (no Math.random at render
-// time so server/client markup always matches) confetti + a hand-drawn seal.
-
-const CONFETTI_COLORS = ["var(--brand)", "var(--accent)", "var(--chart-3)", "var(--brand-light)"];
-const PIECE_COUNT = 26;
-
-function pseudoRandom(seed: number, salt: number) {
-  const x = Math.sin(seed * 999 + salt * 37.13) * 10000;
-  return x - Math.floor(x);
-}
-
-export function ConfettiBurst() {
-  const pieces = Array.from({ length: PIECE_COUNT }, (_, i) => {
-    const left = pseudoRandom(i, 1) * 100;
-    const drift = (pseudoRandom(i, 2) - 0.5) * 140;
-    const spin = 180 + pseudoRandom(i, 3) * 360;
-    const delay = pseudoRandom(i, 4) * 0.5;
-    const duration = 2 + pseudoRandom(i, 5) * 1.2;
-    const size = 5 + pseudoRandom(i, 6) * 5;
-    const color = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
-    const round = i % 3 === 0;
-    return { left, drift, spin, delay, duration, size, color, round, key: i };
-  });
-
-  return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 h-full overflow-hidden" aria-hidden>
-      {pieces.map((p) => (
-        <span
-          key={p.key}
-          className="confetti-piece absolute top-0"
-          style={
-            {
-              left: `${p.left}%`,
-              width: p.size,
-              height: p.size * (p.round ? 1 : 2.2),
-              background: p.color,
-              borderRadius: p.round ? "9999px" : "2px",
-              animationDelay: `${p.delay}s`,
-              animationDuration: `${p.duration}s`,
-              ["--drift" as string]: `${p.drift}px`,
-              ["--spin" as string]: `${p.spin}deg`,
-            } as React.CSSProperties
-          }
-        />
-      ))}
-    </div>
-  );
-}
+// A calm, professional "it's in" confirmation for candidates right after they
+// submit an assessment -- a hand-drawn seal, no confetti. Design-execution-
+// plan Phase 6 / T6.4: confetti previously fired on every submission,
+// including one the countdown forced through at zero -- distracting at best
+// and tone-deaf at worst for a job assessment. Removed rather than toned
+// down, per the plan's own recommendation.
 
 export function SubmissionSeal() {
   return (

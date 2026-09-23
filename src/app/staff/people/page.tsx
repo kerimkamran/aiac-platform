@@ -109,14 +109,14 @@ export default async function PeoplePage({
       {editingUser && (
         <Card className="p-6 mb-8 border-brand/20">
           <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-            <Icon name="wand" className="w-4 h-4 text-brand" />
+            <Icon name="wand" className="w-4 h-4 text-accent-dark" />
             Edit {editingUser.full_name}
           </p>
           <p className="text-xs text-muted mb-4">{editingUser.email}</p>
           <form action={updateUserRole} className="grid sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
             <input type="hidden" name="user_id" value={editingUser.id} />
             <div>
-              <label className="text-[11px] font-semibold text-muted block mb-1">Role</label>
+              <label className="text-2xs font-semibold text-muted block mb-1">Role</label>
               <select
                 name="role"
                 defaultValue={editingUser.role}
@@ -133,7 +133,7 @@ export default async function PeoplePage({
               </select>
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-muted block mb-1">Department / structure</label>
+              <label className="text-2xs font-semibold text-muted block mb-1">Department / structure</label>
               <input
                 name="department"
                 defaultValue={editingUser.department || ""}
@@ -142,7 +142,7 @@ export default async function PeoplePage({
               />
             </div>
             <div className="flex gap-2">
-              <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">
+              <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
                 Save
               </button>
               <Link
@@ -154,14 +154,14 @@ export default async function PeoplePage({
             </div>
           </form>
           {!isSuperAdmin && (
-            <p className="text-[11px] text-faint mt-3">
+            <p className="text-2xs text-muted mt-3">
               Only the super admin can grant Admin or Super Admin. You can grant Recruiter or Hiring Manager.
             </p>
           )}
           {(isSuperAdmin || editingUser.role !== "system_admin") && (
             <div className="mt-4 pt-4 border-t border-line">
-              <p className="text-[11px] font-semibold text-muted mb-2">Set password directly</p>
-              <p className="text-[11px] text-faint mb-2">
+              <p className="text-2xs font-semibold text-muted mb-2">Set password directly</p>
+              <p className="text-2xs text-muted mb-2">
                 Sets their password immediately — no email or link. Use when they need working credentials right now.
               </p>
               <SetPasswordButton userId={editingUser.id} userName={editingUser.full_name} />
@@ -173,7 +173,7 @@ export default async function PeoplePage({
       <div className="grid md:grid-cols-2 gap-5 mb-5">
         <Card id="add-candidate" className="p-6 scroll-mt-6">
           <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-            <Icon name="users" className="w-4 h-4 text-brand" />
+            <Icon name="users" className="w-4 h-4 text-accent-dark" />
             Add a candidate
           </p>
           <p className="text-xs text-muted mb-4">Creates the account, assigns an assessment package, and emails an invite link to set a password.</p>
@@ -182,7 +182,7 @@ export default async function PeoplePage({
             <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <div>
-              <label className="text-[11px] font-semibold text-muted block mb-1">Assessment package</label>
+              <label className="text-2xs font-semibold text-muted block mb-1">Assessment package</label>
               <select
                 name="assessment_id"
                 className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
@@ -196,11 +196,11 @@ export default async function PeoplePage({
                 ))}
               </select>
               {(assessmentOptions || []).length === 0 && (
-                <p className="text-[11px] text-faint mt-1">No published assessments yet — publish one in the Builder first.</p>
+                <p className="text-2xs text-muted mt-1">No published assessments yet — publish one in the Builder first.</p>
               )}
             </div>
             <div>
-              <label className="text-[11px] font-semibold text-muted block mb-1">Deadline (optional)</label>
+              <label className="text-2xs font-semibold text-muted block mb-1">Deadline (optional)</label>
               <input
                 type="date"
                 name="due_date"
@@ -208,7 +208,7 @@ export default async function PeoplePage({
                 className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
-            <button className="inline-flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+            <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
               <Icon name="plus" className="w-4 h-4" />
               Add & invite candidate
             </button>
@@ -217,7 +217,7 @@ export default async function PeoplePage({
 
         <Card className="p-6">
           <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-            <Icon name="shield" className="w-4 h-4 text-brand" />
+            <Icon name="shield" className="w-4 h-4 text-accent-dark" />
             Add a decision maker
           </p>
           <p className="text-xs text-muted mb-4">
@@ -227,7 +227,7 @@ export default async function PeoplePage({
           <form action={addDecisionMaker} className="space-y-3">
             <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <button className="inline-flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+            <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
               <Icon name="plus" className="w-4 h-4" />
               Add & invite decision maker
             </button>
@@ -237,7 +237,7 @@ export default async function PeoplePage({
 
       <Card id="add-staff" className="p-6 mb-5 scroll-mt-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="building" className="w-4 h-4 text-brand" />
+          <Icon name="building" className="w-4 h-4 text-accent-dark" />
           Add a staff member
         </p>
         <p className="text-xs text-muted mb-4">
@@ -255,7 +255,7 @@ export default async function PeoplePage({
             ))}
           </select>
           <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-          <button className="sm:col-span-2 inline-flex items-center justify-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+          <button className="sm:col-span-2 inline-flex items-center justify-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
             <Icon name="plus" className="w-4 h-4" />
             Add & invite staff member
           </button>
@@ -264,7 +264,7 @@ export default async function PeoplePage({
 
       <Card id="bulk-upload" className="p-6 mb-8 scroll-mt-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="users" className="w-4 h-4 text-brand" />
+          <Icon name="users" className="w-4 h-4 text-accent-dark" />
           Bulk add candidates (CSV)
         </p>
         <p className="text-xs text-muted mb-4">
@@ -275,7 +275,7 @@ export default async function PeoplePage({
           <a
             href="data:text/csv;charset=utf-8,full_name%2Cemail%2Cdepartment%0AJane%20Doe%2Cjane%40example.com%2COperations"
             download="candidate-upload-template.csv"
-            className="text-brand font-semibold hover:underline"
+            className="text-accent-dark font-semibold hover:underline"
           >
             Download template
           </a>
@@ -286,9 +286,9 @@ export default async function PeoplePage({
             type="file"
             accept=".csv,text/csv"
             required
-            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand file:text-white file:text-sm file:font-semibold file:cursor-pointer"
+            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand-deep file:text-white file:text-sm file:font-semibold file:cursor-pointer"
           />
-          <button className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0">
+          <button className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0">
             <Icon name="download" className="w-4 h-4 rotate-180" />
             Upload & invite all
           </button>
@@ -297,12 +297,12 @@ export default async function PeoplePage({
 
       {/* Search & filter */}
       <form action="/staff/people" className="flex flex-wrap items-center gap-2.5 mb-4">
-        <Icon name="search" className="w-4 h-4 text-faint" />
+        <Icon name="search" className="w-4 h-4 text-muted" />
         <input
           name="q"
           defaultValue={q}
           placeholder="Search name or email…"
-          className="flex-1 min-w-48 max-w-xs bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex-1 min-w-48 max-w-xs bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <select name="role" defaultValue={roleFilter} className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
           <option value="">All roles</option>
@@ -318,7 +318,7 @@ export default async function PeoplePage({
           <option value="active">Active</option>
           <option value="deactivated">Deactivated</option>
         </select>
-        <button className="bg-brand text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand-light transition-colors">
+        <button className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors">
           Apply
         </button>
         {(q || roleFilter || statusFilter) && (
@@ -357,14 +357,14 @@ export default async function PeoplePage({
           </select>
           <ConfirmSubmitButton
             confirmMessage="Apply this bulk action to everyone selected below?"
-            className="bg-brand text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-light transition-colors"
+            className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand transition-colors"
           >
             Apply to selected
           </ConfirmSubmitButton>
-          <span className="text-[11px] text-faint">Select people in the table below, then apply.</span>
+          <span className="text-2xs text-muted">Select people in the table below, then apply.</span>
         </form>
         <table className="w-full text-sm">
-          <thead className="text-faint text-[11px] uppercase tracking-wider border-y border-line">
+          <thead className="text-muted text-2xs uppercase tracking-wider border-y border-line">
             <tr>
               <th className="px-6 py-3 w-8">
                 <SelectAllCheckbox formId="bulk-staff-form" name="user_ids" />
@@ -384,22 +384,25 @@ export default async function PeoplePage({
                 <tr key={p.id}>
                   <td className="px-6 py-3">
                     {!isSelf && (
-                      <input
-                        type="checkbox"
-                        name="user_ids"
-                        value={p.id}
-                        form="bulk-staff-form"
-                        className="w-3.5 h-3.5 rounded border-line accent-brand"
-                      />
+                      <label className="grid place-items-center w-6 h-6 -m-1 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          name="user_ids"
+                          value={p.id}
+                          form="bulk-staff-form"
+                          aria-label={`Select ${p.full_name}`}
+                          className="w-3.5 h-3.5 rounded border-line accent-brand"
+                        />
+                      </label>
                     )}
                   </td>
                   <td className="px-6 py-3">
                     <div className="flex items-center gap-3">
-                      <Avatar name={p.full_name} className="w-8 h-8 text-[11px]" />
+                      <Avatar name={p.full_name} className="w-8 h-8 text-2xs" />
                       <div>
                         <p className="font-semibold text-foreground">
                           {p.full_name}
-                          {isSelf && <span className="text-faint font-normal"> (you)</span>}
+                          {isSelf && <span className="text-muted font-normal"> (you)</span>}
                         </p>
                         <p className="text-xs text-muted">{p.email}</p>
                       </div>
@@ -410,7 +413,7 @@ export default async function PeoplePage({
                   <td className="px-6 py-3">
                     <StatusBadge status={p.status} />
                   </td>
-                  <td className="px-6 py-3 text-faint text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
+                  <td className="px-6 py-3 text-muted text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-3 text-right">
                     {!isSelf && (
                       <div className="flex items-center justify-end gap-3">
@@ -436,7 +439,7 @@ export default async function PeoplePage({
             })}
             {staffRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-faint text-sm">
+                <td colSpan={7} className="px-6 py-8 text-center text-muted text-sm">
                   No matching staff members.
                 </td>
               </tr>
@@ -488,14 +491,14 @@ export default async function PeoplePage({
           )}
           <ConfirmSubmitButton
             confirmMessage="Apply this bulk action to everyone selected below?"
-            className="bg-brand text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-light transition-colors"
+            className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand transition-colors"
           >
             Apply to selected
           </ConfirmSubmitButton>
-          <span className="text-[11px] text-faint">Select candidates in the table below, then apply.</span>
+          <span className="text-2xs text-muted">Select candidates in the table below, then apply.</span>
         </form>
         <table className="w-full text-sm">
-          <thead className="text-faint text-[11px] uppercase tracking-wider border-y border-line">
+          <thead className="text-muted text-2xs uppercase tracking-wider border-y border-line">
             <tr>
               <th className="px-6 py-3 w-8">
                 <SelectAllCheckbox formId="bulk-candidates-form" name="user_ids" />
@@ -512,17 +515,20 @@ export default async function PeoplePage({
             {candidateRows.map((p) => (
               <tr key={p.id}>
                 <td className="px-6 py-3">
-                  <input
-                    type="checkbox"
-                    name="user_ids"
-                    value={p.id}
-                    form="bulk-candidates-form"
-                    className="w-3.5 h-3.5 rounded border-line accent-brand"
-                  />
+                  <label className="grid place-items-center w-6 h-6 -m-1 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      name="user_ids"
+                      value={p.id}
+                      form="bulk-candidates-form"
+                      aria-label={`Select ${p.full_name}`}
+                      className="w-3.5 h-3.5 rounded border-line accent-brand"
+                    />
+                  </label>
                 </td>
                 <td className="px-6 py-3">
                   <div className="flex items-center gap-3">
-                    <Avatar name={p.full_name} className="w-8 h-8 text-[11px]" />
+                    <Avatar name={p.full_name} className="w-8 h-8 text-2xs" />
                     <div>
                       <p className="font-semibold text-foreground">{p.full_name}</p>
                       <p className="text-xs text-muted">{p.email}</p>
@@ -530,16 +536,16 @@ export default async function PeoplePage({
                   </div>
                 </td>
                 <td className="px-6 py-3">
-                  <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${p.is_employee ? "bg-brand-50 text-brand ring-brand/20" : "bg-line-soft text-muted ring-line"}`}>
+                  <span className={`inline-flex items-center text-2xs font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${p.is_employee ? "bg-brand-50 text-accent-dark ring-brand/20" : "bg-line-soft text-muted ring-line"}`}>
                     {p.is_employee ? "Employee" : "External candidate"}
                   </span>
-                  {p.job_title && <p className="text-[11px] text-faint mt-1">{p.job_title}</p>}
+                  {p.job_title && <p className="text-2xs text-muted mt-1">{p.job_title}</p>}
                 </td>
                 <td className="px-6 py-3 text-muted">{p.department || "—"}</td>
                 <td className="px-6 py-3">
                   <StatusBadge status={p.status} />
                 </td>
-                <td className="px-6 py-3 text-faint text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
+                <td className="px-6 py-3 text-muted text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-3 text-right">
                   <div className="flex items-center justify-end gap-3">
                     <Link href={`/staff/people${qs({ edit: p.id })}`} className="text-accent-dark text-xs font-semibold hover:underline">
@@ -566,7 +572,7 @@ export default async function PeoplePage({
             ))}
             {candidateRows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-6 py-8 text-center text-faint text-sm">
+                <td colSpan={7} className="px-6 py-8 text-center text-muted text-sm">
                   No matching candidates.
                 </td>
               </tr>

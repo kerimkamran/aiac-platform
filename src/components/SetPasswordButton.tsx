@@ -86,11 +86,11 @@ export function SetPasswordButton({ userId, userName }: { userId: string; userNa
       >
         {state === "loading" ? "Setting…" : "Save"}
       </button>
-      <button type="button" onClick={reset} className="text-faint text-xs font-semibold hover:underline">
+      <button type="button" onClick={reset} className="text-muted text-xs font-semibold hover:underline">
         Cancel
       </button>
-      {state === "error" && <span className="text-[11px] text-critical">{message}</span>}
-      {state === "done" && <span className="text-[11px] text-good">{message}</span>}
+      {state === "error" && <span className="text-2xs text-critical">{message}</span>}
+      {state === "done" && <span className="text-2xs text-good">{message}</span>}
     </form>
   );
 }

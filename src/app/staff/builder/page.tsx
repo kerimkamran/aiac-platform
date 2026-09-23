@@ -106,15 +106,15 @@ export default async function BuilderListPage({
                     <p className="font-bold text-foreground truncate">{a.title}</p>
                     <div className="flex items-center gap-2 shrink-0">
                       {a.mode !== "manual" && (
-                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
+                        <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
                           {MODE_LABEL[a.mode] || a.mode}
                         </span>
                       )}
                       <StatusBadge status={a.status} />
                     </div>
                   </div>
-                  {a.description && <p className="text-[13px] text-muted line-clamp-1 mb-2.5">{a.description}</p>}
-                  <p className="text-xs text-faint flex items-center gap-4 flex-wrap">
+                  {a.description && <p className="text-xs text-muted line-clamp-1 mb-2.5">{a.description}</p>}
+                  <p className="text-xs text-muted flex items-center gap-4 flex-wrap">
                     <span className="inline-flex items-center gap-1.5">
                       <Icon name="layers" className="w-3.5 h-3.5" />
                       {(a.assessment_sections || []).length} section{(a.assessment_sections || []).length === 1 ? "" : "s"}
@@ -138,15 +138,15 @@ export default async function BuilderListPage({
                     <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
                   )}
                   <form action={duplicateAssessment.bind(null, a.id)}>
-                    <button className="text-[11px] font-semibold text-accent-dark hover:underline">Duplicate</button>
+                    <button className="text-2xs font-semibold text-accent-dark hover:underline">Duplicate</button>
                   </form>
                   <form action={setAssessmentArchived.bind(null, a.id, a.status !== "archived")}>
-                    <button className="text-[11px] font-semibold text-faint hover:text-foreground hover:underline">
+                    <button className="text-2xs font-semibold text-muted hover:text-foreground hover:underline">
                       {a.status === "archived" ? "Restore" : "Archive"}
                     </button>
                   </form>
                   {a.status === "draft" && (
-                    <span className="text-[11px] text-faint ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
+                    <span className="text-2xs text-muted ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
                   )}
                 </div>
                 {isAdmin && (
@@ -154,7 +154,8 @@ export default async function BuilderListPage({
                     <ConfirmSubmitButton
                       confirmMessage={`Delete "${a.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
                       icon="trash"
-                      className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                      label={`Delete "${a.title}"`}
+                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
                       compact
                     />
                   </form>
@@ -195,13 +196,13 @@ export default async function BuilderListPage({
                   name="title"
                   required
                   placeholder="e.g. Graduate Trainee — Core Assessment"
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <textarea
                   name="description"
                   placeholder="What this assessment measures and who it's for…"
                   rows={3}
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <div>
                   <label className="text-xs font-semibold text-muted block mb-1.5">Time limit (minutes)</label>
@@ -213,10 +214,10 @@ export default async function BuilderListPage({
                     className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
-                <button className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors">
+                <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">
                   Create draft
                 </button>
-                <p className="text-[11px] text-faint">
+                <p className="text-2xs text-muted">
                   Drafts stay private until you publish. You&apos;ll add sections and questions next. Ask an HR admin
                   about AI-generated assessments.
                 </p>

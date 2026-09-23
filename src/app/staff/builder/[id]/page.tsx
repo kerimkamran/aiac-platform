@@ -12,12 +12,15 @@ import {
   updateSectionTarget,
   deleteSection,
   deleteQuestion,
+  moveSection,
+  moveQuestion,
 } from "../actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { normalizePurpose } from "@/lib/purpose";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { CaseLibraryPicker } from "@/components/CaseLibraryPicker";
+import { InlineFormError } from "@/components/InlineFormError";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -146,7 +149,7 @@ export default async function BuilderDetailPage({
               icon="zap"
               tone="accent"
               disabled={questionCount === 0}
-              className="inline-flex items-center gap-2 bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-50"
+              className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-50"
             >
               Publish
             </ConfirmSubmitButton>
@@ -193,7 +196,7 @@ export default async function BuilderDetailPage({
                 defaultValue={assessment.time_limit_minutes}
                 className="w-32 bg-background border border-line rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <button className="ml-auto bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-light transition-colors">
+              <button className="ml-auto bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
                 Save changes
               </button>
             </div>
@@ -205,7 +208,7 @@ export default async function BuilderDetailPage({
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="camera" className="w-4 h-4 text-brand" />
+          <Icon name="camera" className="w-4 h-4 text-accent-dark" />
           Proctoring
         </p>
         <p className="text-xs text-muted mb-4">
@@ -241,7 +244,7 @@ export default async function BuilderDetailPage({
               <option value="local">Candidate&apos;s device only (not uploaded)</option>
             </select>
           </label>
-          <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">
+          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
             Save
           </button>
         </form>
@@ -264,17 +267,45 @@ export default async function BuilderDetailPage({
               <Card key={section.id} className="p-6">
                 <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                   <p className="font-bold text-foreground">
-                    <span className="text-faint font-semibold mr-2">S{si + 1}</span>
+                    <span className="text-muted font-semibold mr-2">S{si + 1}</span>
                     {section.title}
                   </p>
                   <div className="flex items-center gap-2">
                     {comp && (
-                      <span className="text-[11px] font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-full">
+                      <span className="text-2xs font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-full">
                         {comp.name}
                       </span>
                     )}
+                    {/* Design-execution-plan Phase 5 / T5.3: there was no way
+                        to reorder sections or questions before this -- only
+                        add and delete. Keyboard-operable up/down buttons
+                        only; no drag path, since a drag-only reorder would
+                        fail WCAG 2.5.7 exactly like SwipeToConfirm did
+                        before Phase 4's T4.1 fix. */}
+                    <div className="flex items-center gap-0.5">
+                      <form action={moveSection.bind(null, section.id, id, "up")}>
+                        <button
+                          type="submit"
+                          disabled={si === 0}
+                          aria-label={`Move section "${section.title}" up`}
+                          className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-line-soft transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          <Icon name="arrowUp" className="w-4 h-4" />
+                        </button>
+                      </form>
+                      <form action={moveSection.bind(null, section.id, id, "down")}>
+                        <button
+                          type="submit"
+                          disabled={si === (sections || []).length - 1}
+                          aria-label={`Move section "${section.title}" down`}
+                          className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-line-soft transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                        >
+                          <Icon name="arrowDown" className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
                     <form action={updateSectionTarget.bind(null, section.id, id)} className="flex items-center gap-1.5">
-                      <label className="text-[10.5px] font-semibold text-faint" htmlFor={`target-${section.id}`}>
+                      <label className="text-2xs font-semibold text-muted" htmlFor={`target-${section.id}`}>
                         Target
                       </label>
                       <input
@@ -287,37 +318,62 @@ export default async function BuilderDetailPage({
                         placeholder="—"
                         className="w-14 bg-surface border border-line rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-accent"
                       />
-                      <button className="text-[10.5px] font-semibold text-accent-dark hover:underline">Set</button>
+                      <button className="text-2xs font-semibold text-accent-dark hover:underline">Set</button>
                     </form>
                     <form action={deleteSection.bind(null, section.id, id)}>
                       <ConfirmSubmitButton
                         confirmMessage={`Delete section "${section.title}" and all its questions?`}
                         icon="trash"
-                        className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                        label={`Delete section "${section.title}"`}
+                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
                         compact
                       />
                     </form>
                   </div>
                 </div>
+                <InlineFormError field={`target_score-${section.id}`} className="text-xs font-medium text-critical -mt-3 mb-4" />
 
                 <div className="space-y-3 mb-4">
                   {questions.map((q, qi) => (
                     <div key={q.id} className="border border-line rounded-xl px-4 py-3">
                       <div className="flex items-start justify-between gap-3">
                         <p className="text-sm text-foreground">
-                          <span className="text-faint font-semibold mr-1.5">{qi + 1}.</span>
+                          <span className="text-muted font-semibold mr-1.5">{qi + 1}.</span>
                           {q.prompt}
                         </p>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-muted bg-background ring-1 ring-inset ring-line px-2 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-2xs font-semibold text-muted bg-background ring-1 ring-inset ring-line px-2 py-1 rounded-full">
                             <Icon name={q.question_type === "mcq" ? "checkCircle" : "file"} className="w-3 h-3" />
                             {q.question_type === "mcq" ? "MCQ" : "Open"} · w{q.weight}
                           </span>
+                          <div className="flex items-center gap-0.5">
+                            <form action={moveQuestion.bind(null, q.id, section.id, id, "up")}>
+                              <button
+                                type="submit"
+                                disabled={qi === 0}
+                                aria-label={`Move question ${qi + 1} up`}
+                                className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-line-soft transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                              >
+                                <Icon name="arrowUp" className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                            <form action={moveQuestion.bind(null, q.id, section.id, id, "down")}>
+                              <button
+                                type="submit"
+                                disabled={qi === questions.length - 1}
+                                aria-label={`Move question ${qi + 1} down`}
+                                className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-line-soft transition-colors disabled:opacity-30 disabled:pointer-events-none"
+                              >
+                                <Icon name="arrowDown" className="w-3.5 h-3.5" />
+                              </button>
+                            </form>
+                          </div>
                           <form action={deleteQuestion.bind(null, q.id, section.id, id)}>
                             <ConfirmSubmitButton
                               confirmMessage="Delete this question?"
                               icon="trash"
-                              className="p-1 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                              label={`Delete question ${qi + 1}`}
+                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
                               compact
                             />
                           </form>
@@ -334,7 +390,7 @@ export default async function BuilderDetailPage({
                       )}
                     </div>
                   ))}
-                  {questions.length === 0 && <p className="text-xs text-faint">No questions yet — add the first one below.</p>}
+                  {questions.length === 0 && <p className="text-xs text-muted">No questions yet — add the first one below.</p>}
                 </div>
 
                 <details className="group">
@@ -361,7 +417,7 @@ export default async function BuilderDetailPage({
                       required
                       placeholder="Question prompt — e.g. 'Describe a time you had to deliver a result under a tight deadline…'"
                       rows={2}
-                      className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                      className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[0, 1, 2, 3].map((i) => (
@@ -369,7 +425,7 @@ export default async function BuilderDetailPage({
                           key={i}
                           name="option_text"
                           placeholder={`Option ${String.fromCharCode(65 + i)} (MCQ)`}
-                          className="bg-surface border border-line rounded-xl px-3 py-2 text-xs placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                          className="bg-surface border border-line rounded-xl px-3 py-2 text-xs placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       ))}
                     </div>
@@ -383,7 +439,7 @@ export default async function BuilderDetailPage({
                         <input name="weight" type="number" min={1} defaultValue={1} className="w-16 bg-surface border border-line rounded-lg px-2 py-1.5" />
                       </label>
                     </div>
-                    <button className="bg-brand text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand-light transition-colors">
+                    <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
                       Add question
                     </button>
                   </form>
@@ -424,10 +480,10 @@ export default async function BuilderDetailPage({
                 name="title"
                 required
                 placeholder="Section title — e.g. 'Communication scenarios'"
-                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <CompetencySelect name="competency_id" competencies={compList} required placeholder="Map to a competency…" />
-              <button className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors">
+              <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">
                 Add section
               </button>
             </form>
@@ -445,7 +501,7 @@ export default async function BuilderDetailPage({
           </p>
           <p className="text-xs text-muted mb-4">
             To invite or assign someone to this assessment, go to{" "}
-            <Link href="/staff/people" className="font-semibold text-brand hover:underline">
+            <Link href="/staff/people" className="font-semibold text-accent-dark hover:underline">
               People &amp; Access
             </Link>{" "}
             and pick this assessment as the package.
@@ -454,7 +510,7 @@ export default async function BuilderDetailPage({
             {(invitees || []).map((iv) => {
               const cand = iv.candidate as unknown as { full_name: string; email: string } | null;
               return (
-                <div key={iv.id} className="flex items-center justify-between gap-3 text-[13px] border border-line rounded-xl px-3.5 py-2.5">
+                <div key={iv.id} className="flex items-center justify-between gap-3 text-xs border border-line rounded-xl px-3.5 py-2.5">
                   <div className="min-w-0">
                     <p className="font-semibold text-foreground truncate">{cand?.full_name}</p>
                     <p className="text-xs text-muted truncate">{cand?.email}</p>
@@ -463,7 +519,7 @@ export default async function BuilderDetailPage({
                 </div>
               );
             })}
-            {(!invitees || invitees.length === 0) && <p className="text-xs text-faint">No one assigned yet.</p>}
+            {(!invitees || invitees.length === 0) && <p className="text-xs text-muted">No one assigned yet.</p>}
           </div>
         </Card>
       </div>

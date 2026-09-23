@@ -28,7 +28,7 @@ export function AssignAssessmentButton({
           e.stopPropagation();
           setOpen(true);
         }}
-        className="text-[11px] font-semibold text-accent-dark hover:underline"
+        className="text-2xs font-semibold text-accent-dark hover:underline"
       >
         Assign
       </button>
@@ -46,7 +46,7 @@ export function AssignAssessmentButton({
         required
         value={userId}
         onChange={(e) => setUserId(e.target.value)}
-        className="bg-surface border border-line rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-accent max-w-[180px]"
+        className="bg-surface border border-line rounded-lg px-2 py-1 text-2xs focus:outline-none focus:ring-2 focus:ring-accent max-w-[180px]"
       >
         <option value="" disabled>
           Choose someone…
@@ -61,12 +61,12 @@ export function AssignAssessmentButton({
         type="date"
         name="due_date"
         title="Optional deadline — candidate is reminded 3 days before and can't start after it passes"
-        className="bg-surface border border-line rounded-lg px-2 py-1 text-[11px] focus:outline-none focus:ring-2 focus:ring-accent"
+        className="bg-surface border border-line rounded-lg px-2 py-1 text-2xs focus:outline-none focus:ring-2 focus:ring-accent"
       />
       <button
         type="submit"
         disabled={!userId}
-        className="text-[11px] font-semibold text-accent-dark hover:underline disabled:opacity-40"
+        className="text-2xs font-semibold text-accent-dark hover:underline disabled:opacity-40"
       >
         Confirm
       </button>
@@ -78,7 +78,7 @@ export function AssignAssessmentButton({
           setOpen(false);
           setUserId("");
         }}
-        className="text-[11px] font-semibold text-faint hover:underline"
+        className="text-2xs font-semibold text-muted hover:underline"
       >
         Cancel
       </button>

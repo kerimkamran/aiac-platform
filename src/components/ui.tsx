@@ -14,6 +14,8 @@ const ICON_PATHS: Record<string, string> = {
   checkCircle: "M22 11.1V12a10 10 0 1 1-5.93-9.14M22 4 12 14l-3-3",
   arrowRight: "M5 12h14m-6-6 6 6-6 6",
   arrowLeft: "M19 12H5m6 6-6-6 6-6",
+  arrowUp: "M12 19V5m-6 6 6-6 6 6",
+  arrowDown: "M12 5v14m6-6-6 6-6-6",
   sparkles: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 16l.7 1.6L7.3 18l-1.6.7L5 20.3 4.3 18.7 2.7 18l1.6-.4z",
   target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-5a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
   layers: "m12 2 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5",
@@ -52,7 +54,12 @@ const ICON_PATHS: Record<string, string> = {
   messageSquare: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
 };
 
-export function Icon({ name, className = "w-5 h-5" }: { name: string; className?: string }) {
+// Design-execution-plan Phase 2 / T2.1: icons are decorative (aria-hidden) by
+// default, since almost every use sits beside its own visible text. Pass
+// `label` for the rare icon that IS the only content of its container (an
+// icon-only button with nothing else to name it) -- it switches the SVG to
+// role="img" with that accessible name instead of hiding it from AT.
+export function Icon({ name, className = "w-5 h-5", label }: { name: string; className?: string; label?: string }) {
   return (
     <svg
       viewBox="0 0 24 24"
@@ -62,7 +69,7 @@ export function Icon({ name, className = "w-5 h-5" }: { name: string; className?
       strokeLinecap="round"
       strokeLinejoin="round"
       className={className}
-      aria-hidden
+      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
     >
       <path d={ICON_PATHS[name] || ""} />
     </svg>
@@ -71,13 +78,15 @@ export function Icon({ name, className = "w-5 h-5" }: { name: string; className?
 
 /* ---------------- Brand ---------------- */
 
-// "Vantage" mark: an ascending peak/chevron inside a squircle -- reads as
-// both an upward viewpoint (evidence -> clarity) and a growth signal. Built
-// on the new indigo -> emerald brand gradient, replacing the previous "A"
-// shield mark as part of the full rebrand.
+// "Vantage" mark: an ascending peak/chevron inside a rounded square -- reads
+// as both an upward viewpoint (evidence -> clarity) and a growth signal.
+// Design-execution-plan Phase 1 / T1.4: this comment used to describe an
+// "indigo -> emerald brand gradient" that the mark never actually draws --
+// it's a flat near-black square (below) with one flat accent-color dot,
+// matching the rest of the v4 "Field" system (one accent color, used
+// sparingly, never as a gradient or mesh). Corrected to describe what's
+// actually rendered.
 export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
-  // v4 "Field": flat solid fill, no gradient -- consistent with the rest of
-  // the system (exactly one accent color, used sparingly, never as a mesh).
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden>
       <rect width="64" height="64" rx="12" fill="#1a1a1a" />
@@ -87,14 +96,19 @@ export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
   );
 }
 
-export function Logo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
+// Design-execution-plan Phase 1 / T1.4: dropped the `dark` prop -- every
+// call site in the app used the default (false); the true-branch styling
+// (white text, for placing the logo on a dark panel) was dead code no
+// caller ever reached. If a dark-panel placement is needed later, it's a
+// one-line prop to re-add with a real call site attached.
+export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <LogoMark className="w-8 h-8 shrink-0" />
       {!compact && (
-        <span className={`font-semibold leading-none tracking-tight [font-family:var(--font-display)] ${dark ? "text-white" : "text-brand"}`}>
-          <span className="block text-[16px]">Vantage</span>
-          <span className={`block text-[10px] font-medium uppercase tracking-[0.18em] mt-1 font-sans ${dark ? "text-accent" : "text-accent-dark"}`}>
+        <span className="font-semibold leading-none tracking-tight [font-family:var(--font-display)] text-accent-dark">
+          <span className="block text-base">Vantage</span>
+          <span className="block text-2xs font-medium uppercase tracking-[0.18em] mt-1 font-sans text-accent-dark">
             by Azerconnect Group
           </span>
         </span>
@@ -107,20 +121,28 @@ export function Logo({ dark = false, compact = false }: { dark?: boolean; compac
 
 export type Band = { label: string; badge: string; bar: string; hex: string };
 
+// Design-execution-plan Phase 3 / T3.1 (found via the same due diligence,
+// not one of the chart module's four): `hex` here fed BandDistribution's
+// SVG bar fill directly as a static literal, disconnected from the
+// Tailwind class two fields over that already names the correct,
+// theme-aware color. "Fully Meets" was the worst case -- #1a1a1a on the
+// dark card surface is ~1.03:1, essentially invisible -- but all four were
+// wrong the same way, just less severely. Each now reads the same CSS
+// custom property its own `bar`/`dot` class already resolves to.
 export function bandFor(score: number): Band {
   if (score >= 85)
-    return { label: "Exceeds", badge: "bg-[#eef3ef] text-[#3d7a4d]", bar: "bg-[#3d7a4d]", hex: "#3d7a4d" };
+    return { label: "Exceeds", badge: "bg-[#eef3ef] text-[#3d7a4d]", bar: "bg-[#3d7a4d]", hex: "var(--good)" };
   if (score >= 70)
-    return { label: "Fully Meets", badge: "bg-line-soft text-foreground", bar: "bg-foreground", hex: "#1a1a1a" };
+    return { label: "Fully Meets", badge: "bg-line-soft text-foreground", bar: "bg-foreground", hex: "var(--foreground)" };
   if (score >= 50)
-    return { label: "Partially Meets", badge: "bg-brand-50 text-accent-dark", bar: "bg-accent", hex: "#c96f42" };
-  return { label: "Does Not Meet", badge: "bg-[#fbeceb] text-[#b23b3b]", bar: "bg-[#b23b3b]", hex: "#b23b3b" };
+    return { label: "Partially Meets", badge: "bg-brand-50 text-accent-dark", bar: "bg-accent", hex: "var(--accent)" };
+  return { label: "Does Not Meet", badge: "bg-[#fbeceb] text-[#b23b3b]", bar: "bg-[#b23b3b]", hex: "var(--critical)" };
 }
 
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
-  Core: { text: "text-foreground", bg: "bg-line-soft", dot: "bg-foreground", hex: "#1a1a1a" },
-  Leadership: { text: "text-accent-dark", bg: "bg-brand-50", dot: "bg-accent", hex: "#c96f42" },
-  Functional: { text: "text-muted", bg: "bg-line-soft", dot: "bg-faint", hex: "#8a8a8a" },
+  Core: { text: "text-foreground", bg: "bg-line-soft", dot: "bg-foreground", hex: "var(--foreground)" },
+  Leadership: { text: "text-accent-dark", bg: "bg-brand-50", dot: "bg-accent", hex: "var(--accent)" },
+  Functional: { text: "text-muted", bg: "bg-line-soft", dot: "bg-line-strong", hex: "var(--line-strong)" },
 };
 
 export function categoryStyle(category: string) {
@@ -139,7 +161,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   submitted: { label: "Submitted", cls: "bg-line-soft text-muted" },
   scored: { label: "Scored — awaiting review", cls: "bg-brand-50 text-accent-dark" },
   reviewed: { label: "Reviewed", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
-  draft: { label: "Draft", cls: "bg-line-soft text-faint" },
+  draft: { label: "Draft", cls: "bg-line-soft text-muted" },
   published: { label: "Published", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
   shortlist: { label: "Shortlisted", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
   hold: { label: "On hold", cls: "bg-brand-50 text-accent-dark" },
@@ -150,13 +172,13 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   strengths_identified: { label: "Strengths identified", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
   growth_areas_identified: { label: "Growth areas identified", cls: "bg-brand-50 text-accent-dark" },
   active: { label: "Active", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
-  deactivated: { label: "Deactivated", cls: "bg-line-soft text-faint" },
+  deactivated: { label: "Deactivated", cls: "bg-line-soft text-muted" },
 };
 
 export function StatusBadge({ status }: { status: string }) {
-  const meta = STATUS_META[status] || { label: status.replace(/_/g, " "), cls: "bg-line-soft text-faint" };
+  const meta = STATUS_META[status] || { label: status.replace(/_/g, " "), cls: "bg-line-soft text-muted" };
   return (
-    <span className={`inline-flex items-center text-[10.5px] font-semibold px-2 py-[3px] rounded whitespace-nowrap ${meta.cls}`}>
+    <span className={`inline-flex items-center text-2xs font-semibold px-2 py-[3px] rounded whitespace-nowrap ${meta.cls}`}>
       {meta.label}
     </span>
   );
@@ -165,23 +187,37 @@ export function StatusBadge({ status }: { status: string }) {
 export function ScoreBadge({ score }: { score: number }) {
   // v4 "Field": the score is just bold tabular text, no pill/badge chrome --
   // matches the approved dashboard mockup where scores read as plain numbers.
-  return <span className="text-[13px] font-semibold tabular-nums text-foreground">{score}</span>;
+  return <span className="text-xs font-semibold tabular-nums text-foreground">{score}</span>;
 }
 
-// Visible, plain-language disclosure that free-text answer scores come from a
-// deterministic rule-based heuristic (word count + keyword signals), not a
-// real LLM grading the substance of what was written -- MCQ scores are exact
-// and unaffected. Shown wherever a reviewer or candidate sees a score, so the
-// limitation is never learned only by reading fine print in a rationale string.
+// Visible, plain-language disclosure of how scores are actually produced,
+// shown wherever a reviewer or candidate sees a score so the mechanism is
+// never learned only by reading fine print in a rationale string.
+//
+// This copy used to describe an earlier, keyword-heuristic-only scorer --
+// MCQ exact, free text via "word count and keyword signals, not a model
+// reading for substance." src/lib/scoring.ts has since moved to real
+// LLM-based grading (AIAC-SRS Part 4) as the primary path: free-text answers
+// are graded by the configured engine (Claude/Sakana Fugu/Kimi) against the
+// competency's own behavioural indicators, with a written rationale: see
+// scoreTextResponse() there. The word-count/sentence-structure heuristic
+// this disclosure used to describe as the norm still exists, but only as the
+// fallback for when no engine is configured or a call fails -- it was never
+// updated here when that changed, which is a real accuracy problem: it told
+// reviewers to discount AI-graded scores as if they were the cruder
+// heuristic. Corrected to describe the actual (LLM-primary,
+// heuristic-fallback) behavior, including that either path can flag a score
+// for human confirmation.
 export function ScoringDisclosure({ className = "" }: { className?: string }) {
   return (
     <div className={`flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 ${className}`}>
       <Icon name="info" className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-      <p className="text-[12px] leading-relaxed text-amber-800">
+      <p className="text-2xs leading-relaxed text-amber-800">
         <span className="font-bold">How scores are calculated:</span> Multiple-choice questions are scored exactly
-        (correct/incorrect). Free-text answers use a rule-based heuristic — word count and keyword signals, not a
-        model reading for substance — so treat those scores as directional and weigh the written answers yourself
-        before deciding.
+        (correct/incorrect). Free-text answers are graded by an AI model against the competency&rsquo;s own behavioural
+        indicators, with a written rationale for each score — falling back to a length/structure heuristic only if no
+        scoring engine is configured. Either way, low-confidence scores are flagged for human review; read the
+        written answers and rationale yourself before deciding.
       </p>
     </div>
   );
@@ -208,7 +244,7 @@ export function Card({
   return (
     <div
       id={id}
-      className={`bg-surface border border-line rounded-md print-card ${interactive ? "hover:border-faint/50 cursor-pointer transition-colors" : ""} ${className}`}
+      className={`bg-surface border border-line rounded-md print-card ${interactive ? "hover:border-line-strong/50 cursor-pointer transition-colors" : ""} ${className}`}
     >
       {children}
     </div>
@@ -230,42 +266,39 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">
       <div>
-        <h1 className="text-[22px] leading-tight font-semibold tracking-tight text-foreground">{title}</h1>
-        {subtitle && <p className="text-[13px] text-faint mt-1 max-w-2xl">{subtitle}</p>}
+        <h1 className="text-xl leading-tight font-semibold tracking-tight text-foreground">{title}</h1>
+        {subtitle && <p className="text-xs text-muted mt-1 max-w-2xl">{subtitle}</p>}
       </div>
       {children && <div className="flex items-center gap-2.5">{children}</div>}
     </div>
   );
 }
 
+// Design-execution-plan Phase 1 / T1.4: dropped `icon` and `tone` -- both
+// were kept only for backward compatibility with call sites from an older
+// design (an icon-in-a-tinted-box stat treatment), explicitly never
+// rendered (`void icon; void tone;`), and every call site in the app still
+// passed them anyway. Removed here; the twelve call sites (admin, staff
+// reports, candidate dashboard) had their now-invalid icon/tone props
+// stripped in the same change.
 export function StatCard({
   label,
   value,
-  icon,
   hint,
-  tone = "brand",
   emphasis = false,
 }: {
   label: string;
   value: string | number;
-  icon: string;
   hint?: string;
-  tone?: "brand" | "accent" | "amber" | "violet";
   emphasis?: boolean;
 }) {
-  // v4 "Field": a stat is a number, not an icon-in-a-tinted-box. `icon` and
-  // `tone` are accepted for backward compatibility with existing call sites
-  // but are no longer rendered -- the emphasis stat gets the accent color
-  // on the number itself, everything else stays plain foreground/faint.
-  void icon;
-  void tone;
   return (
     <div className={emphasis ? "sm:col-span-2" : ""}>
-      <p className="text-[12px] text-faint font-medium mb-1.5">{label}</p>
-      <p className={`font-semibold tabular-nums tracking-tight ${emphasis ? "text-[32px] text-accent" : "text-[26px] text-foreground"}`}>
+      <p className="text-2xs text-muted font-medium mb-1.5">{label}</p>
+      <p className={`font-semibold tabular-nums tracking-tight ${emphasis ? "text-2xl text-accent" : "text-2xl text-foreground"}`}>
         {value}
       </p>
-      {hint && <p className="text-[11.5px] text-faint mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
     </div>
   );
 }
@@ -330,7 +363,7 @@ export function ScoreRing({
         </text>
       </svg>
       {label && (
-        <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${band.badge}`}>{label}</span>
+        <span className={`text-2xs font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${band.badge}`}>{label}</span>
       )}
     </div>
   );
@@ -357,7 +390,7 @@ export function EmptyState({
 }) {
   return (
     <Card className="p-10 text-center">
-      <span className="mx-auto w-12 h-12 rounded-2xl bg-brand/8 text-brand grid place-items-center mb-4">
+      <span className="mx-auto w-12 h-12 rounded-2xl bg-brand/8 text-accent-dark grid place-items-center mb-4">
         <Icon name={icon} className="w-6 h-6" />
       </span>
       <p className="font-semibold text-foreground">{title}</p>
@@ -365,7 +398,7 @@ export function EmptyState({
       {action && (
         <Link
           href={action.href}
-          className="inline-flex items-center gap-2 mt-5 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
+          className="inline-flex items-center gap-2 mt-5 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
         >
           {action.label}
           <Icon name="arrowRight" className="w-4 h-4" />
@@ -391,15 +424,15 @@ export function JourneyTracker({ status }: { status: string }) {
             <span
               className={`w-5 h-5 rounded-full grid place-items-center ring-2 ${
                 i < activeIdx
-                  ? "bg-accent ring-accent text-white"
+                  ? "bg-brand-deep ring-accent text-white"
                   : i === activeIdx
-                    ? "bg-brand ring-brand text-white"
-                    : "bg-surface ring-line text-faint"
+                    ? "bg-brand-deep ring-brand text-white"
+                    : "bg-surface ring-line text-muted"
               }`}
             >
-              {i < activeIdx ? <Icon name="check" className="w-3 h-3" /> : <span className="text-[9px] font-bold">{i + 1}</span>}
+              {i < activeIdx ? <Icon name="check" className="w-3 h-3" /> : <span className="text-2xs font-bold">{i + 1}</span>}
             </span>
-            <span className={`text-[9px] font-medium whitespace-nowrap ${i <= activeIdx ? "text-foreground" : "text-faint"}`}>
+            <span className={`text-2xs font-medium whitespace-nowrap ${i <= activeIdx ? "text-foreground" : "text-muted"}`}>
               {JOURNEY_LABELS[i]}
             </span>
           </div>
@@ -431,47 +464,47 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
           <Icon name="sparkles" className="w-4 h-4 text-accent-dark" />
           Executive summary
         </p>
-        <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ring-1 ring-inset ${RECOMMENDATION_TONE_CLS[summary.recommendationTone]}`}>
+        <span className={`text-2xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset ${RECOMMENDATION_TONE_CLS[summary.recommendationTone]}`}>
           {summary.recommendationLabel}
         </span>
       </div>
-      <p className="text-[13.5px] text-foreground leading-relaxed mb-4">{summary.headline}</p>
+      <p className="text-sm text-foreground leading-relaxed mb-4">{summary.headline}</p>
       <div className="grid sm:grid-cols-2 gap-4 mb-3">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-faint mb-2">Strengths</p>
+          <p className="text-2xs font-bold uppercase tracking-[0.14em] text-muted mb-2">Strengths</p>
           {summary.strengths.length > 0 ? (
             <ul className="space-y-1.5">
               {summary.strengths.map((s, i) => (
-                <li key={i} className="text-[12.5px] text-muted flex items-start gap-1.5">
+                <li key={i} className="text-xs text-muted flex items-start gap-1.5">
                   <Icon name="checkCircle" className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
                   {s}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-[12.5px] text-faint">No standout competencies above 60 yet.</p>
+            <p className="text-xs text-muted">No standout competencies above 60 yet.</p>
           )}
         </div>
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-faint mb-2">Development areas</p>
+          <p className="text-2xs font-bold uppercase tracking-[0.14em] text-muted mb-2">Development areas</p>
           {summary.developmentAreas.length > 0 ? (
             <ul className="space-y-1.5">
               {summary.developmentAreas.map((s, i) => (
-                <li key={i} className="text-[12.5px] text-muted flex items-start gap-1.5">
+                <li key={i} className="text-xs text-muted flex items-start gap-1.5">
                   <Icon name="target" className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
                   {s}
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="text-[12.5px] text-faint">No competencies below 70 — solid across the board.</p>
+            <p className="text-xs text-muted">No competencies below 70 — solid across the board.</p>
           )}
         </div>
       </div>
       {summary.comparisonSentence && (
-        <p className="text-[12px] text-faint border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
+        <p className="text-2xs text-muted border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
       )}
-      <p className="text-[10.5px] text-faint/80 mt-3 italic">
+      <p className="text-2xs text-muted/80 mt-3 italic">
         AI-assisted synthesis, human review required — not a sole basis for a hiring decision.
       </p>
     </Card>
@@ -493,11 +526,11 @@ export function BenchmarkCard({
   const deltaPositive = (benchmark.delta ?? 0) >= 0;
   return (
     <Card className="p-6 mb-6">
-      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-3">Benchmark vs. other candidates</p>
+      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-3">Benchmark vs. other candidates</p>
       <div className="flex flex-wrap items-center gap-4">
-        <p className="text-2xl font-bold text-brand tabular-nums shrink-0">
+        <p className="text-2xl font-bold text-accent-dark tabular-nums shrink-0">
           {benchmark.percentile}
-          <span className="text-sm font-semibold text-faint">th pct</span>
+          <span className="text-sm font-semibold text-muted">th pct</span>
         </p>
         <div className="flex-1 min-w-[160px]">
           <div className="h-2.5 rounded-full bg-line/70 overflow-hidden relative">
@@ -517,9 +550,9 @@ export function BenchmarkCard({
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-faint">Peer avg</p>
+          <p className="text-2xs font-bold uppercase tracking-wider text-muted">Peer avg</p>
           <p className="text-sm font-bold text-foreground tabular-nums">{benchmark.peerAvg}</p>
-          <p className={`text-[11px] font-semibold ${deltaPositive ? "text-emerald-600" : "text-critical"}`}>
+          <p className={`text-2xs font-semibold ${deltaPositive ? "text-emerald-600" : "text-critical"}`}>
             {deltaPositive ? "+" : ""}
             {benchmark.delta}
           </p>
@@ -527,11 +560,11 @@ export function BenchmarkCard({
       </div>
       {boxLabel && (
         <div className="mt-4 pt-4 border-t border-line/70 flex items-center gap-2.5">
-          <Icon name="chart" className="w-4 h-4 text-brand shrink-0" />
+          <Icon name="chart" className="w-4 h-4 text-accent-dark shrink-0" />
           <p className="text-xs text-muted">
             Talent Matrix placement:{" "}
             {boxHref ? (
-              <Link href={boxHref} className="font-semibold text-brand hover:underline">
+              <Link href={boxHref} className="font-semibold text-accent-dark hover:underline">
                 {boxLabel}
               </Link>
             ) : (

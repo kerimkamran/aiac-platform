@@ -10,20 +10,28 @@
      across a whole page. Structure carries hierarchy, not color or shadow. */
   --background: #ffffff;
   --surface: #ffffff;
-  --surface-raised: #ffffff;
   --surface-sunken: #fafafa;
   --foreground: #1a1a1a;
   --muted: #6b6b6b;
-  --faint: #8a8a8a;
   --line: #ececec;
   --line-soft: #f2f2f2;
+  /* Design-execution-plan Phase 1 / T1.1: this used to be `--faint`, a
+     third, lighter grey (#8a8a8a) offered alongside --foreground/--muted
+     for body text. It only ever reached ~3.45:1 against white -- well
+     under the 4.5:1 WCAG AA floor for text -- so every "faint" paragraph,
+     caption and label in the app was a real accessibility failure, not a
+     stylistic choice. Body text now has exactly two tiers (--foreground,
+     --muted; --muted alone clears 5.33:1 light / 7.22:1 dark -- see
+     src/lib/contrast.test.ts), and this token survives only for its
+     legitimate non-text uses (a slightly-more-visible border/dot than
+     --line on hover-or-decoration), renamed so it can't be reached for as
+     a text color by habit. */
+  --line-strong: #8a8a8a;
 
   --shadow-xs: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10);
-  --shadow-glow-brand: none;
-  --shadow-glow-accent: none;
 
   /* Brand -- single accent. Clay/terracotta reads as considered and
      distinct rather than "another purple SaaS app." Used for the one
@@ -49,6 +57,15 @@
   --chart-1: #1a1a1a;
   --chart-2: #c4c4c4;
   --chart-3: #c96f42;
+  /* Design-execution-plan Phase 3 / T3.2: a 4th series token for the radar's
+     up-to-4-candidate comparison view. chart-2 is a graphical fill meant to
+     sit on a track (PipelineFunnel's inactive-stage bar) -- on its own
+     against the card surface it clears only ~1.7:1, well under the 3:1
+     WCAG 1.4.11 floor a radar stroke/dot needs. This is a cool slate,
+     distinct in hue from the warm neutral/accent already in use (keeping
+     the one-accent rule -- it's a neutral, not a second accent), and
+     clears 3:1 in both themes. */
+  --chart-4: #4a5568;
   --chart-grid: #f2f2f2;
   --chart-axis: #d8d8d8;
 }
@@ -56,20 +73,17 @@
 .dark {
   --background: #111111;
   --surface: #171717;
-  --surface-raised: #1c1c1c;
   --surface-sunken: #0d0d0d;
   --foreground: #f0f0f0;
   --muted: #a0a0a0;
-  --faint: #757575;
   --line: #2a2a2a;
   --line-soft: #212121;
+  --line-strong: #757575;
 
   --shadow-xs: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
-  --shadow-glow-brand: none;
-  --shadow-glow-accent: none;
 
   --brand: #d68a63;
   --brand-light: #e0a482;
@@ -90,6 +104,7 @@
   --chart-1: #f0f0f0;
   --chart-2: #4a4a4a;
   --chart-3: #d68a63;
+  --chart-4: #94a3b8;
   --chart-grid: #232323;
   --chart-axis: #333333;
 }
@@ -100,8 +115,9 @@
   --color-surface-sunken: var(--surface-sunken);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
-  --color-faint: var(--faint);
   --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
   --color-brand: var(--brand);
   --color-brand-light: var(--brand-light);
   --color-brand-deep: var(--brand-deep);
@@ -118,8 +134,65 @@
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
-  --font-sans: var(--font-nunito), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-serif), Georgia, "Times New Roman", serif;
+  --color-chart-4: var(--chart-4);
+  /* Registers this app's own flat, near-shadowless shadow scale under
+     Tailwind's `shadow-*` namespace. Without this, `shadow-sm`/`shadow-md`/
+     `shadow-lg` classNames (used in a few places -- SwipeToConfirm,
+     CopyInviteLinkButton, the candidate dashboard CTA) silently fell back
+     to Tailwind's own, much more pronounced, default shadow scale instead
+     of the app's intended flat design language; only the two call sites
+     that happened to use `style={{ boxShadow: "var(--shadow-lg)" }}"`
+     directly got the real token. Found while auditing token wiring for
+     T1.1; fixed here since it's the same "one correct, themeable source
+     of truth" goal T1 opens with. */
+  --shadow-xs: var(--shadow-xs);
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+  --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  /* Design-execution-plan Phase 1 / T1.2 -- the type scale. Replaces the
+     322 one-off `text-[Npx]` arbitrary values scattered across the app
+     (many below the 12px AA-legibility floor, several within half a pixel
+     of each other for no reason -- 12.5px vs 13px vs 13.5px) with seven
+     named, intentional steps. 12px is the floor: nothing a user has to
+     read goes smaller. T1.5 migrates every existing call site onto this
+     scale, rounding up at the floor; T1.7 lints against new bracket sizes
+     appearing again. */
+  --text-2xs: 0.75rem;      /* 12px */
+  --text-2xs--line-height: 1rem;       /* 16px */
+  --text-xs: 0.8125rem;     /* 13px */
+  --text-xs--line-height: 1.125rem;    /* 18px */
+  --text-sm: 0.875rem;      /* 14px */
+  --text-sm--line-height: 1.25rem;     /* 20px */
+  --text-base: 1rem;        /* 16px */
+  --text-base--line-height: 1.5rem;    /* 24px */
+  --text-lg: 1.125rem;      /* 18px */
+  --text-lg--line-height: 1.625rem;    /* 26px */
+  --text-xl: 1.375rem;      /* 22px */
+  --text-xl--line-height: 1.75rem;     /* 28px */
+  --text-2xl: 1.875rem;     /* 30px */
+  --text-2xl--line-height: 2.25rem;    /* 36px */
+
+  /* Two marketing-only display sizes, outside the seven-step UI scale
+     above on purpose. The public landing page's hero headline (mobile
+     40px, md: 52px) is 33-73% larger than the biggest in-app step
+     (--text-2xl, 30px, reserved for stat numbers and score rings) --
+     folding it into that step would visibly shrink the one place this app
+     is allowed to look like marketing rather than a dashboard. Named and
+     scoped narrowly so they read as an intentional exception, not a second
+     scale to reach for: nowhere else in the app should use these. */
+  --text-display: 2.5rem;        /* 40px */
+  --text-display-lg: 3.25rem;    /* 52px */
+
+  /* Radius -- one decision, three steps. `rounded-full` (avatars) is a
+     static Tailwind utility already and needs no token. Replaces the
+     `.squircle`/`.squircle-lg`/`.squircle-sm` classes (T1.3) and every
+     bracket radius value, collapsing what had drifted to four effective
+     radii (6/8/10px, plus whatever a bracket value said) down to two. */
+  --radius-chip: 0.25rem;   /* 4px -- chips, badges */
+  --radius-card: 0.5rem;    /* 8px -- cards, inputs, buttons */
 }
 
 html {
@@ -132,7 +205,7 @@ html.dark {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-nunito), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-feature-settings: "cv02", "cv03", "cv11";
   transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -141,18 +214,14 @@ body {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* ---------- Corners -- sharp and minimal, not squircle/organic. Kept the
-   same class names so existing markup does not need a mechanical rename;
-   only the values changed. ---------- */
-.squircle {
-  border-radius: 8px;
-}
-.squircle-lg {
-  border-radius: 10px;
-}
-.squircle-sm {
-  border-radius: 6px;
-}
+/* Design-execution-plan Phase 1 / T1.3: the .squircle/.squircle-lg/
+   .squircle-sm classes above this comment were deleted -- sharp, minimal
+   corners were already the actual design (see the "v4 Field" note at the
+   top of this file), so "squircle" was describing a shape these classes
+   never drew; a plain 8px/10px/6px radius isn't a squircle by definition.
+   T1.5 replaces every call site with `rounded-card` (8px) or `rounded-chip`
+   (4px) from the radius scale above, collapsing the old three-value radius
+   drift down to the two the plan calls for. */
 
 /* ---------- Motion ---------- */
 @keyframes fade-up {
@@ -225,12 +294,6 @@ body {
   0% { transform: scale(0.9); opacity: 0.55; }
   100% { transform: scale(1.55); opacity: 0; }
 }
-@keyframes confetti-fall {
-  0% { transform: translate3d(0, -12px, 0) rotate(0deg); opacity: 0; }
-  8% { opacity: 1; }
-  100% { transform: translate3d(var(--drift, 0px), 340px, 0) rotate(var(--spin, 300deg)); opacity: 0; }
-}
-
 .anim-seal-pop { animation: seal-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
 .anim-seal-draw {
   stroke-dasharray: var(--seal-len, 160);
@@ -238,9 +301,6 @@ body {
 }
 .anim-seal-ring {
   animation: seal-ring-pulse 1.8s ease-out 0.15s infinite;
-}
-.confetti-piece {
-  animation: confetti-fall 2.6s cubic-bezier(0.34, 0, 0.64, 1) both;
 }
 
 /* ---------- Toasts ---------- */
@@ -258,13 +318,12 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .anim-fade-up, .anim-fade-in, .anim-float, .anim-grow, .anim-grow-y,
   .anim-ring circle.ring-value, .skeleton, .lift-on-hover,
-  .anim-seal-pop, .anim-seal-draw, .anim-seal-ring, .confetti-piece,
+  .anim-seal-pop, .anim-seal-draw, .anim-seal-ring,
   .anim-toast-in, .anim-toast-bar {
     animation: none;
     transition: none;
   }
   .anim-seal-draw { stroke-dashoffset: 0; }
-  .confetti-piece { display: none; }
 }
 
 /* ---------- Brand panels -- flat, no gradients. A solid dark panel with a
@@ -272,19 +331,19 @@ body {
 .hero-mesh {
   background: #1a1a1a;
 }
-.hero-grid-overlay {
-  display: none;
-}
-.text-gradient {
-  color: var(--accent);
-}
 
-/* ---------- Glass -- retired. Flat surface + border, even for floating
-   panels (popovers, command palette) -- no backdrop blur anywhere. ---------- */
-.glass-panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-}
+/* Design-execution-plan Phase 1 / T1.4: three vestigial rules removed from
+   here --
+   .hero-grid-overlay { display: none; } -- a permanently-hidden overlay
+     div in the candidate dashboard hero rendered nothing and did nothing;
+     deleted along with the dead <div> that used it.
+   .text-gradient { color: var(--accent); } -- named for a gradient text
+     effect that no longer exists (flat single accent color now); unused
+     anywhere in the app, so deleted rather than renamed.
+   .glass-panel { background: var(--surface); border: ...; } -- named for
+     a glassmorphism/backdrop-blur treatment this design system explicitly
+     retired (see the comment this one replaces); unused anywhere in the
+     app. Card's own flat surface+border already covers what this drew. */
 
 /* ---------- Anti-copy deterrents (assessment runner only) ---------- */
 .no-copy {
@@ -296,21 +355,28 @@ body {
   user-select: text;
   -webkit-user-select: text;
 }
+/* Design-execution-plan Phase 6 / T6.3: this exists to deter someone from
+   screenshotting exam content and passing it off as their own -- it embeds
+   the candidate's own email, so it has to stay visible on the live screen
+   (moving it to exports/print only, the plan's other option, would defeat
+   that entirely). Softened instead: lower opacity, lighter weight, fewer/
+   more widely spaced rows, so it reads as a faint texture rather than
+   competing with the assessment text for attention. */
 .watermark-overlay {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 40;
   overflow: hidden;
-  opacity: 0.06;
+  opacity: 0.035;
 }
 .watermark-overlay .row {
   display: flex;
-  gap: 4rem;
+  gap: 6rem;
   white-space: nowrap;
   transform: rotate(-28deg);
   font-size: 0.8rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0.05em;
   color: var(--foreground);
 }
