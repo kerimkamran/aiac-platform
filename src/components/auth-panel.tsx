@@ -1,9 +1,15 @@
 import Link from "next/link";
-import { Icon, Logo } from "@/components/ui";
+import { LogoMark } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ScoutLauncher } from "@/components/ScoutLauncher";
 
-/* Split-screen auth layout: warm brand panel left, form right. */
+// Design-execution-plan follow-up ("make it simple like Google"): this used
+// to be a split-screen layout (a wide brand panel with a headline, a
+// feature-benefit list, and a footer, alongside a narrower form column) --
+// a lot of screen for a visitor to read before they can type an email.
+// Replaced with a single centered column: mark, one line of context, the
+// form, nothing beside it. Matches how Google's own account/sign-in pages
+// read -- one focal box on an otherwise empty page.
 export function AuthPanel({
   title,
   subtitle,
@@ -14,56 +20,22 @@ export function AuthPanel({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen grid lg:grid-cols-[1.05fr_1fr] bg-background">
-      <aside className="hidden lg:flex relative bg-background border-r border-line flex-col justify-between p-12 overflow-hidden">
-        <Link href="/" className="relative">
-          <Logo />
+    <div className="min-h-screen flex flex-col bg-background">
+      <main className="flex-1 flex flex-col items-center justify-center px-5 py-16">
+        <Link href="/" className="mb-7">
+          <LogoMark className="w-11 h-11" />
         </Link>
-        <div className="relative max-w-md">
-          <h2 className="text-2xl font-semibold tracking-tight leading-[1.15] text-foreground [font-family:var(--font-display)]">
-            Every score backed by <em className="text-accent-dark">evidence</em>. Every decision confirmed by a human.
-          </h2>
-          <ul className="mt-9 space-y-4">
-            {[
-              "Structured assessments mapped to 37 governed competencies",
-              "AI-assisted scoring with a written rationale per answer",
-              "Reviewer-confirmed shortlist, hold, and reject decisions",
-            ].map((t) => (
-              <li key={t} className="flex items-start gap-3 text-sm text-muted">
-                <span className="w-5 h-5 rounded-full bg-accent-soft text-accent-dark grid place-items-center shrink-0 mt-0.5">
-                  <Icon name="check" className="w-3 h-3" />
-                </span>
-                {t}
-              </li>
-            ))}
-          </ul>
-        </div>
-        <div className="relative flex items-center justify-between gap-3 text-2xs text-muted">
-          <p>Azerconnect Group — Internal Use Only · Vantage v1.0</p>
-          <div className="flex items-center gap-3">
-            <ThemeToggle className="text-muted hover:text-muted transition-colors" />
-            <a
-              href="https://www.linkedin.com/in/thekmrnkrml/"
-              target="_blank"
-              rel="noreferrer"
-              className="text-muted hover:text-muted transition-colors whitespace-nowrap"
-            >
-              Developed by Kamran Karimli
-            </a>
-          </div>
-        </div>
-      </aside>
-
-      <main className="flex items-center justify-center px-5 py-12 bg-surface">
-        <div className="w-full max-w-sm anim-fade-up">
-          <Link href="/" className="lg:hidden inline-block mb-8">
-            <Logo />
-          </Link>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">{title}</h1>
+        <div className="w-full max-w-sm anim-fade-up text-center">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground [font-family:var(--font-display)]">{title}</h1>
           <p className="text-sm text-muted mt-2 mb-8">{subtitle}</p>
-          {children}
+          <div className="text-left">{children}</div>
         </div>
       </main>
+
+      <footer className="flex items-center justify-center gap-4 px-6 py-6 text-2xs text-muted">
+        <span>Azerconnect Group — Internal Use Only</span>
+        <ThemeToggle className="text-muted hover:text-muted transition-colors" />
+      </footer>
 
       <ScoutLauncher role="visitor" />
     </div>
@@ -95,7 +67,7 @@ export function Field({
         required
         minLength={minLength}
         placeholder={placeholder}
-        className="w-full bg-background/60 border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
+        className="w-full bg-background border border-line rounded-md px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
       />
     </div>
   );
