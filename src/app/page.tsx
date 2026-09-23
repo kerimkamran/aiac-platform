@@ -68,7 +68,7 @@ export default async function Home() {
         <span className="hidden md:inline">·</span>
         <span className="flex items-center gap-4">
           <ThemeToggle className="text-muted hover:text-muted transition-colors" />
-          
+          <a
             href="https://www.linkedin.com/in/thekmrnkrml/"
             target="_blank"
             rel="noreferrer"
