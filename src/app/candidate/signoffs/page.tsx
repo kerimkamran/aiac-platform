@@ -65,7 +65,7 @@ export default async function SignoffsPage() {
         <>
           {pending.length > 0 && (
             <div className="space-y-4 mb-8">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Awaiting your response</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-muted">Awaiting your response</p>
               {pending.map((r) => {
                 const meta = caMeta.get(r.candidate_assessment_id);
                 const decideWithId = decideManagerSignoff.bind(null, r.id);
@@ -74,13 +74,13 @@ export default async function SignoffsPage() {
                     <p className="text-sm font-semibold text-foreground mb-1">
                       {meta?.candidateName} — <span className="font-normal text-muted">{meta?.assessmentTitle}</span>
                     </p>
-                    <p className="text-xs text-faint mb-4">Requested {new Date(r.requested_at).toLocaleString()}</p>
+                    <p className="text-xs text-muted mb-4">Requested {new Date(r.requested_at).toLocaleString()}</p>
                     <form className="space-y-3">
                       <textarea
                         name="comment"
                         rows={3}
                         placeholder="Optional notes to accompany your response…"
-                        className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                       <div className="flex gap-2.5">
                         <button
@@ -88,7 +88,7 @@ export default async function SignoffsPage() {
                             "use server";
                             await decideWithId("approved", formData);
                           }}
-                          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
+                          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
                         >
                           <Icon name="check" className="w-4 h-4" />
                           Approve
@@ -113,7 +113,7 @@ export default async function SignoffsPage() {
 
           {decided.length > 0 && (
             <div className="space-y-3">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-faint">Previously decided</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-muted">Previously decided</p>
               {decided.map((r) => {
                 const meta = caMeta.get(r.candidate_assessment_id);
                 return (
@@ -125,7 +125,7 @@ export default async function SignoffsPage() {
                         {meta?.assessmentTitle}
                       </p>
                       {r.comment && <p className="mt-1 italic">&ldquo;{r.comment}&rdquo;</p>}
-                      <p className="text-faint text-xs mt-1">
+                      <p className="text-muted text-xs mt-1">
                         {r.decided_at ? new Date(r.decided_at).toLocaleString() : ""}
                       </p>
                     </div>

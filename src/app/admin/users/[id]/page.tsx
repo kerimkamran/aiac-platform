@@ -58,7 +58,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
     .join("\n");
 
   const input = "w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent";
-  const label = "block text-[12px] font-semibold text-muted mb-1.5";
+  const label = "block text-2xs font-semibold text-muted mb-1.5";
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
@@ -74,7 +74,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <ConfirmSubmitButton
               confirmMessage={`Restore ${user.full_name}'s access? They will be able to sign in again.`}
               tone="accent"
-              className="bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
+              className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
             >
               Restore
             </ConfirmSubmitButton>
@@ -110,7 +110,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
           {/* Profile */}
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
-              <Avatar name={user.full_name || "?"} className="w-7 h-7 text-[10px]" />
+              <Avatar name={user.full_name || "?"} className="w-7 h-7 text-2xs" />
               Profile
             </p>
             <form action={updateWithId} className="grid sm:grid-cols-2 gap-4">
@@ -167,7 +167,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               </div>
 
               <div className="sm:col-span-2">
-                <button className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-light transition-colors">Save profile</button>
+                <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save profile</button>
               </div>
             </form>
           </Card>
@@ -180,17 +180,17 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               {(overrides || []).map((o) => {
                 const p = o.permissions as unknown as { module: string; action: string } | null;
                 return (
-                  <div key={o.id} className="flex items-center gap-3 text-[13px] border border-line rounded-xl px-3.5 py-2.5">
+                  <div key={o.id} className="flex items-center gap-3 text-xs border border-line rounded-xl px-3.5 py-2.5">
                     <span className={`font-bold ${o.granted ? "text-good" : "text-critical"}`}>{o.granted ? "GRANT" : "DENY"}</span>
                     <span className="text-foreground font-medium">{p?.module}.{p?.action}</span>
-                    <span className="text-faint ml-auto">{o.expires_at ? `until ${new Date(o.expires_at).toLocaleDateString()}` : "no expiry"}</span>
+                    <span className="text-muted ml-auto">{o.expires_at ? `until ${new Date(o.expires_at).toLocaleDateString()}` : "no expiry"}</span>
                     <form action={removePermissionOverride.bind(null, id, o.id)}>
-                      <button aria-label="Remove override" className="text-faint hover:text-critical"><Icon name="trash" className="w-4 h-4" /></button>
+                      <button aria-label="Remove override" className="p-1.5 rounded-lg text-muted hover:text-critical"><Icon name="trash" className="w-4 h-4" /></button>
                     </form>
                   </div>
                 );
               })}
-              {(!overrides || overrides.length === 0) && <p className="text-xs text-faint">No overrides.</p>}
+              {(!overrides || overrides.length === 0) && <p className="text-xs text-muted">No overrides.</p>}
             </div>
             <form action={addPermissionOverride.bind(null, id)} className="flex flex-wrap items-end gap-2.5">
               <select name="permission_id" required className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm flex-1 min-w-44" aria-label="Permission">
@@ -203,7 +203,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                 <option value="deny">Deny</option>
               </select>
               <input name="expires_at" type="date" className="bg-surface border border-line rounded-xl px-3 py-2 text-sm" aria-label="Expires" />
-              <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">Add</button>
+              <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">Add</button>
             </form>
           </Card>
         </div>
@@ -215,7 +215,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted">Blacklisted</span>
               <form action={toggleUserFlag.bind(null, id, "blacklisted", !user.blacklisted)}>
-                <button className={`text-[12px] font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.blacklisted ? "bg-red-50 text-critical ring-red-200" : "bg-surface text-muted ring-line"}`}>
+                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.blacklisted ? "bg-red-50 text-critical ring-red-200" : "bg-surface text-muted ring-line"}`}>
                   {user.blacklisted ? "Yes — clear" : "No — set"}
                 </button>
               </form>
@@ -223,7 +223,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted">Legal hold</span>
               <form action={toggleUserFlag.bind(null, id, "legal_hold", !user.legal_hold)}>
-                <button className={`text-[12px] font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.legal_hold ? "bg-amber-50 text-warning ring-amber-200" : "bg-surface text-muted ring-line"}`}>
+                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.legal_hold ? "bg-amber-50 text-warning ring-amber-200" : "bg-surface text-muted ring-line"}`}>
                   {user.legal_hold ? "Held — release" : "Off — hold"}
                 </button>
               </form>
@@ -241,7 +241,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                   Anonymize (GDPR)
                 </ConfirmSubmitButton>
               </form>
-              {user.anonymized_at && <p className="text-[11px] text-faint mt-2">Anonymized {new Date(user.anonymized_at).toLocaleString()}</p>}
+              {user.anonymized_at && <p className="text-2xs text-muted mt-2">Anonymized {new Date(user.anonymized_at).toLocaleString()}</p>}
             </div>
           </Card>
 
@@ -252,13 +252,13 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               {(audit || []).map((e) => {
                 const actor = e.actor as unknown as { full_name: string } | null;
                 return (
-                  <p key={e.id} className="text-[12.5px] text-muted">
+                  <p key={e.id} className="text-xs text-muted">
                     <span className="font-semibold text-foreground">{actor?.full_name || "System"}</span> — {e.action.replace(/_/g, " ")}
-                    <span className="text-faint"> · {new Date(e.created_at).toLocaleString()}</span>
+                    <span className="text-muted"> · {new Date(e.created_at).toLocaleString()}</span>
                   </p>
                 );
               })}
-              {(!audit || audit.length === 0) && <p className="text-xs text-faint">No recorded events.</p>}
+              {(!audit || audit.length === 0) && <p className="text-xs text-muted">No recorded events.</p>}
             </div>
           </Card>
         </div>

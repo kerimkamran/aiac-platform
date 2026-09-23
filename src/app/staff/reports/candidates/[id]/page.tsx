@@ -25,7 +25,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, candidate_id, status, overall_score, invited_at, started_at, submitted_at, feedback_released_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, manager_id), assessments(title, description, purpose)"
+      "id, assessment_id, candidate_id, status, overall_score, invited_at, started_at, submitted_at, feedback_released_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, manager_id), assessments(title, description, purpose, content_language)"
     )
     .eq("id", id)
     .single();
@@ -33,10 +33,22 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   if (!ca) notFound();
 
   const candidate = ca.candidate as unknown as { full_name: string; email: string; manager_id: string | null };
-  const assessment = ca.assessments as unknown as { title: string; description: string; purpose: string | null };
+  const assessment = ca.assessments as unknown as {
+    title: string;
+    description: string;
+    purpose: string | null;
+    content_language: string | null;
+  };
   const purpose = normalizePurpose(assessment?.purpose);
   const purposeMeta = PURPOSE_META[purpose];
   const decisionOptions = DECISION_OPTIONS[purpose];
+  // Design-execution-plan Phase 2 / T2.5: the question prompt/options and the
+  // candidate's own answer below are in the assessment's content language
+  // (Azerbaijani/Russian assessments exist); ai_rationale stays English by
+  // design (see scoring.ts's system prompt) since it's written for this
+  // English-language report, so it's deliberately not included here.
+  const contentLangAttr =
+    assessment?.content_language && assessment.content_language !== "en" ? { lang: assessment.content_language } : {};
 
   const { data: peerScoresRaw } = await supabase
     .from("candidate_assessments")
@@ -66,7 +78,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_responses")
-      .select("response_text, selected_option, score, ai_rationale, questions(prompt, question_type, options, competencies(name))")
+      .select("response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options, competencies(name))")
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_reviews")
@@ -147,6 +159,31 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const peerScores = ((peerScoresRaw || []) as { id: string; overall_score: number }[]).map((p) => p.overall_score);
   const benchmark = computeBenchmark(ca.overall_score, peerScores);
 
+  // Design-execution-plan Phase 5 / T5.1: typed once here (was previously
+  // re-cast inline inside the JSX below) so the aggregate needs-review count
+  // used by the new summary banner and the per-response badges further down
+  // share one source of truth.
+  const responseRows = (responses || []) as unknown as {
+    response_text: string | null;
+    selected_option: string | null;
+    score: number;
+    ai_rationale: string;
+    needs_review: boolean | null;
+    questions: {
+      prompt: string;
+      question_type: string;
+      options: { key: string; text: string }[] | null;
+      competencies: { name: string } | null;
+    } | null;
+  }[];
+  const needsReviewCount = responseRows.filter((r) => r.needs_review).length;
+
+  // T5.1: the sorted bar list is the primary at-a-glance read of competency
+  // performance (per the confirmed radar-demotion decision below); the radar
+  // moves to a smaller, secondary spot further down the page instead of
+  // sharing top billing with the score ring.
+  const topCompetencies = competencyLines.slice(0, 5);
+
   let boxLabel: string | null = null;
   if (ca.overall_score !== null && competencyLines.length > 0) {
     const { potential } = potentialFromCompetencies(ca.overall_score, competencyLines);
@@ -186,7 +223,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
               {candidate?.full_name}
             </h1>
             <p className="text-sm text-muted">{candidate?.email}</p>
-            <p className="text-[13px] text-muted mt-1.5 flex flex-wrap items-center gap-2">
+            <p className="text-xs text-muted mt-1.5 flex flex-wrap items-center gap-2">
               {assessment?.title}
               <StatusBadge status={ca.status} />
             </p>
@@ -196,7 +233,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           <ReportChatPanel candidateAssessmentId={id} candidateName={candidate?.full_name || "This candidate"} />
           <a
             href={`/report/${id}/pdf`}
-            className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
+            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
           >
             <Icon name="download" className="w-4 h-4" />
             Download PDF
@@ -205,26 +242,194 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </div>
       </div>
 
+      {/* Design-execution-plan Phase 5 / T5.1: the page now reads in the
+          order a reviewer actually reasons in -- the evidence they'd want to
+          check first, then the AI's contribution laid out so it's legible
+          and easy to independently confirm or override, then the human
+          decision itself. Previously the AI's scores/radar/benchmark came
+          first and the candidate's actual answers were buried below all of
+          it; a reviewer had to trust the number before ever seeing what it
+          was based on. */}
+
+      {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" />}
+
+      {/* T0.3's needs-review flag existed already but only as a small badge
+          buried inside each response card below -- easy to miss if a
+          reviewer skims. Surfaced here as its own summary so it's seen
+          before anything else. */}
+      {needsReviewCount > 0 && (
+        <Card className="p-5 mb-6 flex items-start gap-3 bg-amber-50 border-amber-200 no-print">
+          <Icon name="alertTriangle" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-amber-900">
+              {needsReviewCount} response{needsReviewCount === 1 ? "" : "s"} flagged for review
+            </p>
+            <p className="text-xs text-amber-800 mt-0.5">
+              The scoring engine wasn&apos;t confident in {needsReviewCount === 1 ? "this score" : "these scores"} — check
+              the flagged answer{needsReviewCount === 1 ? "" : "s"} in Response evidence below before relying on{" "}
+              {needsReviewCount === 1 ? "it" : "them"}.
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {/* ---------- Evidence ---------- */}
+      {responseRows.length > 0 && (
+        <Card className="p-6 mb-6">
+          <p className="text-sm font-bold text-foreground mb-1">Response evidence</p>
+          <p className="text-xs text-muted mb-6">
+            What the candidate actually answered, with the AI&apos;s score and rationale for each — read this before the
+            summary below.
+          </p>
+          <div className="space-y-6">
+            {responseRows.map((r, i) => {
+              const b = bandFor(r.score);
+              return (
+                <div key={i} className="border border-line rounded-xl p-5">
+                  <div className="flex flex-wrap items-start justify-between gap-3 mb-2.5">
+                    <div>
+                      {r.questions?.competencies?.name && (
+                        <p className="text-2xs font-bold uppercase tracking-wider text-accent-dark mb-1">
+                          {r.questions.competencies.name}
+                        </p>
+                      )}
+                      <p className="text-sm font-semibold text-foreground" {...contentLangAttr}>
+                        {r.questions?.prompt}
+                      </p>
+                    </div>
+                    <span className="flex items-center gap-2 shrink-0">
+                      {r.needs_review && (
+                        <span
+                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200"
+                          title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
+                        >
+                          <Icon name="alertTriangle" className="w-3 h-3" />
+                          Needs review
+                        </span>
+                      )}
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset tabular-nums ${b.badge}`}>
+                        {r.score}
+                      </span>
+                    </span>
+                  </div>
+                  {r.response_text ? (
+                    <blockquote
+                      className="text-sm text-muted italic bg-background border-l-2 border-accent rounded-r-lg px-4 py-3 mb-3"
+                      {...contentLangAttr}
+                    >
+                      “{r.response_text}”
+                    </blockquote>
+                  ) : (
+                    <p className="text-sm text-muted mb-3">
+                      Selected:{" "}
+                      <span className="font-semibold text-foreground" {...contentLangAttr}>
+                        {r.selected_option}. {r.questions?.options?.find((o) => o.key === r.selected_option)?.text ?? "—"}
+                      </span>
+                    </p>
+                  )}
+                  <p className="text-xs text-muted leading-relaxed flex items-start gap-2">
+                    <Icon name="wand" className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-dark" />
+                    {r.ai_rationale}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
+      {/* Proctoring recordings */}
+      {recordingsWithUrls.length > 0 && (
+        <Card className="p-6 mb-6 no-print">
+          <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+            <Icon name="video" className="w-4 h-4 text-accent-dark" />
+            Proctoring recordings
+          </p>
+          <p className="text-xs text-muted mb-4">Consent-gated video captured during the assessment session.</p>
+          <div className="space-y-3">
+            {recordingsWithUrls.map((r) => (
+              <div key={r.id} className="flex items-center justify-between gap-4 border border-line rounded-xl px-4 py-3">
+                <div className="min-w-0 text-sm">
+                  <p className="font-medium text-foreground">
+                    {r.consent_given_at ? new Date(r.consent_given_at).toLocaleString() : "Unknown time"} ·{" "}
+                    {r.duration_seconds ? `${Math.round(r.duration_seconds / 60)} min` : "—"}
+                  </p>
+                  <p className="text-xs text-muted">
+                    {r.url ? "Stored in project database" : "Recorded on candidate's device only — not uploaded"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {r.url && (
+                    <>
+                      <a
+                        href={r.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline"
+                      >
+                        <Icon name="play" className="w-3.5 h-3.5" />
+                        Watch
+                      </a>
+                      <a
+                        href={r.url}
+                        download
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline"
+                      >
+                        <Icon name="download" className="w-3.5 h-3.5" />
+                        Download
+                      </a>
+                    </>
+                  )}
+                  <form action={deleteProctoringRecording.bind(null, id, r.id, r.storage_path)}>
+                    <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-critical hover:underline">
+                      <Icon name="trash" className="w-3.5 h-3.5" />
+                      Delete
+                    </button>
+                  </form>
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {/* ---------- The AI's contribution ---------- */}
       {ca.overall_score !== null ? (
         <>
-          <ScoringDisclosure className="mb-6 no-print" />
           {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} />}
 
-          {/* Score + radar */}
+          {/* T5.1 (radar demotion, confirmed): the sorted bar list is the
+              primary at-a-glance read next to the score, not the radar --
+              see the Competency radar card further down for why. */}
           <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
             <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Overall Role Fit</p>
+              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted">Overall Role Fit</p>
               <ScoreRing score={Math.round(ca.overall_score)} size={128} label={bandFor(ca.overall_score).label} />
-              <p className="text-[11px] text-faint text-center max-w-44 mt-1">
+              <p className="text-2xs text-muted text-center max-w-44 mt-1">
                 Weighted average across mapped competencies · AI-assisted, human-confirmed
               </p>
             </Card>
             <Card className="p-7">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-3">Competency radar</p>
-              {scores.length >= 3 ? (
-                <RadarChart items={scores.slice(0, 8).map((s) => ({ label: s.competencies!.name, value: Math.round(s.score) }))} />
+              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-4">Top competencies</p>
+              {topCompetencies.length > 0 ? (
+                <div className="space-y-3.5">
+                  {topCompetencies.map((s) => {
+                    const style = categoryStyle(s.category);
+                    return (
+                      <div key={s.name}>
+                        <div className="flex items-center justify-between text-xs mb-1.5">
+                          <span className="font-medium text-foreground">{s.name}</span>
+                          <span className="font-bold tabular-nums">{Math.round(s.score)}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-line/70 overflow-hidden">
+                          <div className="h-full rounded-full anim-grow" style={{ width: `${s.score}%`, background: style.hex }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               ) : (
-                <p className="text-sm text-muted py-8 text-center">Radar view needs at least three scored competencies.</p>
+                <p className="text-sm text-muted py-8 text-center">No scored competencies yet.</p>
               )}
             </Card>
           </div>
@@ -244,7 +449,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 </span>{" "}
                 targeted competenc{targeted.length === 1 ? "y" : "ies"}.
               </p>
-              <p className="text-xs text-faint">Targets are set per section in the Assessment Builder.</p>
+              <p className="text-xs text-muted">Targets are set per section in the Assessment Builder.</p>
             </Card>
           )}
 
@@ -266,12 +471,12 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                       target === null ? null : s.score >= target + 10 ? "Exceeds bar" : s.score >= target ? "Meets bar" : "Below bar";
                     return (
                       <div key={i}>
-                        <div className="flex items-center justify-between text-[13px] mb-1.5">
+                        <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="font-medium text-foreground">{s.name}</span>
                           <span className="flex items-center gap-2.5">
                             {barState && (
                               <span
-                                className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                                className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                                   barState === "Below bar"
                                     ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
                                     : barState === "Exceeds bar"
@@ -283,7 +488,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                                 {barState} · {target}
                               </span>
                             )}
-                            <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
+                            <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
                               {s.level}
                             </span>
                             <span className="font-bold tabular-nums w-8 text-right">{Math.round(s.score)}</span>
@@ -306,6 +511,25 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
               </Card>
             );
           })}
+
+          {/* Design-execution-plan Phase 3 / T3.5 (confirmed at Phase 5):
+              the radar used to share top billing with the score ring; the
+              sorted bar lists above are more accurate to scan (a radar's
+              equal-angle axes visually distort relative differences), so
+              this is now a collapsed, opt-in secondary view -- <details> is
+              natively keyboard/screen-reader operable with no extra ARIA. */}
+          {scores.length >= 3 && (
+            <Card className="p-6 mb-5">
+              <details>
+                <summary className="text-sm font-bold text-foreground cursor-pointer select-none">
+                  Competency radar (supporting view)
+                </summary>
+                <div className="mt-4 max-w-md mx-auto">
+                  <RadarChart items={scores.slice(0, 8).map((s) => ({ label: s.competencies!.name, value: Math.round(s.score) }))} />
+                </div>
+              </details>
+            </Card>
+          )}
         </>
       ) : (
         <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-amber-800 bg-amber-50 border-amber-200">
@@ -314,122 +538,11 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </Card>
       )}
 
-      {/* Response evidence */}
-      {responses && responses.length > 0 && (
-        <Card className="p-6 mb-6">
-          <p className="text-sm font-bold text-foreground mb-1">Response evidence</p>
-          <p className="text-xs text-muted mb-6">Each answer with its AI-assigned score and written rationale.</p>
-          <div className="space-y-6">
-            {(responses as unknown as {
-              response_text: string | null;
-              selected_option: string | null;
-              score: number;
-              ai_rationale: string;
-              questions: {
-                prompt: string;
-                question_type: string;
-                options: { key: string; text: string }[] | null;
-                competencies: { name: string } | null;
-              } | null;
-            }[]).map((r, i) => {
-              const b = bandFor(r.score);
-              return (
-                <div key={i} className="border border-line rounded-xl p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-3 mb-2.5">
-                    <div>
-                      {r.questions?.competencies?.name && (
-                        <p className="text-[10.5px] font-bold uppercase tracking-wider text-accent-dark mb-1">
-                          {r.questions.competencies.name}
-                        </p>
-                      )}
-                      <p className="text-sm font-semibold text-foreground">{r.questions?.prompt}</p>
-                    </div>
-                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset tabular-nums shrink-0 ${b.badge}`}>
-                      {r.score}
-                    </span>
-                  </div>
-                  {r.response_text ? (
-                    <blockquote className="text-sm text-muted italic bg-background border-l-2 border-accent rounded-r-lg px-4 py-3 mb-3">
-                      “{r.response_text}”
-                    </blockquote>
-                  ) : (
-                    <p className="text-sm text-muted mb-3">
-                      Selected:{" "}
-                      <span className="font-semibold text-foreground">
-                        {r.selected_option}. {r.questions?.options?.find((o) => o.key === r.selected_option)?.text ?? "—"}
-                      </span>
-                    </p>
-                  )}
-                  <p className="text-xs text-faint leading-relaxed flex items-start gap-2">
-                    <Icon name="wand" className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-dark" />
-                    {r.ai_rationale}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-        </Card>
-      )}
-
-      {/* Proctoring recordings */}
-      {recordingsWithUrls.length > 0 && (
-        <Card className="p-6 mb-6 no-print">
-          <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-            <Icon name="video" className="w-4 h-4 text-brand" />
-            Proctoring recordings
-          </p>
-          <p className="text-xs text-muted mb-4">Consent-gated video captured during the assessment session.</p>
-          <div className="space-y-3">
-            {recordingsWithUrls.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-4 border border-line rounded-xl px-4 py-3">
-                <div className="min-w-0 text-sm">
-                  <p className="font-medium text-foreground">
-                    {r.consent_given_at ? new Date(r.consent_given_at).toLocaleString() : "Unknown time"} ·{" "}
-                    {r.duration_seconds ? `${Math.round(r.duration_seconds / 60)} min` : "—"}
-                  </p>
-                  <p className="text-xs text-faint">
-                    {r.url ? "Stored in project database" : "Recorded on candidate's device only — not uploaded"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  {r.url && (
-                    <>
-                      <a
-                        href={r.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
-                      >
-                        <Icon name="play" className="w-3.5 h-3.5" />
-                        Watch
-                      </a>
-                      <a
-                        href={r.url}
-                        download
-                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline"
-                      >
-                        <Icon name="download" className="w-3.5 h-3.5" />
-                        Download
-                      </a>
-                    </>
-                  )}
-                  <form action={deleteProctoringRecording.bind(null, id, r.id, r.storage_path)}>
-                    <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-critical hover:underline">
-                      <Icon name="trash" className="w-3.5 h-3.5" />
-                      Delete
-                    </button>
-                  </form>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      )}
-
+      {/* ---------- The human decision ---------- */}
       {/* Decision makers */}
       <Card className="p-6 mb-6 no-print">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="shield" className="w-4 h-4 text-brand" />
+          <Icon name="shield" className="w-4 h-4 text-accent-dark" />
           Decision makers
         </p>
         <p className="text-xs text-muted mb-4">
@@ -466,12 +579,12 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 </option>
               ))}
             </select>
-            <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0">
+            <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0">
               Assign
             </button>
           </form>
         ) : (
-          <p className="text-xs text-faint">
+          <p className="text-xs text-muted">
             {(allDecisionMakers || []).length === 0
               ? "No decision makers yet — add one from People & Access."
               : "All decision makers are already assigned to this candidate."}
@@ -497,7 +610,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 requirement; your decision above can still be submitted either way.
               </p>
               <form action={requestSignoffWithId}>
-                <button className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">
+                <button className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
                   <Icon name="send" className="w-4 h-4" />
                   Request sign-off from {managerProfile.full_name}
                 </button>
@@ -518,7 +631,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                       : " declined this promotion."}
                 </p>
                 {signoff.comment && <p className="mt-1 italic">&ldquo;{signoff.comment}&rdquo;</p>}
-                <p className="text-faint text-xs mt-1">
+                <p className="text-muted text-xs mt-1">
                   Requested {new Date(signoff.requested_at).toLocaleString()}
                   {signoff.decided_at ? ` · Decided ${new Date(signoff.decided_at).toLocaleString()}` : ""}
                 </p>
@@ -538,7 +651,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
               <label key={d.v} className="cursor-pointer">
                 <input type="radio" name="decision" value={d.v} required className="peer sr-only" />
                 <span
-                  className={`flex items-center justify-center gap-2 border border-line rounded-xl px-3 py-3 text-sm font-semibold text-muted transition-colors hover:border-faint ${d.cls}`}
+                  className={`flex items-center justify-center gap-2 border border-line rounded-xl px-3 py-3 text-sm font-semibold text-muted transition-colors hover:border-line-strong ${d.cls}`}
                 >
                   <Icon name={d.icon} className="w-4 h-4" />
                   {d.label}
@@ -550,9 +663,9 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             name="comment"
             rows={3}
             placeholder="Reviewer notes — what stood out, what to probe in interview…"
-            className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <button className="inline-flex items-center gap-2 bg-brand text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+          <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
             <Icon name="send" className="w-4 h-4" />
             Submit decision
           </button>
@@ -569,7 +682,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           const diverges = reviewRows.length >= 2 && distinctDecisions.length > 1;
           return (
             <div className="mt-6 space-y-3 border-t border-line pt-5">
-              <p className="text-[11px] font-bold uppercase tracking-wider text-faint">
+              <p className="text-2xs font-bold uppercase tracking-wider text-muted">
                 {reviewRows.length >= 2 ? "Reviewer calibration" : "Decision history"}
               </p>
               {diverges && (
@@ -589,8 +702,8 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                         <p className="font-semibold text-foreground text-sm">{r.reviewer?.full_name || "Reviewer"}</p>
                         <StatusBadge status={r.decision} />
                       </div>
-                      {r.comment && <p className="text-[13px] text-muted">“{r.comment}”</p>}
-                      <p className="text-faint text-xs mt-2">{new Date(r.created_at).toLocaleString()}</p>
+                      {r.comment && <p className="text-xs text-muted">“{r.comment}”</p>}
+                      <p className="text-muted text-xs mt-2">{new Date(r.created_at).toLocaleString()}</p>
                     </div>
                   ))}
                 </div>
@@ -601,7 +714,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <p className="text-muted">
                       <span className="font-semibold text-foreground">{r.reviewer?.full_name}</span>
                       {r.comment ? ` — “${r.comment}”` : ""}
-                      <span className="text-faint text-xs"> · {new Date(r.created_at).toLocaleString()}</span>
+                      <span className="text-muted text-xs"> · {new Date(r.created_at).toLocaleString()}</span>
                     </p>
                   </div>
                 ))
@@ -624,7 +737,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             </div>
             {!ca.feedback_released_at && (
               <form action={releaseFeedback.bind(null, id)}>
-                <button className="inline-flex items-center gap-2 bg-brand text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+                <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
                   <Icon name="send" className="w-4 h-4" />
                   Release feedback
                 </button>

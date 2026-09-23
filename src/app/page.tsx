@@ -23,12 +23,12 @@ export default async function Home() {
       <header className="sticky top-0 z-40 bg-surface border-b border-line">
         <div className="max-w-[1180px] mx-auto px-6 h-14 flex items-center justify-between">
           <Logo compact />
-          <nav className="hidden md:flex items-center gap-6 text-[13px] text-muted">
+          <nav className="hidden md:flex items-center gap-6 text-xs text-muted">
             <a href="#how" className="hover:text-foreground transition-colors">How it works</a>
             <a href="#framework" className="hover:text-foreground transition-colors">Competency framework</a>
             <a href="#platform" className="hover:text-foreground transition-colors">Platform</a>
           </nav>
-          <div className="flex items-center gap-4 text-[13px]">
+          <div className="flex items-center gap-4 text-xs">
             <Link href="/login" className="font-medium text-muted hover:text-foreground transition-colors">
               Log in
             </Link>
@@ -42,13 +42,13 @@ export default async function Home() {
       {/* ---------- Hero ---------- */}
       <section className="max-w-[1180px] mx-auto px-6 pt-20 pb-16 w-full">
         <div className="max-w-2xl">
-          <p className="text-[12px] font-semibold uppercase tracking-[0.14em] text-accent mb-5">
+          <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-accent-dark mb-5">
             Azerconnect Group — Vantage
           </p>
-          <h1 className="text-[40px] md:text-[52px] font-semibold tracking-tight leading-[1.08] text-foreground">
+          <h1 className="text-display md:text-display-lg font-semibold tracking-tight leading-[1.08] text-foreground">
             Decide on evidence, not gut feeling.
           </h1>
-          <p className="text-[16px] text-muted max-w-xl mt-6 leading-relaxed">
+          <p className="text-base text-muted max-w-xl mt-6 leading-relaxed">
             Vantage turns Azerconnect&apos;s governed 37-competency framework into structured assessments,
             AI-assisted scoring, and reviewer-verified decisions — for hiring, promotion, or development —
             every score traceable back to a person&apos;s own words.
@@ -56,14 +56,14 @@ export default async function Home() {
           <div className="flex flex-wrap gap-3 mt-8">
             <Link
               href="/signup"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-foreground text-background font-semibold text-[13.5px] hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-md bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity"
             >
               I&apos;m a candidate
               <Icon name="arrowRight" className="w-3.5 h-3.5" />
             </Link>
             <Link
               href="/login"
-              className="inline-flex items-center px-5 py-2.5 rounded-md border border-line text-foreground font-semibold text-[13.5px] hover:border-faint/50 transition-colors"
+              className="inline-flex items-center px-5 py-2.5 rounded-md border border-line text-foreground font-semibold text-sm hover:border-line-strong/50 transition-colors"
             >
               HR / Staff login
             </Link>
@@ -79,8 +79,8 @@ export default async function Home() {
             ["100%", "decisions with evidence"],
           ].map(([v, l]) => (
             <div key={l}>
-              <p className="text-[30px] font-semibold tracking-tight text-foreground tabular-nums">{v}</p>
-              <p className="text-[12.5px] text-faint mt-1">{l}</p>
+              <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums">{v}</p>
+              <p className="text-xs text-muted mt-1">{l}</p>
             </div>
           ))}
         </div>
@@ -112,9 +112,9 @@ export default async function Home() {
             },
           ].map((s) => (
             <div key={s.step}>
-              <p className="text-[13px] font-semibold text-faint tabular-nums mb-3">{s.step}</p>
-              <h3 className="font-semibold text-foreground text-[15px]">{s.title}</h3>
-              <p className="text-[13.5px] text-muted leading-relaxed mt-2">{s.body}</p>
+              <p className="text-xs font-semibold text-muted tabular-nums mb-3">{s.step}</p>
+              <h3 className="font-semibold text-foreground text-base">{s.title}</h3>
+              <p className="text-sm text-muted leading-relaxed mt-2">{s.body}</p>
             </div>
           ))}
         </div>
@@ -152,7 +152,7 @@ export default async function Home() {
             />
           </div>
 
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-faint mt-12 mb-5">
+          <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted mt-12 mb-5">
             Four proficiency bands, one shared language
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -163,8 +163,8 @@ export default async function Home() {
               ["Exceeds", "85–100"],
             ].map(([label, range]) => (
               <div key={label}>
-                <p className="text-[13.5px] font-semibold text-foreground">{label}</p>
-                <p className="text-[12px] text-faint tabular-nums mt-0.5">{range}</p>
+                <p className="text-sm font-semibold text-foreground">{label}</p>
+                <p className="text-2xs text-muted tabular-nums mt-0.5">{range}</p>
               </div>
             ))}
           </div>
@@ -188,8 +188,8 @@ export default async function Home() {
             ["Printable reports", "Every candidate profile exports as a clean, print-ready competency report for panel discussions."],
           ].map(([title, body]) => (
             <div key={title} className="grid md:grid-cols-[280px_1fr] gap-4 py-6 border-b border-line">
-              <h3 className="font-semibold text-foreground text-[14.5px]">{title}</h3>
-              <p className="text-[13.5px] text-muted leading-relaxed max-w-xl">{body}</p>
+              <h3 className="font-semibold text-foreground text-sm">{title}</h3>
+              <p className="text-sm text-muted leading-relaxed max-w-xl">{body}</p>
             </div>
           ))}
         </div>
@@ -199,19 +199,19 @@ export default async function Home() {
       <section className="border-t border-line">
         <div className="max-w-[1180px] mx-auto px-6 py-16 flex flex-wrap items-end justify-between gap-8">
           <div className="max-w-lg">
-            <h2 className="text-[26px] font-semibold tracking-tight text-foreground">
+            <h2 className="text-2xl font-semibold tracking-tight text-foreground">
               Ready to see the full picture of every candidate?
             </h2>
-            <p className="text-[13.5px] text-muted mt-3 leading-relaxed">
+            <p className="text-sm text-muted mt-3 leading-relaxed">
               Candidates sign up and complete their invited assessments. Recruiters and HR admins log in to
               build, review, and decide.
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href="/signup" className="px-5 py-2.5 rounded-md bg-foreground text-background font-semibold text-[13.5px] hover:opacity-90 transition-opacity">
+            <Link href="/signup" className="px-5 py-2.5 rounded-md bg-foreground text-background font-semibold text-sm hover:opacity-90 transition-opacity">
               Create candidate account
             </Link>
-            <Link href="/login" className="px-5 py-2.5 rounded-md border border-line text-foreground font-semibold text-[13.5px] hover:border-faint/50 transition-colors">
+            <Link href="/login" className="px-5 py-2.5 rounded-md border border-line text-foreground font-semibold text-sm hover:border-line-strong/50 transition-colors">
               Staff login
             </Link>
           </div>
@@ -221,17 +221,17 @@ export default async function Home() {
       {/* ---------- Footer ---------- */}
       <footer className="border-t border-line mt-auto">
         <div className="max-w-[1180px] mx-auto px-6 py-6 flex flex-col md:flex-row items-center justify-between gap-3">
-          <span className="text-[11.5px] text-faint">
+          <span className="text-2xs text-muted">
             Azerconnect Group — Internal Use Only · Vantage v1.0 · Phase 1 scoring is simulated; the production
             LLM engine ships per SRS Part 4.
           </span>
           <div className="flex items-center gap-4">
-            <ThemeToggle className="text-[11.5px] text-faint hover:text-muted transition-colors" />
+            <ThemeToggle className="text-2xs text-muted hover:text-muted transition-colors" />
             <a
               href="https://www.linkedin.com/in/thekmrnkrml/"
               target="_blank"
               rel="noreferrer"
-              className="text-[11.5px] text-faint hover:text-muted transition-colors whitespace-nowrap"
+              className="text-2xs text-muted hover:text-muted transition-colors whitespace-nowrap"
             >
               Developed by Kamran Karimli
             </a>
@@ -249,9 +249,9 @@ export default async function Home() {
 function SectionHead({ eyebrow, title, body }: { eyebrow: string; title: string; body: string }) {
   return (
     <div className="max-w-2xl">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">{eyebrow}</p>
-      <h2 className="text-[26px] font-semibold tracking-tight mt-2.5 text-foreground">{title}</h2>
-      <p className="mt-3 text-[13.5px] leading-relaxed text-muted">{body}</p>
+      <p className="text-2xs font-semibold uppercase tracking-[0.14em] text-accent-dark">{eyebrow}</p>
+      <h2 className="text-2xl font-semibold tracking-tight mt-2.5 text-foreground">{title}</h2>
+      <p className="mt-3 text-sm leading-relaxed text-muted">{body}</p>
     </div>
   );
 }
@@ -271,18 +271,18 @@ function FrameworkColumn({
 }) {
   return (
     <div>
-      <p className="text-[14px] font-semibold text-foreground">
-        {name} <span className="text-faint font-normal tabular-nums">· {count}</span>
+      <p className="text-sm font-semibold text-foreground">
+        {name} <span className="text-muted font-normal tabular-nums">· {count}</span>
       </p>
-      <p className="text-[13px] text-muted leading-relaxed mt-2">{blurb}</p>
+      <p className="text-xs text-muted leading-relaxed mt-2">{blurb}</p>
       <ul className="mt-4 space-y-1.5">
         {samples.map((s) => (
-          <li key={s} className="text-[12.5px] text-muted flex items-center gap-2">
-            <span className="w-1 h-1 rounded-full bg-faint shrink-0" />
+          <li key={s} className="text-xs text-muted flex items-center gap-2">
+            <span className="w-1 h-1 rounded-full bg-line-strong shrink-0" />
             {s}
           </li>
         ))}
-        {!full && <li className="text-[11.5px] text-faint pl-3">and more in the governed dictionary</li>}
+        {!full && <li className="text-2xs text-muted pl-3">and more in the governed dictionary</li>}
       </ul>
     </div>
   );

@@ -276,6 +276,7 @@ async function insertGeneratedAssessment(
     competencies: { id: string; code: string; name: string }[];
     generated: import("@/lib/generation").GeneratedAssessment;
     purpose: AssessmentPurpose;
+    language: "en" | "az" | "ru";
   }
 ) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
@@ -297,6 +298,12 @@ async function insertGeneratedAssessment(
       generated_by: params.generatedBy,
       generated_at: new Date().toISOString(),
       purpose: params.purpose,
+      // Design-execution-plan Phase 2 / T2.5: this column existed but was
+      // never written -- generated content's language (chosen at
+      // generation time, above) was lost the moment the assessment was
+      // created, so nothing downstream (runner, report, PDF) could ever
+      // have known to set lang="az"/"ru" on it. Persist it here.
+      content_language: params.language,
     })
     .select("id")
     .single();
@@ -366,7 +373,7 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
   const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
 
   if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
-    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
+    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine.") + "&field=engine");
   }
 
   let newId: string;
@@ -398,6 +405,7 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
       competencies: comps,
       generated,
       purpose,
+      language,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
@@ -453,6 +461,53 @@ export async function deleteQuestion(questionId: string, sectionId: string, asse
   void sectionId;
 }
 
+// Design-execution-plan Phase 5 / T5.3: there was no reorder capability at
+// all before this -- only add and delete, so fixing a section or question
+// order meant deleting and re-adding everything after the mistake. These
+// swap this row's `sequence` with its immediate neighbor's rather than
+// renumbering the whole list, which keeps every other row's sequence
+// untouched (and the two updates are trivially safe to run in either order,
+// since a swap can't collide with any sequence outside the pair). Keyboard-
+// operable up/down controls only -- no drag reordering, per the plan's
+// explicit WCAG 2.5.7 note that a drag path must never be the only one.
+async function moveRow(
+  table: "assessment_sections" | "questions",
+  parentColumn: "assessment_id" | "section_id",
+  parentId: string,
+  rowId: string,
+  direction: "up" | "down"
+) {
+  const supabase = await createClient();
+  const { data: rows } = await supabase
+    .from(table)
+    .select("id, sequence")
+    .eq(parentColumn, parentId)
+    .order("sequence");
+  const ordered = (rows || []) as { id: string; sequence: number }[];
+  const idx = ordered.findIndex((r) => r.id === rowId);
+  const swapWith = direction === "up" ? idx - 1 : idx + 1;
+  if (idx === -1 || swapWith < 0 || swapWith >= ordered.length) return; // already at an edge -- no-op
+
+  const a = ordered[idx];
+  const b = ordered[swapWith];
+  await Promise.all([
+    supabase.from(table).update({ sequence: b.sequence }).eq("id", a.id),
+    supabase.from(table).update({ sequence: a.sequence }).eq("id", b.id),
+  ]);
+}
+
+export async function moveSection(sectionId: string, assessmentId: string, direction: "up" | "down") {
+  await requireStaff();
+  await moveRow("assessment_sections", "assessment_id", assessmentId, sectionId, direction);
+  revalidatePath(`/staff/builder/${assessmentId}`);
+}
+
+export async function moveQuestion(questionId: string, sectionId: string, assessmentId: string, direction: "up" | "down") {
+  await requireStaff();
+  await moveRow("questions", "section_id", sectionId, questionId, direction);
+  revalidatePath(`/staff/builder/${assessmentId}`);
+}
+
 export async function generateCustomAssessment(formData: FormData) {
   const { generateAssessmentContent } = await import("@/lib/generation");
   const { supabase, userId, fullName } = await requireAdminForGeneration();
@@ -464,12 +519,16 @@ export async function generateCustomAssessment(formData: FormData) {
   const competencyIds = formData.getAll("competency_ids") as string[];
   const purpose = normalizePurpose(formData.get("purpose"));
 
-  if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title."));
+  if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title.") + "&field=title");
   if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
-    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine."));
+    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine.") + "&field=engine");
   }
   if (competencyIds.length === 0) {
-    redirect("/staff/builder?error=" + encodeURIComponent("Select at least one competency to generate from."));
+    redirect(
+      "/staff/builder?error=" +
+        encodeURIComponent("Select at least one competency to generate from.") +
+        "&field=competencies"
+    );
   }
 
   let newId: string;
@@ -490,6 +549,7 @@ export async function generateCustomAssessment(formData: FormData) {
       competencies: comps || [],
       generated,
       purpose,
+      language,
     });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
@@ -560,7 +620,15 @@ export async function updateSectionTarget(sectionId: string, assessmentId: strin
   const target = raw === "" ? null : Math.max(0, Math.min(100, Number(raw)));
 
   if (raw !== "" && Number.isNaN(target)) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Target must be a number from 0 to 100."));
+    // Every section on the page has its own "Set target" form sharing the
+    // same input name, so the field id needs the section id folded in --
+    // otherwise the message would show up next to every section's target
+    // input instead of just the one that was actually submitted.
+    redirect(
+      `/staff/builder/${assessmentId}?error=` +
+        encodeURIComponent("Target must be a number from 0 to 100.") +
+        `&field=target_score-${sectionId}`
+    );
   }
 
   const { error } = await supabase

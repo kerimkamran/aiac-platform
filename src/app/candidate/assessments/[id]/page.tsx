@@ -19,7 +19,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
-    .select("id, status, started_at, due_at, candidate_id, assessment_id, assessments(title, description, time_limit_minutes)")
+    .select("id, status, started_at, due_at, candidate_id, assessment_id, assessments(title, description, time_limit_minutes, content_language)")
     .eq("id", id)
     .single();
 
@@ -62,7 +62,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
     return (
       <div className="p-6 lg:p-10 max-w-2xl mx-auto">
         <Card className="p-8">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-2">Ready to begin</p>
+          <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-2">Ready to begin</p>
           <h1 className="text-xl font-bold text-foreground mb-2">{metaEarly?.title}</h1>
           {metaEarly?.description && <p className="text-sm text-muted mb-4">{metaEarly.description}</p>}
           <div className="flex flex-wrap items-center gap-4 text-xs text-muted mb-6">
@@ -83,12 +83,12 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
           </div>
 
           <form action={startWithId}>
-            <button className="w-full inline-flex items-center justify-center gap-2 bg-brand text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-brand-light transition-colors">
+            <button className="w-full inline-flex items-center justify-center gap-2 bg-brand-deep text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
               <Icon name="arrowRight" className="w-4 h-4" />
               Start the timed assessment
             </button>
           </form>
-          <p className="text-[11px] text-faint text-center mt-3">
+          <p className="text-2xs text-muted text-center mt-3">
             The {metaEarly?.time_limit_minutes}-minute timer begins the moment you press start.
           </p>
         </Card>
@@ -135,7 +135,12 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   }
   const runnerSections: RunnerSection[] = sectionOrder.map((sid) => sectionMap.get(sid)!);
 
-  const meta = ca.assessments as unknown as { title: string; description: string; time_limit_minutes: number };
+  const meta = ca.assessments as unknown as {
+    title: string;
+    description: string;
+    time_limit_minutes: number;
+    content_language: string | null;
+  };
   const submitWithId = submitAssessment.bind(null, id);
 
   const deadlineMs = new Date(startedAt).getTime() + (meta?.time_limit_minutes || 60) * 60_000;
@@ -154,6 +159,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
         submitAction={submitWithId}
         watermarkLabel={user?.email || "confidential"}
         storageBackend={(proctoring.storage_backend as "supabase" | "local") || "supabase"}
+        contentLanguage={meta?.content_language}
       />
     );
   }
@@ -168,6 +174,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
       sections={runnerSections}
       submitAction={submitWithId}
       watermarkLabel={user?.email || "confidential"}
+      contentLanguage={meta?.content_language}
     />
   );
 }

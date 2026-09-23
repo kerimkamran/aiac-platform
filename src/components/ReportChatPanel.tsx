@@ -61,7 +61,7 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
       {/* Trigger */}
       <button
         onClick={() => setOpen(true)}
-        className="no-print inline-flex items-center gap-2 bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
+        className="no-print inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
       >
         <Icon name="messageSquare" className="w-4 h-4" />
         Discuss with AI
@@ -75,10 +75,10 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
             {/* Header */}
             <div className="bg-surface border-b border-line px-5 py-4 flex items-start justify-between gap-3 shrink-0">
               <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-accent-dark">Kimi AI · Report chat</p>
+                <p className="text-2xs font-bold uppercase tracking-[0.16em] text-accent-dark">Kimi AI · Report chat</p>
                 <p className="text-sm font-semibold text-foreground truncate mt-0.5">{candidateName}</p>
               </div>
-              <button onClick={() => setOpen(false)} aria-label="Close" className="text-faint hover:text-foreground p-1 -m-1 shrink-0">
+              <button onClick={() => setOpen(false)} aria-label="Close" className="text-muted hover:text-foreground p-1 -m-1 shrink-0">
                 <Icon name="x" className="w-5 h-5" />
               </button>
             </div>
@@ -86,7 +86,7 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
             {/* Messages */}
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
               {!loaded ? (
-                <div className="flex items-center justify-center h-full text-sm text-faint gap-2">
+                <div className="flex items-center justify-center h-full text-sm text-muted gap-2">
                   <Icon name="clock" className="w-4 h-4 animate-pulse" />
                   Loading conversation…
                 </div>
@@ -100,7 +100,7 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
                       <button
                         key={qa.label}
                         onClick={() => send(qa.prompt)}
-                        className="text-left text-[13px] font-medium border border-line rounded-lg px-3.5 py-2.5 hover:border-accent hover:bg-accent-soft transition-colors"
+                        className="text-left text-xs font-medium border border-line rounded-lg px-3.5 py-2.5 hover:border-accent hover:bg-accent-soft transition-colors"
                       >
                         {qa.label}
                       </button>
@@ -111,8 +111,8 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
                 messages.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${
-                        m.role === "user" ? "bg-brand text-white" : "bg-background border border-line text-foreground"
+                      className={`max-w-[85%] rounded-xl px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
+                        m.role === "user" ? "bg-brand-deep text-white" : "bg-background border border-line text-foreground"
                       }`}
                     >
                       {m.content}
@@ -122,7 +122,7 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
               )}
               {pending && (
                 <div className="flex justify-start">
-                  <div className="bg-background border border-line rounded-xl px-3.5 py-2.5 text-[13px] text-faint flex items-center gap-2">
+                  <div className="bg-background border border-line rounded-xl px-3.5 py-2.5 text-xs text-muted flex items-center gap-2">
                     <Icon name="sparkles" className="w-3.5 h-3.5 animate-pulse text-accent-dark" />
                     Thinking…
                   </div>
@@ -138,7 +138,7 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
                     key={qa.label}
                     onClick={() => send(qa.prompt)}
                     disabled={pending}
-                    className="shrink-0 text-[11.5px] font-semibold border border-line rounded-full px-3 py-1.5 hover:border-accent hover:bg-accent-soft transition-colors disabled:opacity-50"
+                    className="shrink-0 text-2xs font-semibold border border-line rounded-full px-3 py-1.5 hover:border-accent hover:bg-accent-soft transition-colors disabled:opacity-50"
                   >
                     {qa.label}
                   </button>
@@ -166,13 +166,13 @@ export function ReportChatPanel({ candidateAssessmentId, candidateName }: { cand
                 placeholder="Ask about this report…"
                 rows={1}
                 disabled={!loaded || pending}
-                className="flex-1 resize-none rounded-xl border border-line bg-background px-3.5 py-2.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
+                className="flex-1 resize-none rounded-xl border border-line bg-background px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
               />
               <button
                 type="submit"
                 disabled={!loaded || pending || !input.trim()}
                 aria-label="Send"
-                className="shrink-0 w-10 h-10 rounded-xl bg-accent text-white grid place-items-center hover:bg-accent-dark transition-colors disabled:opacity-40"
+                className="shrink-0 w-10 h-10 rounded-xl bg-brand-deep text-white grid place-items-center hover:bg-accent-dark transition-colors disabled:opacity-40"
               >
                 <Icon name="send" className="w-4 h-4" />
               </button>

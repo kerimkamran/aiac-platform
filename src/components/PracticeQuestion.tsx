@@ -37,7 +37,7 @@ export function PracticeQuestion() {
 
   return (
     <div className="border border-dashed border-line rounded-xl p-5 bg-surface/50">
-      <p className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-faint mb-3">
+      <p className="flex items-center gap-2 text-2xs font-bold uppercase tracking-wider text-muted mb-3">
         <Icon name="info" className="w-3.5 h-3.5" />
         Practice question — not scored, not recorded
       </p>
@@ -51,7 +51,7 @@ export function PracticeQuestion() {
             className={`w-full text-left flex items-start gap-3 border rounded-xl px-4 py-3 text-sm transition-colors ${
               picked === o.key
                 ? "border-accent bg-accent-soft/40 text-foreground"
-                : "border-line text-muted hover:border-faint"
+                : "border-line text-muted hover:border-line-strong"
             }`}
           >
             <span className="font-bold shrink-0">{o.key}</span>

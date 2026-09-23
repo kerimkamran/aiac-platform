@@ -90,7 +90,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
 
       {/* Panel */}
       {open && (
-        <div className="no-print fixed bottom-24 right-5 z-40 w-[calc(100vw-2.5rem)] sm:w-[380px] max-h-[70vh] bg-surface squircle-lg flex flex-col anim-fade-up overflow-hidden" style={{ boxShadow: "var(--shadow-lg)" }}>
+        <div className="no-print fixed bottom-24 right-5 z-40 w-[calc(100vw-2.5rem)] sm:w-[380px] max-h-[70vh] bg-surface rounded-card flex flex-col anim-fade-up overflow-hidden" style={{ boxShadow: "var(--shadow-lg)" }}>
           {/* Header */}
           <div className="px-5 py-4 flex items-center gap-3 shrink-0 text-white" style={{ background: "var(--foreground)" }}>
             <span className="w-8 h-8 rounded-full bg-white/20 grid place-items-center shrink-0">
@@ -98,7 +98,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
             </span>
             <div className="min-w-0">
               <p className="text-sm font-semibold leading-none">Scout</p>
-              <p className="text-[11px] text-white/75 mt-1">Your Vantage guide</p>
+              <p className="text-2xs text-white/75 mt-1">Your Vantage guide</p>
             </div>
           </div>
 
@@ -106,13 +106,13 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.length === 0 ? (
               <div>
-                <p className="text-[13.5px] text-muted leading-relaxed mb-4">{ROLE_GREETING[role]}</p>
+                <p className="text-sm text-muted leading-relaxed mb-4">{ROLE_GREETING[role]}</p>
                 <div className="flex flex-col gap-2">
                   {ROLE_SUGGESTIONS[role].map((s) => (
                     <button
                       key={s}
                       onClick={() => send(s)}
-                      className="text-left text-[13px] font-medium bg-background squircle-sm px-3.5 py-2.5 hover:bg-line-soft transition-colors"
+                      className="text-left text-xs font-medium bg-background rounded-card px-3.5 py-2.5 hover:bg-line-soft transition-colors"
                     >
                       {s}
                     </button>
@@ -124,7 +124,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
                 <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                   <div className="max-w-[88%]">
                     <div
-                      className={`squircle-sm px-3.5 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap ${
+                      className={`rounded-card px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap ${
                         m.role === "user" ? "text-white" : "bg-background text-foreground"
                       }`}
                       style={m.role === "user" ? { background: "var(--foreground)" } : undefined}
@@ -134,7 +134,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
                     {m.navHref && (
                       <button
                         onClick={() => goTo(m.navHref!)}
-                        className="mt-2 inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accent-dark hover:underline"
+                        className="mt-2 inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline"
                       >
                         Open {m.navLabel}
                         <Icon name="arrowRight" className="w-3.5 h-3.5" />
@@ -146,7 +146,7 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
             )}
             {pending && (
               <div className="flex justify-start">
-                <div className="bg-background squircle-sm px-3.5 py-2.5 text-[13px] text-faint flex items-center gap-2">
+                <div className="bg-background rounded-card px-3.5 py-2.5 text-xs text-muted flex items-center gap-2">
                   <Icon name="sparkles" className="w-3.5 h-3.5 animate-pulse text-accent-dark" />
                   Thinking…
                 </div>
@@ -167,13 +167,13 @@ export function ScoutLauncher({ role }: { role: ScoutRole }) {
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask Scout anything…"
               disabled={pending}
-              className="flex-1 bg-background squircle-sm px-3.5 py-2.5 text-[13.5px] focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
+              className="flex-1 bg-background rounded-card px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent/40 disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={pending || !input.trim()}
               aria-label="Send"
-              className="shrink-0 w-10 h-10 squircle-sm text-white grid place-items-center disabled:opacity-40 transition-opacity"
+              className="shrink-0 w-10 h-10 rounded-card text-white grid place-items-center disabled:opacity-40 transition-opacity"
               style={{ background: "var(--foreground)" }}
             >
               <Icon name="send" className="w-4 h-4" />

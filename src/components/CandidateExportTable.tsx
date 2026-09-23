@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Avatar, Card, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
+import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
+import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { nowMs } from "@/lib/time";
 
 export type CandidateExportRow = {
@@ -36,6 +37,91 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
     return `${exportBase}${sep}ids=${Array.from(selected).join(",")}`;
   }, [exportBase, selected]);
 
+  // Design-execution-plan Phase 5 / T5.2: same DataTable primitive as the
+  // admin users and audit tables now use, with row selection expressed as
+  // an ordinary column (a checkbox column is just a column whose render
+  // returns a checkbox) rather than the primitive needing to know selection
+  // is a thing at all.
+  const columns: DataTableColumn<CandidateExportRow>[] = [
+    {
+      key: "select",
+      className: "w-10",
+      headerRender: () => (
+        // Design-execution-plan Phase 4 / T4.2: bare checkbox with no label
+        // had no accessible name and a hit target under the browser default
+        // ~13px -- WCAG 2.5.8/4.1.2.
+        <label className="grid place-items-center w-6 h-6 -m-1 cursor-pointer">
+          <input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Select all candidates" className="accent-[color:var(--brand)]" />
+        </label>
+      ),
+      render: (r) => (
+        <label className="grid place-items-center w-6 h-6 -m-1 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={selected.has(r.id)}
+            onChange={() => toggleOne(r.id)}
+            aria-label={`Select ${r.candidate?.full_name || "candidate"}`}
+            className="accent-[color:var(--brand)]"
+          />
+        </label>
+      ),
+    },
+    {
+      key: "candidate",
+      label: "Candidate",
+      className: "px-2",
+      render: (r) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={r.candidate?.full_name || "?"} />
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground truncate">{r.candidate?.full_name}</p>
+            <p className="text-xs text-muted truncate">{r.candidate?.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    { key: "assessment", label: "Assessment", render: (r) => <span className="text-muted">{r.assessments?.title}</span> },
+    {
+      key: "status",
+      label: "Status",
+      render: (r) => (
+        <span className="inline-flex items-center gap-2">
+          <StatusBadge status={r.status} />
+          {r.due_at && ["invited", "in_progress"].includes(r.status) && (
+            <span
+              className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                new Date(r.due_at).getTime() < nowMs()
+                  ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
+                  : "bg-line-soft text-muted ring-line"
+              }`}
+            >
+              {new Date(r.due_at).getTime() < nowMs() ? "Overdue" : `Due ${new Date(r.due_at).toLocaleDateString()}`}
+            </span>
+          )}
+        </span>
+      ),
+    },
+    {
+      key: "role_fit",
+      label: "Role Fit",
+      render: (r) => (r.overall_score !== null ? <ScoreBadge score={Math.round(r.overall_score)} /> : <span className="text-muted">—</span>),
+    },
+    {
+      key: "actions",
+      label: "",
+      align: "right",
+      render: (r) => (
+        <Link
+          href={`/staff/reports/candidates/${r.id}`}
+          className="inline-flex items-center gap-1.5 text-accent-dark font-semibold whitespace-nowrap hover:underline"
+        >
+          Review
+          <Icon name="arrowRight" className="w-3.5 h-3.5" />
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -49,8 +135,8 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
             }}
             className={`inline-flex items-center gap-2 text-sm font-semibold px-3.5 py-2 rounded-xl border transition-colors ${
               selected.size === 0
-                ? "border-line text-faint cursor-not-allowed"
-                : "border-brand text-brand hover:bg-brand hover:text-white"
+                ? "border-line text-muted cursor-not-allowed"
+                : "border-brand text-accent-dark hover:bg-brand-deep hover:text-white"
             }`}
           >
             <Icon name="download" className="w-4 h-4" />
@@ -58,7 +144,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
           </a>
           <a
             href={exportBase}
-            className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-3.5 py-2 rounded-xl hover:bg-brand-light transition-colors"
+            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors"
           >
             <Icon name="download" className="w-4 h-4" />
             Export all (filtered)
@@ -66,76 +152,13 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
         </div>
       </div>
 
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[680px]">
-          <thead className="text-faint text-[11px] uppercase tracking-wider border-b border-line">
-            <tr>
-              <th className="px-4 py-3.5 w-10">
-                <input type="checkbox" checked={allChecked} onChange={toggleAll} className="accent-[color:var(--brand)]" />
-              </th>
-              <th className="text-left px-2 py-3.5 font-semibold">Candidate</th>
-              <th className="text-left px-5 py-3.5 font-semibold">Assessment</th>
-              <th className="text-left px-5 py-3.5 font-semibold">Status</th>
-              <th className="text-left px-5 py-3.5 font-semibold">Role Fit</th>
-              <th className="px-5 py-3.5" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {rows.map((r) => (
-              <tr key={r.id} className="hover:bg-background/70 transition-colors">
-                <td className="px-4 py-3.5">
-                  <input type="checkbox" checked={selected.has(r.id)} onChange={() => toggleOne(r.id)} className="accent-[color:var(--brand)]" />
-                </td>
-                <td className="px-2 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={r.candidate?.full_name || "?"} />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground truncate">{r.candidate?.full_name}</p>
-                      <p className="text-xs text-muted truncate">{r.candidate?.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-muted">{r.assessments?.title}</td>
-                <td className="px-5 py-3.5">
-                  <span className="inline-flex items-center gap-2">
-                    <StatusBadge status={r.status} />
-                    {r.due_at && ["invited", "in_progress"].includes(r.status) && (
-                      <span
-                        className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
-                          new Date(r.due_at).getTime() < nowMs()
-                            ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
-                            : "bg-line-soft text-muted ring-line"
-                        }`}
-                      >
-                        {new Date(r.due_at).getTime() < nowMs() ? "Overdue" : `Due ${new Date(r.due_at).toLocaleDateString()}`}
-                      </span>
-                    )}
-                  </span>
-                </td>
-                <td className="px-5 py-3.5">
-                  {r.overall_score !== null ? <ScoreBadge score={Math.round(r.overall_score)} /> : <span className="text-faint">—</span>}
-                </td>
-                <td className="px-5 py-3.5 text-right">
-                  <Link
-                    href={`/staff/reports/candidates/${r.id}`}
-                    className="inline-flex items-center gap-1.5 text-accent-dark font-semibold whitespace-nowrap hover:underline"
-                  >
-                    Review
-                    <Icon name="arrowRight" className="w-3.5 h-3.5" />
-                  </Link>
-                </td>
-              </tr>
-            ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-faint text-sm">
-                  No candidates match — try clearing the filters, or invite candidates from the Assessment Builder.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </Card>
+      <DataTable
+        columns={columns}
+        rows={rows}
+        getRowKey={(r) => r.id}
+        caption="Candidates"
+        emptyMessage="No candidates match — try clearing the filters, or invite candidates from the Assessment Builder."
+      />
 
       {selected.size >= 2 && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 no-print anim-fade-up">

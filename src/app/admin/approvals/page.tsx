@@ -47,7 +47,7 @@ export default async function AdminApprovalsPage() {
                   {p.note ? ` — “${p.note}”` : ""}
                 </p>
                 {r.status !== "pending" ? (
-                  <p className="text-xs text-faint">
+                  <p className="text-xs text-muted">
                     {r.status} by {decider?.full_name} · {r.decided_at ? new Date(r.decided_at).toLocaleString() : ""} {r.comment ? `— “${r.comment}”` : ""}
                   </p>
                 ) : (
@@ -59,7 +59,7 @@ export default async function AdminApprovalsPage() {
                         icon="check"
                         tone="accent"
                         confirmMessage="Approve this request and execute it immediately?"
-                        className="inline-flex items-center gap-1.5 bg-accent text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-accent-dark transition-colors"
+                        className="inline-flex items-center gap-1.5 bg-brand-deep text-white text-xs font-bold px-3.5 py-2 rounded-xl hover:bg-accent-dark transition-colors"
                       >
                         Approve & execute
                       </ConfirmSubmitButton>
@@ -81,7 +81,7 @@ export default async function AdminApprovalsPage() {
             );
           })}
           {(!requests || requests.length === 0) && (
-            <Card className="p-8 text-center text-sm text-faint">No approval requests yet.</Card>
+            <Card className="p-8 text-center text-sm text-muted">No approval requests yet.</Card>
           )}
         </div>
 
@@ -107,7 +107,7 @@ export default async function AdminApprovalsPage() {
             <ConfirmSubmitButton
               confirmMessage="Submit this request for approval?"
               tone="brand"
-              className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors"
+              className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors"
             >
               Submit for approval
             </ConfirmSubmitButton>

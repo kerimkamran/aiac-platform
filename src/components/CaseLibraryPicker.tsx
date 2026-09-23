@@ -59,7 +59,7 @@ export function CaseLibraryPicker({ cases, defaultCompetencyId }: { cases: CaseR
       </select>
 
       <div className="max-h-56 overflow-y-auto space-y-1.5">
-        {filtered.length === 0 && <p className="text-xs text-faint py-3">No cases for this competency yet.</p>}
+        {filtered.length === 0 && <p className="text-xs text-muted py-3">No cases for this competency yet.</p>}
         {filtered.map((c) => (
           <label
             key={c.id}
@@ -78,7 +78,7 @@ export function CaseLibraryPicker({ cases, defaultCompetencyId }: { cases: CaseR
             <span className="min-w-0">
               <span className="font-semibold text-foreground block truncate">{c.title || "Untitled case"}</span>
               <span className="text-muted block line-clamp-2">{c.question_stem}</span>
-              <span className="inline-flex items-center gap-1 text-[10.5px] font-semibold text-faint mt-1">
+              <span className="inline-flex items-center gap-1 text-2xs font-semibold text-muted mt-1">
                 <Icon name={c.question_type === "mcq" ? "checkCircle" : "file"} className="w-3 h-3" />
                 {c.question_type === "mcq" ? "MCQ" : "Open"}
                 {c.difficulty ? ` · ${c.difficulty}` : ""}
@@ -92,7 +92,7 @@ export function CaseLibraryPicker({ cases, defaultCompetencyId }: { cases: CaseR
       <button
         type="submit"
         disabled={selected.size === 0}
-        className="bg-accent text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
       >
         Add {selected.size > 0 ? selected.size : ""} question{selected.size === 1 ? "" : "s"}
       </button>

@@ -43,7 +43,7 @@ export default async function AdminAiGovernancePage() {
         <Card className="p-6">
           <form action={saveAi} className="space-y-5">
             <p className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Icon name="brain" className="w-4 h-4 text-brand" />
+              <Icon name="brain" className="w-4 h-4 text-accent-dark" />
               AI feature policy
             </p>
             <label className="inline-flex items-center gap-2.5 text-sm font-medium cursor-pointer">
@@ -51,7 +51,7 @@ export default async function AdminAiGovernancePage() {
               AI features enabled (scoring assistance & assessment generation)
             </label>
             <div>
-              <p className="text-[12px] font-semibold text-muted mb-2">Roles allowed to trigger AI generation</p>
+              <p className="text-2xs font-semibold text-muted mb-2">Roles allowed to trigger AI generation</p>
               <div className="flex flex-wrap gap-3">
                 {["system_admin", "org_admin", "hr_admin", "recruiter"].map((r) => (
                   <label key={r} className="inline-flex items-center gap-2 text-sm cursor-pointer">
@@ -63,7 +63,7 @@ export default async function AdminAiGovernancePage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[12px] font-semibold text-muted mb-1.5" htmlFor="model">Default model</label>
+                <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="model">Default model</label>
                 <select id="model" name="model" defaultValue={settings.model} className={input}>
                   {(engines || []).map((e) => (
                     <option key={e.key} value={e.key}>{e.display_name}{e.enabled ? "" : " (disabled)"}</option>
@@ -72,20 +72,20 @@ export default async function AdminAiGovernancePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-[12px] font-semibold text-muted mb-1.5" htmlFor="monthly_quota">Monthly AI action quota</label>
+                <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="monthly_quota">Monthly AI action quota</label>
                 <input id="monthly_quota" name="monthly_quota" type="number" min={0} defaultValue={settings.monthly_quota} className={input} />
               </div>
             </div>
-            <button className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-light transition-colors">Save AI policy</button>
+            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save AI policy</button>
           </form>
         </Card>
 
         <div className="space-y-6">
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-1">Usage this month</p>
-            <p className="text-[32px] font-bold text-brand tabular-nums">
+            <p className="text-2xl font-bold text-accent-dark tabular-nums">
               {monthUsage ?? 0}
-              <span className="text-sm font-semibold text-faint"> / {settings.monthly_quota} actions</span>
+              <span className="text-sm font-semibold text-muted"> / {settings.monthly_quota} actions</span>
             </p>
             <div className="h-2 rounded-full bg-line/70 overflow-hidden mt-2">
               <div
@@ -101,16 +101,16 @@ export default async function AdminAiGovernancePage() {
               {(aiAudit || []).map((e) => {
                 const actor = e.actor as unknown as { full_name: string } | null;
                 return (
-                  <div key={e.id} className="flex items-center gap-2.5 text-[12.5px]">
-                    <Avatar name={actor?.full_name || "?"} className="w-6 h-6 text-[9px]" />
+                  <div key={e.id} className="flex items-center gap-2.5 text-xs">
+                    <Avatar name={actor?.full_name || "?"} className="w-6 h-6 text-2xs" />
                     <span className="font-medium text-foreground">{actor?.full_name || "System"}</span>
                     <span className="text-muted">{e.action.replace(/_/g, " ")}</span>
-                    <span className="text-faint ml-auto whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</span>
+                    <span className="text-muted ml-auto whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</span>
                   </div>
                 );
               })}
               {(!aiAudit || aiAudit.length === 0) && (
-                <p className="text-xs text-faint">No AI actions recorded yet — generation and scoring events will appear here.</p>
+                <p className="text-xs text-muted">No AI actions recorded yet — generation and scoring events will appear here.</p>
               )}
             </div>
           </Card>

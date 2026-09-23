@@ -30,17 +30,17 @@ export default async function AdminDashboard() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Active users" value={activeUsers ?? 0} icon="users" tone="brand" />
-        <StatCard label="Staff accounts" value={staff} icon="shield" tone="accent" />
-        <StatCard label="Suspended / deactivated" value={suspended} icon="ban" tone="amber" />
-        <StatCard label="Pending approvals" value={pendingApprovals ?? 0} icon="checkCircle" tone="violet" />
+        <StatCard label="Active users" value={activeUsers ?? 0} />
+        <StatCard label="Staff accounts" value={staff} />
+        <StatCard label="Suspended / deactivated" value={suspended} />
+        <StatCard label="Pending approvals" value={pendingApprovals ?? 0} />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <Card className="p-6">
           <div className="flex items-center justify-between mb-4">
             <p className="text-sm font-bold text-foreground">Recent admin activity</p>
-            <Link href="/admin/audit" className="text-[13px] font-semibold text-accent-dark hover:underline">
+            <Link href="/admin/audit" className="text-xs font-semibold text-accent-dark hover:underline">
               Full audit log
             </Link>
           </div>
@@ -48,19 +48,19 @@ export default async function AdminDashboard() {
             {(recentAudit || []).map((e) => {
               const actor = e.actor as unknown as { full_name: string } | null;
               return (
-                <div key={e.id} className="flex items-center gap-3 text-[13px]">
-                  <Avatar name={actor?.full_name || "?"} className="w-7 h-7 text-[10px]" />
+                <div key={e.id} className="flex items-center gap-3 text-xs">
+                  <Avatar name={actor?.full_name || "?"} className="w-7 h-7 text-2xs" />
                   <span className="text-foreground font-medium truncate">{actor?.full_name || "System"}</span>
                   <span className="text-muted truncate">
                     {e.module ? `${e.module} · ` : ""}
                     {e.action.replace(/_/g, " ")}
                   </span>
-                  {e.result === "denied" && <span className="text-critical text-[11px] font-bold">DENIED</span>}
-                  <span className="text-faint text-[11px] ml-auto whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</span>
+                  {e.result === "denied" && <span className="text-critical text-2xs font-bold">DENIED</span>}
+                  <span className="text-muted text-2xs ml-auto whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</span>
                 </div>
               );
             })}
-            {(!recentAudit || recentAudit.length === 0) && <p className="text-sm text-faint">No activity recorded yet.</p>}
+            {(!recentAudit || recentAudit.length === 0) && <p className="text-sm text-muted">No activity recorded yet.</p>}
           </div>
         </Card>
 
@@ -78,7 +78,7 @@ export default async function AdminDashboard() {
               <Link
                 key={a.href + a.label}
                 href={a.href}
-                className="flex items-center gap-2.5 border border-line rounded-xl px-3.5 py-3 text-[13px] font-semibold text-foreground hover:border-accent transition-colors"
+                className="flex items-center gap-2.5 border border-line rounded-xl px-3.5 py-3 text-xs font-semibold text-foreground hover:border-accent transition-colors"
               >
                 <Icon name={a.icon} className="w-4 h-4 text-accent-dark" />
                 {a.label}

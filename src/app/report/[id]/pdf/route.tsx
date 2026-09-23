@@ -48,7 +48,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_responses")
-      .select("response_text, selected_option, score, ai_rationale, questions(prompt, question_type, options)")
+      .select("response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options)")
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_reviews")
@@ -101,6 +101,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       selected_option: string | null;
       score: number;
       ai_rationale: string;
+      needs_review: boolean | null;
       questions: { prompt: string; question_type: string; options: QOpt[] | null } | null;
     }[]).map((r) => ({
       prompt: r.questions?.prompt || "",
@@ -110,6 +111,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           : r.response_text || "",
       score: r.score,
       rationale: r.ai_rationale,
+      needsReview: !!r.needs_review,
     })),
     decisions: ((reviews || []) as unknown as { decision: string; comment: string; created_at: string; reviewer: { full_name: string } | null }[]).map(
       (d) => ({ decision: d.decision, comment: d.comment, reviewer: d.reviewer?.full_name || "Reviewer", createdAt: d.created_at })

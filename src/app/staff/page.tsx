@@ -60,8 +60,8 @@ export default async function StaffHomePage() {
   return (
     <div className="max-w-[1180px] mx-auto px-6 lg:px-10">
       <div className="pt-10 pb-6 flex items-baseline justify-between gap-4 flex-wrap">
-        <h1 className="text-[22px] font-semibold tracking-tight text-foreground">Good to see you, {firstName}</h1>
-        <span className="text-[13px] text-faint">{today}</span>
+        <h1 className="text-xl font-semibold tracking-tight text-foreground">Good to see you, {firstName}</h1>
+        <span className="text-xs text-muted">{today}</span>
       </div>
 
       {pendingReview.length > 0 && (
@@ -69,12 +69,12 @@ export default async function StaffHomePage() {
           href={`/staff/reports/candidates/${pendingReview[0].id}`}
           className="flex items-center justify-between gap-4 py-3.5 mb-8 border-t border-b border-line group"
         >
-          <p className="text-[13.5px] text-muted flex items-center gap-2.5">
+          <p className="text-sm text-muted flex items-center gap-2.5">
             <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
             <span className="text-foreground font-semibold">{pendingReview.length} candidate{pendingReview.length > 1 ? "s" : ""}</span>
             scored by the AI engine and waiting on your review
           </p>
-          <span className="text-[12.5px] font-semibold text-accent inline-flex items-center gap-1.5 shrink-0 group-hover:underline">
+          <span className="text-xs font-semibold text-accent-dark inline-flex items-center gap-1.5 shrink-0 group-hover:underline">
             Review now
             <Icon name="arrowRight" className="w-3.5 h-3.5" />
           </span>
@@ -85,14 +85,14 @@ export default async function StaffHomePage() {
         {/* Wide content column */}
         <div className="lg:pr-14 lg:border-r border-line pb-14">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-[13.5px] font-semibold text-foreground">Recent submissions</p>
-            <Link href="/staff/reports/candidates" className="text-[12.5px] font-medium text-faint hover:text-muted">
+            <p className="text-sm font-semibold text-foreground">Recent submissions</p>
+            <Link href="/staff/reports/candidates" className="text-xs font-medium text-muted hover:text-muted">
               All candidates
             </Link>
           </div>
 
           {recent.length === 0 ? (
-            <p className="text-[13.5px] text-faint py-8 border-t border-line">
+            <p className="text-sm text-muted py-8 border-t border-line">
               Nothing submitted yet — publish an assessment and invite candidates from People &amp; Access.
             </p>
           ) : (
@@ -103,10 +103,10 @@ export default async function StaffHomePage() {
                   href={`/staff/reports/candidates/${r.id}`}
                   className="flex items-center gap-3.5 py-3.5 border-b border-line-soft hover:bg-line-soft/40 transition-colors -mx-2 px-2"
                 >
-                  <Avatar name={r.candidate?.full_name || "?"} className="w-7 h-7 text-[10.5px]" />
+                  <Avatar name={r.candidate?.full_name || "?"} className="w-7 h-7 text-2xs" />
                   <div className="min-w-0 flex-1">
-                    <p className="text-[13px] font-medium text-foreground truncate">{r.candidate?.full_name}</p>
-                    <p className="text-[11.5px] text-faint truncate">{r.assessments?.title}</p>
+                    <p className="text-xs font-medium text-foreground truncate">{r.candidate?.full_name}</p>
+                    <p className="text-2xs text-muted truncate">{r.assessments?.title}</p>
                   </div>
                   <StatusBadge status={r.status} />
                   {r.overall_score !== null && <ScoreBadge score={Math.round(r.overall_score)} />}
@@ -115,43 +115,43 @@ export default async function StaffHomePage() {
             </div>
           )}
 
-          <p className="text-[13.5px] font-semibold text-foreground mt-10 mb-4">Role fit distribution</p>
+          <p className="text-sm font-semibold text-foreground mt-10 mb-4">Role fit distribution</p>
           {scored.length > 0 ? (
             <BandDistribution buckets={bands} />
           ) : (
-            <p className="text-[13px] text-faint py-8 border-t border-line">No scored candidates yet.</p>
+            <p className="text-xs text-muted py-8 border-t border-line">No scored candidates yet.</p>
           )}
         </div>
 
         {/* Narrow stats rail */}
         <div className="lg:pl-14 pt-10 lg:pt-0 pb-14">
-          <p className="text-[11px] font-semibold text-faint uppercase tracking-wide mb-5">This week</p>
+          <p className="text-2xs font-semibold text-muted uppercase tracking-wide mb-5">This week</p>
 
           <div className="mb-6">
-            <p className="text-[32px] font-semibold tracking-tight text-foreground tabular-nums leading-none">{list.length}</p>
-            <p className="text-[12.5px] text-faint mt-1.5">in the pipeline</p>
+            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-none">{list.length}</p>
+            <p className="text-xs text-muted mt-1.5">in the pipeline</p>
           </div>
           <div className="mb-6">
-            <p className="text-[32px] font-semibold tracking-tight text-accent tabular-nums leading-none">{pendingReview.length}</p>
-            <p className="text-[12.5px] text-faint mt-1.5">waiting on you</p>
+            <p className="text-2xl font-semibold tracking-tight text-accent tabular-nums leading-none">{pendingReview.length}</p>
+            <p className="text-xs text-muted mt-1.5">waiting on you</p>
           </div>
           <div className="mb-6">
-            <p className="text-[32px] font-semibold tracking-tight text-foreground tabular-nums leading-none">{avg ?? "—"}</p>
-            <p className="text-[12.5px] text-faint mt-1.5">average role fit</p>
+            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-none">{avg ?? "—"}</p>
+            <p className="text-xs text-muted mt-1.5">average role fit</p>
           </div>
           <div>
-            <p className="text-[32px] font-semibold tracking-tight text-foreground tabular-nums leading-none">{publishedCount ?? 0}</p>
-            <p className="text-[12.5px] text-faint mt-1.5">published assessments</p>
+            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-none">{publishedCount ?? 0}</p>
+            <p className="text-xs text-muted mt-1.5">published assessments</p>
           </div>
 
           <div className="mt-10 pt-6 border-t border-line">
-            <p className="text-[11px] font-semibold text-faint uppercase tracking-wide mb-3.5">Pipeline funnel</p>
+            <p className="text-2xs font-semibold text-muted uppercase tracking-wide mb-3.5">Pipeline funnel</p>
             <PipelineFunnel stages={funnel} />
           </div>
 
           <Link
             href="/staff/builder"
-            className="mt-10 flex items-center justify-center gap-2 bg-foreground text-background text-[13px] font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
+            className="mt-10 flex items-center justify-center gap-2 bg-foreground text-background text-xs font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
           >
             <Icon name="plus" className="w-4 h-4" />
             New assessment
