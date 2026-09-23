@@ -152,7 +152,8 @@ export function CreateAssessmentPanel({
         </p>
         <p className="text-xs text-muted mb-4">
           Korn Ferry / Mercer / WTW / Thomas-caliber situational judgment cases, generated straight from the governed
-          competency library — at least 10 mid-to-high difficulty questions per assessment.
+          competency library — at least 10 intermediate-to-advanced difficulty questions per assessment, designed to
+          challenge candidates rather than test basic/entry-level competence.
         </p>
 
         {!anyConfigured && (
