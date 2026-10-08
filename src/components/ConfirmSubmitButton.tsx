@@ -27,6 +27,7 @@ export function ConfirmSubmitButton({
   compact = false,
   tone: toneProp,
   disabled = false,
+  label,
 }: {
   confirmMessage: string;
   className?: string;
@@ -35,6 +36,13 @@ export function ConfirmSubmitButton({
   compact?: boolean;
   tone?: SwipeTone;
   disabled?: boolean;
+  // Design-execution-plan Phase 2 / T2.2: the compact trigger below renders
+  // icon + children with no other text, so a `compact` call site that passes
+  // an icon but no children (e.g. an icon-only delete button) would render
+  // an empty accessible name -- WCAG 4.1.2. Pass `label` there; it falls
+  // back to confirmMessage so an icon-only trigger is never nameless even
+  // if a future call site forgets it.
+  label?: string;
 }) {
   const anchorRef = useRef<HTMLSpanElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -75,6 +83,7 @@ export function ConfirmSubmitButton({
               {children}
             </span>
           }
+          ariaLabel={label ?? confirmMessage}
           onConfirm={submitForm}
           tone={tone}
           icon={icon || "arrowRight"}
@@ -87,7 +96,14 @@ export function ConfirmSubmitButton({
 
   return (
     <span ref={anchorRef} className="relative inline-block">
-      <button type="button" onClick={() => setOpen((o) => !o)} className={className} aria-expanded={open} disabled={disabled}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={className}
+        aria-expanded={open}
+        disabled={disabled}
+        aria-label={children ? undefined : label ?? confirmMessage}
+      >
         {icon && <Icon name={icon} className="w-3.5 h-3.5" />}
         {children}
       </button>
@@ -96,14 +112,15 @@ export function ConfirmSubmitButton({
           ref={popoverRef}
           className="absolute z-50 top-full right-0 mt-2 w-56 bg-surface border border-line rounded-2xl shadow-xl p-3 anim-fade-in"
         >
-          <p className="text-[11.5px] text-muted leading-snug mb-2.5">{confirmMessage}</p>
+          <p className="text-2xs text-muted leading-snug mb-2.5">{confirmMessage}</p>
           <SwipeToConfirm
             label={
-              <span className="inline-flex items-center gap-1.5 text-[12.5px]">
+              <span className="inline-flex items-center gap-1.5 text-xs">
                 {icon && <Icon name={icon} className="w-3.5 h-3.5" />}
                 {children}
               </span>
             }
+            ariaLabel={label ?? confirmMessage}
             onConfirm={submitForm}
             tone={tone}
             icon={icon || "arrowRight"}

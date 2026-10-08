@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Card, Icon } from "@/components/ui";
-import { ConfettiBurst, SubmissionSeal } from "@/components/celebration";
+import { SubmissionSeal } from "@/components/celebration";
 import { AssessmentPurpose, normalizePurpose } from "@/lib/purpose";
 
 const NEXT_STEPS: Record<AssessmentPurpose, { icon: string; title: string; body: string }[]> = {
@@ -23,8 +23,19 @@ const NEXT_STEPS: Record<AssessmentPurpose, { icon: string; title: string; body:
   ],
 };
 
-export default async function AssessmentSubmittedPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AssessmentSubmittedPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ reason?: string }>;
+}) {
   const { id } = await params;
+  const { reason } = await searchParams;
+  // Design-execution-plan Phase 6 / T6.4: a submission the countdown forced
+  // through at zero gets a calm, neutral confirmation -- never the "you did
+  // it!" framing meant for someone who chose to submit.
+  const expired = reason === "expiry";
   const supabase = await createClient();
 
   const {
@@ -49,22 +60,28 @@ export default async function AssessmentSubmittedPage({ params }: { params: Prom
 
   return (
     <div className="p-6 lg:p-10 max-w-xl mx-auto">
-      <div className="relative">
-        <ConfettiBurst />
-        <div className="relative flex flex-col items-center text-center pt-6 pb-2">
-          <SubmissionSeal />
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-3 [font-family:var(--font-display)]">
-            You did it, {firstName}!
-          </h1>
-          <p className="text-sm text-muted mt-2.5 max-w-sm">
-            <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted — nice
-            work seeing that through to the end.
-          </p>
-        </div>
+      <div className="relative flex flex-col items-center text-center pt-6 pb-2">
+        <SubmissionSeal />
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-3 [font-family:var(--font-display)]">
+          {expired ? "Time's up — you're all set" : `You did it, ${firstName}!`}
+        </h1>
+        <p className="text-sm text-muted mt-2.5 max-w-sm">
+          {expired ? (
+            <>
+              The timer ran out, so <span className="font-semibold text-foreground">{assessment?.title}</span> was
+              submitted automatically with the answers you had in — nothing further to do.
+            </>
+          ) : (
+            <>
+              <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted — nice
+              work seeing that through to the end.
+            </>
+          )}
+        </p>
       </div>
 
       <Card className="p-6 mt-6 anim-fade-up delay-2">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-4">What happens next</p>
+        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-4">What happens next</p>
         <div className="space-y-4">
           {nextSteps.map((s, i) => (
             <div key={s.title} className="flex items-start gap-3.5">
@@ -85,7 +102,7 @@ export default async function AssessmentSubmittedPage({ params }: { params: Prom
       <div className="flex flex-wrap items-center justify-center gap-3 mt-7 anim-fade-up delay-3">
         <Link
           href="/candidate/assessments"
-          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
+          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors"
         >
           Back to my assessments
           <Icon name="arrowRight" className="w-4 h-4" />

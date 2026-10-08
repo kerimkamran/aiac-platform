@@ -189,11 +189,11 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
       <button
         onClick={openPalette}
         aria-label="Quick jump"
-        className="hidden lg:flex items-center gap-2 text-[12.5px] text-faint hover:text-muted transition-colors px-2.5 py-1.5 rounded-md border border-line hover:border-faint/50"
+        className="hidden lg:flex items-center gap-2 text-xs text-muted hover:text-muted transition-colors px-2.5 py-1.5 rounded-md border border-line hover:border-line-strong/50"
       >
         <Icon name="search" className="w-3.5 h-3.5" />
         <span className="w-28 text-left">Search</span>
-        <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-faint">
+        <span className="inline-flex items-center gap-0.5 text-2xs font-medium text-muted">
           <Icon name="command" className="w-2.5 h-2.5" />K
         </span>
       </button>
@@ -212,7 +212,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
       <div className="absolute inset-0 bg-black/50 anim-fade-in" onClick={closePalette} />
       <div className="relative w-full max-w-lg bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden anim-fade-up">
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
-          <Icon name="search" className="w-4 h-4 text-faint shrink-0" />
+          <Icon name="search" className="w-4 h-4 text-muted shrink-0" />
           <input
             autoFocus
             value={query}
@@ -240,14 +240,14 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
               }
             }}
             placeholder="Jump to a page or action…"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-faint"
+            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
           />
-          <kbd className="text-[10px] text-faint border border-line rounded px-1.5 py-0.5">Esc</kbd>
+          <kbd className="text-2xs text-muted border border-line rounded px-1.5 py-0.5">Esc</kbd>
         </div>
         <div className="max-h-80 overflow-y-auto p-1.5">
           {groups.map(({ label, rows }) => (
             <div key={label} className="mb-1.5 last:mb-0">
-              <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint flex items-center gap-1.5">
+              <p className="px-3 pt-2.5 pb-1 text-2xs font-semibold uppercase tracking-[0.14em] text-muted flex items-center gap-1.5">
                 {label === "Recent" && <Icon name="history" className="w-3 h-3" />}
                 {label}
               </p>
@@ -264,18 +264,18 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
                   <span className="truncate">
                     <HighlightMatch text={l.label} positions={l.positions} />
                   </span>
-                  {l.sublabel && <span className="ml-auto text-xs text-faint truncate max-w-48">{l.sublabel}</span>}
+                  {l.sublabel && <span className="ml-auto text-xs text-muted truncate max-w-48">{l.sublabel}</span>}
                 </button>
               ))}
             </div>
           ))}
           {searching && (
-            <p className="px-3 py-2.5 text-xs text-faint flex items-center gap-2">
+            <p className="px-3 py-2.5 text-xs text-muted flex items-center gap-2">
               <span className="w-3 h-3 rounded-full border-2 border-line border-t-accent-dark animate-spin" />
               Searching people &amp; assessments…
             </p>
           )}
-          {displayList.length === 0 && !searching && <p className="px-3 py-6 text-center text-sm text-faint">No matches.</p>}
+          {displayList.length === 0 && !searching && <p className="px-3 py-6 text-center text-sm text-muted">No matches.</p>}
         </div>
       </div>
     </div>

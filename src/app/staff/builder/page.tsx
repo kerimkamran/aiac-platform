@@ -4,8 +4,8 @@ import { createAssessment, deleteAssessment, assignAssessment, duplicateAssessme
 import { AssignAssessmentButton } from "@/components/AssignAssessmentButton";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
-import { CreateAssessmentPanel } from "./CreateAssessmentPanel";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+import { LEVELS, isLevelKey } from "@/lib/levels";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -32,10 +32,12 @@ const ENGINE_LABEL: Record<string, string> = {
 export default async function BuilderListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; archived?: string }>;
+  searchParams: Promise<{ error?: string; archived?: string; q?: string; position?: string }>;
 }) {
-  const { archived: archivedParam } = await searchParams;
+  const { archived: archivedParam, q: queryParam, position: positionParam } = await searchParams;
   const showArchived = archivedParam === "1";
+  const query = (queryParam || "").trim().toLowerCase();
+  const positionFilter = positionParam || "";
   const supabase = await createClient();
 
   const {
@@ -45,17 +47,14 @@ export default async function BuilderListPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
   const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
 
-  const [{ data: assessments }, { data: competencies }, { data: engines }, { data: assignableUsers }] = await Promise.all([
+  const [{ data: assessments }, { data: positionOptions }, { data: assignableUsers }] = await Promise.all([
     supabase
       .from("assessments")
       .select(
-        "id, title, description, status, time_limit_minutes, created_at, mode, engine, generated_at, assessment_sections(id), generator:profiles!assessments_generated_by_fkey(full_name)"
+        "id, title, description, status, time_limit_minutes, created_at, mode, engine, generated_at, purpose, content_language, target_level, vacancy_title, position_id, position:positions(title), assessment_sections(id), questions:assessment_sections(questions(id)), generator:profiles!assessments_generated_by_fkey(full_name)"
       )
       .order("created_at", { ascending: false }),
-    isAdmin
-      ? supabase.from("competencies").select("id, name, category").order("category").order("name")
-      : Promise.resolve({ data: [] }),
-    isAdmin ? supabase.from("generation_engines").select("key, display_name, enabled, api_key_secret_id") : Promise.resolve({ data: [] }),
+    supabase.from("positions").select("id, title").is("archived_at", null).order("title"),
     supabase
       .from("profiles")
       .select("id, full_name, email, role")
@@ -63,20 +62,24 @@ export default async function BuilderListPage({
       .order("full_name"),
   ]);
 
+  const listed = (assessments || []).filter((a) => (showArchived ? a.status === "archived" : a.status !== "archived"));
+  const visible = listed.filter((a) => {
+    if (positionFilter && a.position_id !== positionFilter) return false;
+    if (query && !`${a.title} ${a.vacancy_title ?? ""} ${(a.position as unknown as { title: string } | null)?.title ?? ""}`.toLowerCase().includes(query)) return false;
+    return true;
+  });
+  const archivedTotal = (assessments || []).filter((x) => x.status === "archived").length;
+
   const userOptions = (assignableUsers || []).map((u) => ({
     id: u.id,
     label: `${u.full_name} — ${u.email}`,
   }));
 
-  const compGroups = ["Core", "Leadership", "Functional"]
-    .map((cat) => ({ cat, items: (competencies || []).filter((c) => c.category === cat) }))
-    .filter((g) => g.items.length > 0);
-
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader
         title="Assessment Builder"
-        subtitle="Compose assessments from the governed competency library or generate scenarios from the Case Library, then publish."
+        subtitle="Each assessment belongs to a position and a level. Draft it, review every question, then publish."
       />
 
       <ToastFromParams specs={TOAST_SPECS} />
@@ -84,7 +87,7 @@ export default async function BuilderListPage({
       <div className="grid lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-3">
           {(() => {
-            const archivedCount = (assessments || []).filter((x) => x.status === "archived").length;
+            const archivedCount = archivedTotal;
             if (archivedCount === 0 && !showArchived) return null;
             return (
               <div className="flex justify-end">
@@ -97,7 +100,31 @@ export default async function BuilderListPage({
               </div>
             );
           })()}
-          {(assessments || []).filter((a) => (showArchived ? a.status === "archived" : a.status !== "archived")).map((a) => {
+          <form method="get" className="flex flex-wrap gap-2">
+            {showArchived && <input type="hidden" name="archived" value="1" />}
+            <input
+              name="q"
+              defaultValue={queryParam || ""}
+              placeholder="Search by title or position"
+              aria-label="Search assessments"
+              className="flex-1 min-w-[12rem] bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <select
+              name="position"
+              defaultValue={positionFilter}
+              aria-label="Filter by position"
+              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="">All positions</option>
+              {(positionOptions || []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                </option>
+              ))}
+            </select>
+            <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Filter</button>
+          </form>
+          {visible.map((a) => {
             const generator = a.generator as unknown as { full_name: string } | null;
             return (
               <Card key={a.id} className={`relative p-5 group hover:border-accent transition-colors ${isAdmin ? "pr-12" : ""}`}>
@@ -106,15 +133,24 @@ export default async function BuilderListPage({
                     <p className="font-bold text-foreground truncate">{a.title}</p>
                     <div className="flex items-center gap-2 shrink-0">
                       {a.mode !== "manual" && (
-                        <span className="text-[10.5px] font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
+                        <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
                           {MODE_LABEL[a.mode] || a.mode}
                         </span>
                       )}
                       <StatusBadge status={a.status} />
                     </div>
                   </div>
-                  {a.description && <p className="text-[13px] text-muted line-clamp-1 mb-2.5">{a.description}</p>}
-                  <p className="text-xs text-faint flex items-center gap-4 flex-wrap">
+                  {a.description && <p className="text-xs text-muted line-clamp-1 mb-2.5">{a.description}</p>}
+                  <p className="text-xs text-muted flex items-center gap-x-4 gap-y-1 flex-wrap mb-1.5">
+                    <span className="font-medium text-foreground">{(a.position as unknown as { title: string } | null)?.title ?? a.vacancy_title ?? "No position"}</span>
+                    {isLevelKey(a.target_level) && <span>{LEVELS[a.target_level].label}</span>}
+                    <span className="capitalize">{a.purpose ?? "hiring"}</span>
+                    <span>{a.content_language === "az" ? "Azərbaycan dili" : a.content_language === "ru" ? "Русский" : "English"}</span>
+                    <span>
+                      {(a.questions as unknown as { questions: unknown[] }[]).reduce((n, sec) => n + (sec.questions?.length ?? 0), 0)} questions
+                    </span>
+                  </p>
+                  <p className="text-xs text-muted flex items-center gap-4 flex-wrap">
                     <span className="inline-flex items-center gap-1.5">
                       <Icon name="layers" className="w-3.5 h-3.5" />
                       {(a.assessment_sections || []).length} section{(a.assessment_sections || []).length === 1 ? "" : "s"}
@@ -138,15 +174,15 @@ export default async function BuilderListPage({
                     <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
                   )}
                   <form action={duplicateAssessment.bind(null, a.id)}>
-                    <button className="text-[11px] font-semibold text-accent-dark hover:underline">Duplicate</button>
+                    <button className="text-2xs font-semibold text-accent-dark hover:underline">Duplicate</button>
                   </form>
                   <form action={setAssessmentArchived.bind(null, a.id, a.status !== "archived")}>
-                    <button className="text-[11px] font-semibold text-faint hover:text-foreground hover:underline">
+                    <button className="text-2xs font-semibold text-muted hover:text-foreground hover:underline">
                       {a.status === "archived" ? "Restore" : "Archive"}
                     </button>
                   </form>
                   {a.status === "draft" && (
-                    <span className="text-[11px] text-faint ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
+                    <span className="text-2xs text-muted ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
                   )}
                 </div>
                 {isAdmin && (
@@ -154,7 +190,8 @@ export default async function BuilderListPage({
                     <ConfirmSubmitButton
                       confirmMessage={`Delete "${a.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
                       icon="trash"
-                      className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                      label={`Delete "${a.title}"`}
+                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
                       compact
                     />
                   </form>
@@ -162,46 +199,50 @@ export default async function BuilderListPage({
               </Card>
             );
           })}
+          {visible.length === 0 && listed.length > 0 && <p className="text-sm text-muted">No assessments match that search.</p>}
           {(!assessments || assessments.length === 0) && (
             <Card className="p-8 text-center">
               <p className="font-semibold text-foreground">No assessments yet</p>
-              <p className="text-sm text-muted mt-1">Create your first one with the panel on the right.</p>
+              <p className="text-sm text-muted mt-1">Start one with the New assessment card on the right.</p>
             </Card>
           )}
         </div>
 
         <div className="space-y-6">
-          {isAdmin ? (
-            <CreateAssessmentPanel
-              compGroups={compGroups}
-              // Never ship the raw api_key to the client -- this Server
-              // Component's props get serialized into the page's RSC payload,
-              // so the panel only receives whether each engine is configured.
-              engines={(engines || []).map((e) => ({
-                key: e.key,
-                display_name: e.display_name,
-                enabled: e.enabled,
-                configured: !!e.api_key_secret_id,
-              }))}
-            />
-          ) : (
-            <Card className="p-6">
+          <Card className="p-6 space-y-4">
+            <p className="font-bold text-foreground text-sm flex items-center gap-2">
+              <Icon name="plus" className="w-4 h-4 text-accent-dark" />
+              New assessment
+            </p>
+            <p className="text-xs text-muted">
+              Start from a position and a level. Add the job description or notes if you have them, and the AI drafts questions you review before anything is published.
+            </p>
+            <Link
+              href="/staff/builder/new"
+              className="block text-center bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors"
+            >
+              Start a new assessment
+            </Link>
+            <Link href="/staff/builder/positions" className="block text-center border border-line rounded-xl py-2.5 text-sm font-semibold hover:border-accent">
+              Manage positions
+            </Link>
+          </Card>
+
+          <details className="group">
+            <summary className="cursor-pointer text-xs font-semibold text-muted hover:text-foreground">Create a blank draft instead</summary>
+            <Card className="p-6 mt-3">
               <form action={createAssessment} className="space-y-4">
-                <p className="font-bold text-foreground text-sm flex items-center gap-2">
-                  <Icon name="plus" className="w-4 h-4 text-accent-dark" />
-                  New assessment
-                </p>
                 <input
                   name="title"
                   required
                   placeholder="e.g. Graduate Trainee — Core Assessment"
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <textarea
                   name="description"
                   placeholder="What this assessment measures and who it's for…"
                   rows={3}
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <div>
                   <label className="text-xs font-semibold text-muted block mb-1.5">Time limit (minutes)</label>
@@ -213,16 +254,11 @@ export default async function BuilderListPage({
                     className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
-                <button className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors">
-                  Create draft
-                </button>
-                <p className="text-[11px] text-faint">
-                  Drafts stay private until you publish. You&apos;ll add sections and questions next. Ask an HR admin
-                  about AI-generated assessments.
-                </p>
+                <button className="w-full border border-line rounded-xl py-2.5 text-sm font-semibold hover:border-accent">Create blank draft</button>
+                <p className="text-2xs text-muted">Drafts stay private until you publish. You&apos;ll add sections and questions by hand.</p>
               </form>
             </Card>
-          )}
+          </details>
         </div>
       </div>
     </div>

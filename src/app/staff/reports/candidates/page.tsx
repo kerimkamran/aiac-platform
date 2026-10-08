@@ -98,8 +98,8 @@ export default async function StaffCandidatesPage({
             <Link
               key={f.key}
               href={`/staff/reports/candidates${qs({ status: f.key })}`}
-              className={`text-[13px] pb-1 border-b-2 transition-colors ${
-                status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-faint border-transparent hover:text-muted"
+              className={`text-xs pb-1 border-b-2 transition-colors ${
+                status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent hover:text-muted"
               }`}
             >
               {f.label}
@@ -110,25 +110,25 @@ export default async function StaffCandidatesPage({
           {status && <input type="hidden" name="status" value={status} />}
           {department && <input type="hidden" name="department" value={department} />}
           {vacancy && <input type="hidden" name="vacancy" value={vacancy} />}
-          <Icon name="search" className="w-3.5 h-3.5 text-faint absolute left-3 top-1/2 -translate-y-1/2" />
+          <Icon name="search" className="w-3.5 h-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             name="q"
             defaultValue={q}
             placeholder="Search name, email, or assessment"
-            className="w-full bg-surface border border-line rounded-md pl-8 pr-3 py-1.5 text-[13px] placeholder:text-faint focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-md pl-8 pr-3 py-1.5 text-xs placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </form>
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 mb-8">
-        <span className="text-[11.5px] text-faint">Export filter:</span>
+        <span className="text-2xs text-muted">Export filter:</span>
         <form action="/staff/reports/candidates" className="flex items-center gap-2">
           {status && <input type="hidden" name="status" value={status} />}
           {q && <input type="hidden" name="q" value={q} />}
           <select
             name="department"
             defaultValue={department}
-            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-accent"
+            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-2xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All departments / structures</option>
             {departments.map((d) => (
@@ -140,7 +140,7 @@ export default async function StaffCandidatesPage({
           <select
             name="vacancy"
             defaultValue={vacancy}
-            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-[12px] focus:outline-none focus:ring-1 focus:ring-accent"
+            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-2xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All vacancies / assessments</option>
             {vacancies.map((v) => (
@@ -149,7 +149,7 @@ export default async function StaffCandidatesPage({
               </option>
             ))}
           </select>
-          <button className="bg-foreground text-background text-[12px] font-semibold px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
+          <button className="bg-foreground text-background text-2xs font-semibold px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
             Apply
           </button>
         </form>

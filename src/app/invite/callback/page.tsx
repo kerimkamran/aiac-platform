@@ -93,7 +93,7 @@ export default function InviteCallbackPage() {
                 <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">{error}</p>
               )}
               <div>
-                <label className="block text-[13px] font-semibold text-foreground mb-1.5">New password</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">New password</label>
                 <input
                   type="password"
                   required
@@ -101,11 +101,11 @@ export default function InviteCallbackPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="At least 8 characters"
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
                 />
               </div>
               <div>
-                <label className="block text-[13px] font-semibold text-foreground mb-1.5">Confirm password</label>
+                <label className="block text-xs font-semibold text-foreground mb-1.5">Confirm password</label>
                 <input
                   type="password"
                   required
@@ -113,12 +113,12 @@ export default function InviteCallbackPage() {
                   value={confirm}
                   onChange={(e) => setConfirm(e.target.value)}
                   placeholder="Retype your password"
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
+                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent focus:border-accent transition-shadow"
                 />
               </div>
               <button
                 disabled={status === "saving"}
-                className="w-full bg-brand text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-light transition-colors disabled:opacity-60"
+                className="w-full bg-brand-deep text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand transition-colors disabled:opacity-60"
               >
                 {status === "saving" ? "Saving…" : "Set password & continue"}
               </button>

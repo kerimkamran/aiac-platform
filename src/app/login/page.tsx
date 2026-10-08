@@ -21,14 +21,14 @@ export default async function LoginPage({
         <Field label="Email" name="email" type="email" placeholder="you@company.com" />
         <Field label="Password" name="password" type="password" placeholder="••••••••" />
         <div className="text-right">
-          <Link href="/forgot-password" className="text-[12.5px] text-accent-dark font-semibold hover:underline">
+          <Link href="/forgot-password" className="text-xs text-accent-dark font-semibold hover:underline">
             Forgot password?
           </Link>
         </div>
-        <button className="w-full bg-brand text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-light transition-colors">
+        <button className="w-full bg-brand-deep text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand transition-colors">
           Log in
         </button>
-        <p className="text-[13px] text-muted text-center">
+        <p className="text-xs text-muted text-center">
           No account yet?{" "}
           <Link href="/signup" className="text-accent-dark font-semibold hover:underline">
             Accounts are invite-only

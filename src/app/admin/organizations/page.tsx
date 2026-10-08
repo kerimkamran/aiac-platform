@@ -22,14 +22,15 @@ function UnitTree({ units, parentId, depth }: { units: Unit[]; parentId: string 
           <div className="flex items-center gap-3 text-sm py-1">
             <Icon name={u.unit_type === "location" ? "building" : u.unit_type === "team" ? "users" : "layers"} className="w-4 h-4 text-accent-dark shrink-0" />
             <span className="font-semibold text-foreground">{u.name}</span>
-            <span className="text-[10.5px] font-semibold uppercase tracking-wider text-faint bg-line/50 px-2 py-0.5 rounded-full">
+            <span className="text-2xs font-semibold uppercase tracking-wider text-muted bg-line/50 px-2 py-0.5 rounded-full">
               {TYPE_LABEL[u.unit_type] || u.unit_type}
             </span>
             <form action={deleteOrgUnit.bind(null, u.id)} className="ml-auto">
               <ConfirmSubmitButton
                 confirmMessage={`Delete "${u.name}" and all units beneath it? Users keep their accounts but lose this assignment.`}
                 icon="trash"
-                className="p-1 rounded text-faint hover:text-critical"
+                label={`Delete ${u.name}`}
+                className="p-1.5 rounded text-muted hover:text-critical"
                 compact
               />
             </form>
@@ -64,14 +65,14 @@ export default async function AdminOrganizationsPage() {
       <div className="grid lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
         <Card className="p-6">
           <p className="text-sm font-bold text-foreground mb-5 flex items-center gap-2">
-            <Icon name="building" className="w-4 h-4 text-brand" />
+            <Icon name="building" className="w-4 h-4 text-accent-dark" />
             {org?.name || "Organization"}
-            <span className="text-faint font-medium text-xs">· {(units || []).length} unit(s) · {[...memberCount.values()].reduce((a, b) => a + b, 0)} assigned member(s)</span>
+            <span className="text-muted font-medium text-xs">· {(units || []).length} unit(s) · {[...memberCount.values()].reduce((a, b) => a + b, 0)} assigned member(s)</span>
           </p>
           {(units || []).length > 0 ? (
             <UnitTree units={(units || []) as Unit[]} parentId={null} depth={0} />
           ) : (
-            <p className="text-sm text-faint">No units yet — create the first one on the right.</p>
+            <p className="text-sm text-muted">No units yet — create the first one on the right.</p>
           )}
         </Card>
 
@@ -94,7 +95,7 @@ export default async function AdminOrganizationsPage() {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            <button className="w-full bg-brand text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand-light transition-colors">Create unit</button>
+            <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">Create unit</button>
           </form>
         </Card>
       </div>

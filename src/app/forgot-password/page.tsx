@@ -27,7 +27,7 @@ export default function ForgotPasswordPage() {
           </p>
           <Link
             href="/login"
-            className="block text-center text-[13px] text-accent-dark font-semibold hover:underline"
+            className="block text-center text-xs text-accent-dark font-semibold hover:underline"
           >
             Back to log in
           </Link>
@@ -37,11 +37,11 @@ export default function ForgotPasswordPage() {
           <Field label="Email" name="email" type="email" placeholder="you@company.com" />
           <button
             disabled={status === "sending"}
-            className="w-full bg-brand text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand-light transition-colors disabled:opacity-60"
+            className="w-full bg-brand-deep text-white rounded-xl py-3 text-sm font-semibold hover:bg-brand transition-colors disabled:opacity-60"
           >
             {status === "sending" ? "Sending…" : "Send reset link"}
           </button>
-          <p className="text-[13px] text-muted text-center">
+          <p className="text-xs text-muted text-center">
             <Link href="/login" className="text-accent-dark font-semibold hover:underline">
               Back to log in
             </Link>

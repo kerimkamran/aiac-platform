@@ -28,9 +28,9 @@ export const SCOUT_INTENTS: ScoutIntent[] = [
   {
     id: "staff-new-assessment",
     roles: ["staff"],
-    href: "/staff/builder",
-    label: "Assessment Builder",
-    explain: "Click \"New assessment\", give it a title and purpose (hiring, promotion, or development), then add sections mapped to the competency framework.",
+    href: "/staff/builder/new",
+    label: "New assessment",
+    explain: "Pick a position and a level, add the job description or notes if you have them, choose what to measure, then generate a draft. Review every question before you publish.",
     keywords: ["new assessment", "create assessment", "build assessment", "make an assessment", "start an assessment", "builder"],
   },
   {

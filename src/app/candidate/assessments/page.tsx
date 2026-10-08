@@ -15,13 +15,15 @@ export default async function CandidateAssessmentsPage() {
     .eq("candidate_id", user!.id)
     .order("invited_at", { ascending: false });
 
-  const list = (assessments || []) as unknown as {
+  // Rows whose assessment isn't visible (a draft that was assigned before it was
+  // published, or one the candidate can't see) come back with a null join; skip them.
+  const list = ((assessments || []) as unknown as {
     id: string;
     status: string;
     invited_at: string;
     due_at: string | null;
     assessments: { title: string; description: string; time_limit_minutes: number } | null;
-  }[];
+  }[]).filter((a) => a.assessments !== null);
   const now = nowMs();
 
   return (
@@ -48,7 +50,7 @@ export default async function CandidateAssessmentsPage() {
             <div className="flex flex-wrap items-center justify-between gap-5 pt-4 border-t border-line">
               <JourneyTracker status={a.status} />
               <div className="flex items-center gap-4">
-                <span className="inline-flex items-center gap-1.5 text-xs text-faint">
+                <span className="inline-flex items-center gap-1.5 text-xs text-muted">
                   <Icon name="timer" className="w-3.5 h-3.5" />
                   {a.assessments?.time_limit_minutes} min limit
                 </span>
@@ -69,7 +71,7 @@ export default async function CandidateAssessmentsPage() {
                 ) : ["invited", "in_progress"].includes(a.status) ? (
                   <Link
                     href={`/candidate/assessments/${a.id}`}
-                    className="inline-flex items-center gap-2 text-sm bg-brand text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand-light transition-colors"
+                    className="inline-flex items-center gap-2 text-sm bg-brand-deep text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand transition-colors"
                   >
                     {a.status === "invited" ? "Start assessment" : "Continue"}
                     <Icon name="arrowRight" className="w-3.5 h-3.5" />

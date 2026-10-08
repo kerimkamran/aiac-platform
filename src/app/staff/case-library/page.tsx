@@ -123,28 +123,29 @@ export default async function CaseLibraryPage({
                 <div className="flex flex-wrap items-start justify-between gap-3 mb-2">
                   <div className="min-w-0">
                     <p className="font-bold text-foreground">{c.title}</p>
-                    <p className="flex items-center gap-2 text-[11px] text-muted mt-1">
+                    <p className="flex items-center gap-2 text-2xs text-muted mt-1">
                       <span className={`inline-flex items-center gap-1.5 font-semibold ${style.text}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
                         {c.competencies?.name}
                       </span>
-                      <span className="text-faint">·</span>
+                      <span className="text-muted">·</span>
                       <span className="font-semibold text-accent-dark bg-accent-soft px-2 py-0.5 rounded-full">{c.methodology_tag}</span>
-                      <span className="text-faint">·</span>
-                      <span className="uppercase font-semibold text-faint">{c.difficulty}</span>
+                      <span className="text-muted">·</span>
+                      <span className="uppercase font-semibold text-muted">{c.difficulty}</span>
                     </p>
                   </div>
                   <form action={deleteCase.bind(null, c.id)}>
                     <ConfirmSubmitButton
                       confirmMessage="Delete this case from the library?"
                       icon="trash"
-                      className="p-1.5 rounded-lg text-faint hover:text-critical hover:bg-red-50 transition-colors"
+                      label={`Delete case "${c.title}"`}
+                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
                       compact
                     />
                   </form>
                 </div>
-                <p className="text-[13px] text-foreground leading-relaxed mb-2">{c.scenario_text}</p>
-                <p className="text-[13px] font-semibold text-foreground mb-2">{c.question_stem}</p>
+                <p className="text-xs text-foreground leading-relaxed mb-2">{c.scenario_text}</p>
+                <p className="text-xs font-semibold text-foreground mb-2">{c.question_stem}</p>
                 {c.question_type === "mcq" && c.options && (
                   <ul className="text-xs text-muted grid sm:grid-cols-2 gap-1 mb-2">
                     {c.options.map((o, i) => (
@@ -154,8 +155,8 @@ export default async function CaseLibraryPage({
                     ))}
                   </ul>
                 )}
-                {c.methodology_notes && <p className="text-[11px] text-faint italic">{c.methodology_notes}</p>}
-                <p className="text-[10.5px] text-faint mt-2">
+                {c.methodology_notes && <p className="text-2xs text-muted italic">{c.methodology_notes}</p>}
+                <p className="text-2xs text-muted mt-2">
                   via {ENGINE_LABEL[c.engine || ""] || c.engine || "—"} · {new Date(c.generated_at).toLocaleDateString()}
                 </p>
               </Card>
@@ -168,7 +169,7 @@ export default async function CaseLibraryPage({
             <p className="font-bold text-foreground text-sm flex items-center gap-2 mb-1">
               <Icon name="brain" className="w-4 h-4 text-accent-dark" />
               Generate library
-              <span className="text-[9.5px] font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-2 py-0.5 rounded-full ml-auto">
+              <span className="text-2xs font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-2 py-0.5 rounded-full ml-auto">
                 Superadmin
               </span>
             </p>
@@ -189,7 +190,7 @@ export default async function CaseLibraryPage({
             ) : (
               <>
                 <form action={generateCasesForAllCompetencies} className="space-y-3 mb-5 pb-5 border-b border-line">
-                  <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint">All 37 competencies</p>
+                  <p className="text-2xs font-bold uppercase tracking-wider text-muted">All 37 competencies</p>
                   <select name="engine" required className="w-full bg-background border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
                     {availableEngines.map((e) => (
                       <option key={e.key} value={e.key}>
@@ -201,20 +202,20 @@ export default async function CaseLibraryPage({
                     Cases per competency
                     <input name="count" type="number" min={2} max={20} defaultValue={6} className="w-16 bg-background border border-line rounded-lg px-2 py-1.5" />
                   </label>
-                  <button className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
+                  <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
                     Generate for every competency
                   </button>
-                  <p className="text-[10.5px] text-faint">
+                  <p className="text-2xs text-muted">
                     Runs in batches across all competencies — a full pass can take a few minutes.
                   </p>
                 </form>
 
-                <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">One competency</p>
+                <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">One competency</p>
                 <div className="max-h-64 overflow-y-auto border border-line rounded-xl p-3 space-y-1 mb-3">
                   {compList.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between gap-2 text-[12.5px] py-1">
+                    <div key={c.id} className="flex items-center justify-between gap-2 text-xs py-1">
                       <span className="min-w-0 truncate">{c.name}</span>
-                      <span className="text-[10.5px] text-faint shrink-0">{countByCompetency.get(c.id) || 0} cases</span>
+                      <span className="text-2xs text-muted shrink-0">{countByCompetency.get(c.id) || 0} cases</span>
                     </div>
                   ))}
                 </div>
@@ -270,7 +271,7 @@ export default async function CaseLibraryPage({
                 case, separated by a line of <code>---</code>. Plain or <code>**bold**</code> labels both work, and a
                 heading can stand in for <code>Title:</code>:
               </p>
-              <pre className="mt-1.5 bg-background border border-line rounded-lg p-2.5 text-[10.5px] whitespace-pre-wrap">
+              <pre className="mt-1.5 bg-background border border-line rounded-lg p-2.5 text-2xs whitespace-pre-wrap">
 {`## Handling a missed deadline
 **Competency:** CF-F09
 **Difficulty:** mid
@@ -305,7 +306,7 @@ export default async function CaseLibraryPage({
                 className="w-full text-xs file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-accent-soft file:text-accent-dark file:font-semibold file:text-xs bg-background border border-line rounded-xl px-2 py-1.5"
               />
               <div>
-                <label className="text-[11px] font-semibold text-muted block mb-1">
+                <label className="text-2xs font-semibold text-muted block mb-1">
                   Default competency (used when a case doesn&apos;t specify one)
                 </label>
                 <select
@@ -322,7 +323,7 @@ export default async function CaseLibraryPage({
               </div>
               {availableEngines.length > 0 && (
                 <div>
-                  <label className="text-[11px] font-semibold text-muted block mb-1">
+                  <label className="text-2xs font-semibold text-muted block mb-1">
                     AI-assisted extraction (Word/text/Markdown only, used only if the structured format above finds
                     nothing)
                   </label>
@@ -340,7 +341,7 @@ export default async function CaseLibraryPage({
                   </select>
                 </div>
               )}
-              <button className="w-full bg-accent text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
+              <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-accent-dark transition-colors">
                 Upload &amp; import
               </button>
             </form>
@@ -348,14 +349,14 @@ export default async function CaseLibraryPage({
 
                     {methodologyTags.length > 0 && (
             <Card className="p-5">
-              <p className="text-[10.5px] font-bold uppercase tracking-wider text-faint mb-2">Filter by methodology</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Filter by methodology</p>
               <div className="flex flex-wrap gap-1.5">
                 {methodologyTags.map((t) => (
                   <Link
                     key={t}
                     href={`/staff/case-library?tag=${encodeURIComponent(t)}`}
-                    className={`text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset transition-colors ${
-                      tagFilter === t ? "bg-accent text-white ring-accent" : "bg-accent-soft text-accent-dark ring-accent/20 hover:ring-accent/40"
+                    className={`text-2xs font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset transition-colors ${
+                      tagFilter === t ? "bg-brand-deep text-white ring-accent" : "bg-accent-soft text-accent-dark ring-accent/20 hover:ring-accent/40"
                     }`}
                   >
                     {t}

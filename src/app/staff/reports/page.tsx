@@ -196,7 +196,7 @@ export default async function ReportsPage({
 
       {/* Filters */}
       <form action="/staff/reports" className="flex flex-wrap items-center gap-2.5 mb-8">
-        <Icon name="filter" className="w-4 h-4 text-faint" />
+        <Icon name="filter" className="w-4 h-4 text-muted" />
         <select
           name="assessment"
           defaultValue={assessment}
@@ -221,7 +221,7 @@ export default async function ReportsPage({
             </option>
           ))}
         </select>
-        <button className="bg-brand text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand-light transition-colors">
+        <button className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors">
           Apply
         </button>
         {(assessment || department) && (
@@ -242,10 +242,10 @@ export default async function ReportsPage({
         <>
           {/* KPIs */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
-            <StatCard label="Candidates in view" value={rows.length} icon="users" tone="brand" />
-            <StatCard label="Completion rate" value={completionRate !== null ? `${completionRate}%` : "—"} icon="checkCircle" tone="accent" />
-            <StatCard label="Avg. Role Fit Score" value={avgScore ?? "—"} icon="target" tone="amber" />
-            <StatCard label="Awaiting human review" value={pendingReview} icon="eye" tone="violet" />
+            <StatCard label="Candidates in view" value={rows.length} />
+            <StatCard label="Completion rate" value={completionRate !== null ? `${completionRate}%` : "—"} />
+            <StatCard label="Avg. Role Fit Score" value={avgScore ?? "—"} />
+            <StatCard label="Awaiting human review" value={pendingReview} />
           </div>
 
           {agreementRate !== null && (
@@ -255,7 +255,7 @@ export default async function ReportsPage({
                 — reviewers overrode the AI score band on {overrideCount} of {judged} decision
                 {judged === 1 ? "" : "s"} in view.
               </p>
-              <p className="text-xs text-faint max-w-sm">
+              <p className="text-xs text-muted max-w-sm">
                 Frequent overrides in one direction usually mean the scoring bar needs recalibrating, not that either
                 side is wrong.
               </p>
@@ -270,7 +270,7 @@ export default async function ReportsPage({
               {scored.length > 0 ? (
                 <BandDistribution buckets={bands} />
               ) : (
-                <p className="text-sm text-faint py-10 text-center">No scored candidates yet.</p>
+                <p className="text-sm text-muted py-10 text-center">No scored candidates yet.</p>
               )}
             </Card>
             <Card className="p-6">
@@ -301,7 +301,7 @@ export default async function ReportsPage({
                     const style = categoryStyle(c.category);
                     return (
                       <div key={c.name}>
-                        <div className="flex items-center justify-between text-[12.5px] mb-1.5">
+                        <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="font-medium text-foreground flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
                             {c.name}
@@ -316,7 +316,7 @@ export default async function ReportsPage({
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-faint py-6 text-center">No competency scores yet.</p>
+                <p className="text-sm text-muted py-6 text-center">No competency scores yet.</p>
               )}
             </Card>
             <Card className="p-6">
@@ -331,7 +331,7 @@ export default async function ReportsPage({
                     const style = categoryStyle(c.category);
                     return (
                       <div key={c.name}>
-                        <div className="flex items-center justify-between text-[12.5px] mb-1.5">
+                        <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="font-medium text-foreground flex items-center gap-1.5">
                             <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
                             {c.name}
@@ -346,7 +346,7 @@ export default async function ReportsPage({
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-faint py-6 text-center">No competency scores yet.</p>
+                <p className="text-sm text-muted py-6 text-center">No competency scores yet.</p>
               )}
             </Card>
           </div>
@@ -369,7 +369,7 @@ export default async function ReportsPage({
                       avg {a.avgScore}
                     </span>
                   ) : (
-                    <span className="text-xs text-faint shrink-0">not yet scored</span>
+                    <span className="text-xs text-muted shrink-0">not yet scored</span>
                   )}
                   <Link
                     href={`/staff/reports/candidates${a.id ? `?vacancy=${encodeURIComponent(a.title)}` : ""}`}

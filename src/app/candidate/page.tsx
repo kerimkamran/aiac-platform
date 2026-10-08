@@ -42,10 +42,9 @@ export default async function CandidateDashboard() {
       {/* Hero action */}
       {next ? (
         <div className="relative overflow-hidden hero-mesh rounded-2xl text-white p-7 md:p-8 mb-8 anim-fade-up">
-          <div className="absolute inset-0 hero-grid-overlay" aria-hidden />
           <div className="relative flex flex-wrap items-center justify-between gap-5">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-accent mb-2">
+              <p className="text-2xs font-bold uppercase tracking-[0.18em] text-accent mb-2">
                 {next.status === "in_progress" ? "Continue where you left off" : "Up next for you"}
               </p>
               <h2 className="text-xl md:text-2xl font-bold [font-family:var(--font-display)]">{next.assessments?.title}</h2>
@@ -75,10 +74,10 @@ export default async function CandidateDashboard() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard label="To start" value={invited.length} icon="clipboard" tone="amber" />
-        <StatCard label="In progress" value={inProgress.length} icon="clock" tone="brand" />
-        <StatCard label="Completed" value={done.length} icon="checkCircle" tone="accent" />
-        <StatCard label="Results ready" value={reviewed.length} icon="award" tone="violet" />
+        <StatCard label="To start" value={invited.length} />
+        <StatCard label="In progress" value={inProgress.length} />
+        <StatCard label="Completed" value={done.length} />
+        <StatCard label="Results ready" value={reviewed.length} />
       </div>
 
       {/* Recent assessments */}
@@ -107,7 +106,7 @@ export default async function CandidateDashboard() {
               {["invited", "in_progress"].includes(a.status) ? (
                 <Link
                   href={`/candidate/assessments/${a.id}`}
-                  className="text-sm bg-brand text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand-light transition-colors"
+                  className="text-sm bg-brand-deep text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand transition-colors"
                 >
                   {a.status === "invited" ? "Start" : "Continue"}
                 </Link>

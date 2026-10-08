@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { inviteRedirectUrl } from "@/lib/site-url";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -27,9 +28,8 @@ async function sendInviteEmail(
   supabase: Awaited<ReturnType<typeof createClient>>,
   email: string
 ): Promise<string | null> {
-  const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://vantage-ag.vercel.app");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${site}/invite/callback`,
+    redirectTo: inviteRedirectUrl(),
   });
   return error ? error.message : null;
 }
@@ -61,6 +61,12 @@ export async function addCandidate(formData: FormData) {
   // action further down this file), or pick one right away so the invite
   // email and the assessment assignment happen in a single step.
   const assessmentId = String(formData.get("assessment_id") || "").trim() || null;
+  if (assessmentId) {
+    const { data: target } = await supabase.from("assessments").select("status").eq("id", assessmentId).maybeSingle();
+    if (!target || target.status !== "published") {
+      redirect("/staff/people?error=" + encodeURIComponent("Publish the assessment before assigning it to a candidate."));
+    }
+  }
 
   if (!email || !fullName) {
     redirect("/staff/people?error=" + encodeURIComponent("Name and email are required."));
@@ -397,6 +403,12 @@ export async function bulkPeopleAction(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent("Choose a valid role for the bulk update."));
   }
 
+  if (action === "assign_assessment" && bulkAssessmentId) {
+    const { data: target } = await supabase.from("assessments").select("status").eq("id", bulkAssessmentId).maybeSingle();
+    if (!target || target.status !== "published") {
+      redirect("/staff/people?error=" + encodeURIComponent("Publish the assessment before assigning it."));
+    }
+  }
   if (action === "assign_assessment" && !bulkAssessmentId) {
     redirect("/staff/people?error=" + encodeURIComponent("Choose an assessment to assign."));
   }

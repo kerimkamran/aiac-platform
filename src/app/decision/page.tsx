@@ -48,7 +48,7 @@ export default async function DecisionHomePage() {
 
       <Card className="overflow-x-auto">
         <table className="w-full text-sm min-w-[640px]">
-          <thead className="text-faint text-[11px] uppercase tracking-wider border-b border-line">
+          <thead className="text-muted text-2xs uppercase tracking-wider border-b border-line">
             <tr>
               <th className="text-left px-5 py-3.5 font-semibold">Candidate</th>
               <th className="text-left px-5 py-3.5 font-semibold">Role / Vacancy</th>
@@ -77,16 +77,16 @@ export default async function DecisionHomePage() {
                     <StatusBadge status={ca.status} />
                   </td>
                   <td className="px-5 py-3.5">
-                    {ca.overall_score !== null ? <ScoreBadge score={Math.round(ca.overall_score)} /> : <span className="text-faint">—</span>}
+                    {ca.overall_score !== null ? <ScoreBadge score={Math.round(ca.overall_score)} /> : <span className="text-muted">—</span>}
                   </td>
                   <td className="px-5 py-3.5">
                     {decidedIds.has(ca.id) ? (
-                      <span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-accent-dark">
+                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark">
                         <Icon name="checkCircle" className="w-3.5 h-3.5" />
                         Submitted
                       </span>
                     ) : (
-                      <span className="text-[12.5px] text-amber-600 font-medium">Awaiting your input</span>
+                      <span className="text-xs text-amber-600 font-medium">Awaiting your input</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-right">
@@ -103,7 +103,7 @@ export default async function DecisionHomePage() {
             })}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-5 py-12 text-center text-faint text-sm">
+                <td colSpan={6} className="px-5 py-12 text-center text-muted text-sm">
                   No candidates assigned to you yet — HR will assign you from a candidate&apos;s review page.
                 </td>
               </tr>

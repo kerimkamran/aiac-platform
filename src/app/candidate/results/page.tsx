@@ -88,7 +88,7 @@ export default async function CandidateResultsPage() {
           return (
             <Card key={r.id} className="p-6">
               <p className="font-semibold text-foreground mb-1">{r.assessments?.title}</p>
-              <p className="text-xs text-faint mb-5">
+              <p className="text-xs text-muted mb-5">
                 Submitted {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "—"}
               </p>
               {ready ? (
@@ -96,7 +96,7 @@ export default async function CandidateResultsPage() {
                   <ScoreRing score={Math.round(r.overall_score!)} size={84} label={bandFor(r.overall_score!).label} />
                   <Link
                     href={`/candidate/results/${r.id}`}
-                    className="inline-flex items-center gap-2 text-sm bg-brand text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-brand-light transition-colors"
+                    className="inline-flex items-center gap-2 text-sm bg-brand-deep text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-brand transition-colors"
                   >
                     Full profile
                     <Icon name="arrowRight" className="w-4 h-4" />

@@ -1,16 +1,15 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { inviteRedirectUrl } from "@/lib/site-url";
 
 export async function requestPasswordReset(formData: FormData) {
   const email = String(formData.get("email") || "").trim();
   if (!email) return { error: "Enter your email address." };
 
   const supabase = await createClient();
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://vantage-ag.vercel.app";
-
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${siteUrl}/invite/callback`,
+    redirectTo: inviteRedirectUrl(),
   });
 
   // Deliberately don't leak whether the email exists -- always show the same

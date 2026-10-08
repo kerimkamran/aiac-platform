@@ -1,28 +1,6 @@
-import { extractJson, type CompetencyForPrompt } from "@/lib/generation";
+import { CASE_DESIGN_PLAYBOOK, callEngine, extractJson, type EngineKey } from "@/lib/ai-engine";
+import { indicatorsForGeneration, type CompetencyForPrompt } from "@/lib/generation";
 
-// Synthesized from a dedicated research pass (five parallel briefs, each citing
-// only publicly published methodology — no proprietary test content) covering
-// Hogan Assessments, Mercer | Mettl, WTW/Saville, Korn Ferry, and McLean &
-// Company. This is the grounding playbook fed to the model when bulk-generating
-// the case library; it never asks the model to reproduce anyone's actual items.
-export const CASE_DESIGN_PLAYBOOK = `Ground every case in a stress, ambiguity, or change trigger rather than a routine day — derailment research Hogan Assessments popularized (tracing to Center for Creative Leadership studies) shows that judgment differences between strong and weak performers surface under pressure, fatigue, or transition, not under calm conditions. A good case should put a normally competent person under a believable strain.
-
-Reuse the scenario archetypes that recur, independently, across Mercer|Mettl, WTW/Saville "Situations", and Korn Ferry's assessment-center exercise literature, because convergence across unrelated vendors is itself evidence these patterns are well-validated:
-- an overloaded inbox / in-basket triage under time pressure with conflicting priorities
-- a difficult conversation with an underperforming-but-tenured or previously strong team member
-- a cross-functional or cross-team resource/priority conflict requiring negotiation
-- a strategic decision that must be made on incomplete or ambiguous data
-- an ethical or integrity gray area where a shortcut would relieve pressure
-- a change-management rollout facing visible team resistance
-- a cross-level communication challenge (translating a decision for both senior stakeholders and frontline staff at once)
-
-For multiple-choice cases, write four response options that are all genuinely plausible actions a real manager might take, varying in effectiveness — never one obviously correct answer against three absurd distractors. Mercer|Mettl explicitly frames SJT items this way: "select or rank the best response from several plausible options."
-
-Where relevant, separate what a person can competently DO from who they are UNDER STRESS — Korn Ferry's KF4D "whole-person" model and Hogan's bright-side/dark-side split both argue that competence alone is an incomplete predictor of how someone will actually perform in the moment described.
-
-Every case must be traceable to a single named competency with a specific behavioral anchor, not a vague "shows good judgment" — McLean & Company's research treats leveled, behaviorally-anchored content as the non-negotiable mechanism that makes a competency actually assessable rather than just a label.
-
-Vary the industry context, stakeholders, and specific situation across cases for the same competency — do not reuse the same premise twice.`;
 
 export type MethodologyTag =
   | "Hogan-style derailment"
@@ -48,11 +26,11 @@ export type GeneratedCase = {
 function systemInstructions(count: number): string {
   return `You are a senior assessment-center case designer building a large, reusable case library for a governed competency-based hiring platform, at the caliber of Hogan Assessments, Mercer|Mettl, WTW/Saville, and Korn Ferry.
 
-Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material. Do not reproduce any real vendor's actual test content — everything you write must be original.
+Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material. Do not reproduce any real vendor's actual test content — everything you write must be original. The indicators you are given are deliberately limited to this platform's "Skilled" and "Expert" proficiency tiers (never "Basic"/entry-level) — write to that level.
 
 ${CASE_DESIGN_PLAYBOOK}
 
-Difficulty must be mid-to-high: genuine trade-offs, ambiguity, incomplete information, or competing stakeholder interests — not an obvious right-vs-wrong choice.
+Difficulty must be intermediate-to-advanced, never basic or entry-level: genuine trade-offs, ambiguity, incomplete information, or competing stakeholder interests — not an obvious right-vs-wrong choice. The candidate should have to work for the right answer; avoid any question a manager with only basic/junior-level competence could answer correctly on instinct.
 
 Return ONLY valid JSON, no markdown fences, no commentary:
 {"cases": [{"title": string, "scenarioText": string, "questionStem": string, "questionType": "mcq" | "text", "options"?: [{"text": string, "correct"?: boolean}], "difficulty": "mid" | "high", "methodologyTag": "Hogan-style derailment" | "Mettl-style SJT" | "WTW/Saville-style situation" | "Korn Ferry-style exercise" | "McLean-style behavioral anchor" | "Blended", "methodologyNotes": string}]}
@@ -61,23 +39,33 @@ Return ONLY valid JSON, no markdown fences, no commentary:
 }
 
 function buildUserPrompt(competency: CompetencyForPrompt): string {
-  const indicatorLines = competency.indicators.length
-    ? competency.indicators.map((i) => `  - [${i.level}] ${i.indicator_text}`).join("\n")
+    const indicators = indicatorsForGeneration(competency.indicators);
+  const indicatorLines = indicators.length
+    ? indicators.map((i) => `  - [${i.level}] ${i.indicator_text}`).join("\n")
     : "  (no behavioral indicators on file — rely on the description only, do not invent indicators)";
-  return `Competency code: ${competency.code}\nName: ${competency.name}\nCategory: ${competency.category}\nDescription: ${competency.description || "(none provided)"}\nBehavioral indicators:\n${indicatorLines}\n\nGenerate the case library entries now as JSON.`;
+  return `Competency code: ${competency.code}\nName: ${competency.name}\nCategory: ${competency.category}\nDescription: ${competency.description || "(none provided)"}\nBehavioral indicators (Skilled/Expert tier only):\n${indicatorLines}\n\nGenerate the case library entries now as JSON.`;
 }
 
-export function validateCases(data: unknown): GeneratedCase[] {
+// Keeps only usable cases. An mcq case needs 2-4 options with exactly one
+// correct answer; anything else is dropped and reported, never repaired by
+// silently marking option A correct.
+export function validateCases(data: unknown): { cases: GeneratedCase[]; dropped: string[] } {
   if (!data || typeof data !== "object" || !Array.isArray((data as { cases?: unknown }).cases)) {
     throw new Error("Generated content did not match the expected shape (missing cases array).");
   }
-  return (data as { cases: unknown[] }).cases.map((c) => {
+  const cases: GeneratedCase[] = [];
+  const dropped: string[] = [];
+
+  for (const c of (data as { cases: unknown[] }).cases) {
     const cc = c as Partial<GeneratedCase> & Record<string, unknown>;
+    const label = typeof cc.title === "string" && cc.title.trim() ? cc.title.trim() : "untitled case";
     if (typeof cc.title !== "string" || typeof cc.scenarioText !== "string" || typeof cc.questionStem !== "string") {
-      throw new Error("A case was missing title, scenarioText, or questionStem.");
+      dropped.push(`${label}: missing title, scenario, or question`);
+      continue;
     }
     if (cc.questionType !== "mcq" && cc.questionType !== "text") {
-      throw new Error("A case had an invalid questionType.");
+      dropped.push(`${label}: invalid question type`);
+      continue;
     }
     const result: GeneratedCase = {
       title: cc.title.trim(),
@@ -90,81 +78,37 @@ export function validateCases(data: unknown): GeneratedCase[] {
     };
     if (result.questionType === "mcq") {
       const opts = Array.isArray(cc.options) ? cc.options : [];
-      result.options = opts
+      const usable = opts
         .map((o) => {
           const oo = o as { text?: unknown; correct?: unknown };
-          return { text: typeof oo.text === "string" ? oo.text.trim() : "", correct: !!oo.correct };
+          return { text: typeof oo.text === "string" ? oo.text.trim() : "", correct: oo.correct === true };
         })
         .filter((o) => o.text.length > 0);
-      if (result.options.length < 2) throw new Error("An mcq case had fewer than 2 usable options.");
-      if (!result.options.some((o) => o.correct)) result.options[0].correct = true;
+      if (usable.length < 2 || usable.length > 4) {
+        dropped.push(`${label}: mcq needs 2-4 options`);
+        continue;
+      }
+      if (usable.filter((o) => o.correct).length !== 1) {
+        dropped.push(`${label}: mcq needs exactly one correct option`);
+        continue;
+      }
+      result.options = usable;
     }
-    return result;
-  });
-}
-
-export async function callEngine(
-  engine: "claude" | "fugu" | "kimi",
-  apiKey: string,
-  system: string,
-  user: string
-): Promise<string> {
-  if (engine === "claude") {
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
-      body: JSON.stringify({ model: "claude-sonnet-5", max_tokens: 8192, system, messages: [{ role: "user", content: user }] }),
-    });
-    if (!res.ok) throw new Error(`Claude API error (${res.status}): ${(await res.text().catch(() => "")).slice(0, 300)}`);
-    const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-    const text = (data.content || []).find((c) => c.type === "text")?.text;
-    if (!text) throw new Error("Claude returned no text content.");
-    return text;
+    cases.push(result);
   }
-  if (engine === "kimi") {
-    const res = await fetch("https://api.moonshot.ai/v1/chat/completions", {
-      method: "POST",
-      headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model: "moonshot-v1-32k",
-        temperature: 0.4,
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: user },
-        ],
-      }),
-    });
-    if (!res.ok) throw new Error(`Kimi API error (${res.status}): ${(await res.text().catch(() => "")).slice(0, 300)}`);
-    const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = data.choices?.[0]?.message?.content;
-    if (!text) throw new Error("Kimi returned no message content.");
-    return text;
-  }
-  const res = await fetch("https://api.sakana.ai/v1/chat/completions", {
-    method: "POST",
-    headers: { "content-type": "application/json", authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: "fugu",
-      reasoning_effort: "high",
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
-  });
-  if (!res.ok) throw new Error(`Sakana Fugu API error (${res.status}): ${(await res.text().catch(() => "")).slice(0, 300)}`);
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("Sakana Fugu returned no message content.");
-  return text;
+  return { cases, dropped };
 }
 
 export async function generateCaseLibraryEntries(
-  engine: "claude" | "fugu" | "kimi",
+  engine: EngineKey,
   apiKey: string,
   competency: CompetencyForPrompt,
   count: number
 ): Promise<GeneratedCase[]> {
-  const raw = await callEngine(engine, apiKey, systemInstructions(count), buildUserPrompt(competency));
-  return validateCases(extractJson(raw));
+  const { text } = await callEngine(engine, apiKey, systemInstructions(count), buildUserPrompt(competency));
+  const { cases, dropped } = validateCases(extractJson(text));
+  if (cases.length === 0) {
+    throw new Error(`No usable cases came back (${dropped.length} rejected: ${dropped.slice(0, 3).join("; ")}).`);
+  }
+  return cases;
 }

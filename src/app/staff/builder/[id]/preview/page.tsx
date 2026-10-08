@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, Icon } from "@/components/ui";
 import { requireRole, STAFF_ROLES } from "@/lib/authz";
+import { PublishChecklist } from "../PublishChecklist";
+import { publishAssessment } from "../../actions";
+import { publishChecks, type CheckQuestion } from "@/lib/publish-checks";
 
 /** Read-only "exactly what the candidate sees" preview of an assessment,
  *  for builders to sanity-check before publishing. No timer, no proctoring,
@@ -14,18 +17,26 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
 
   const { data: assessment } = await supabase
     .from("assessments")
-    .select("id, title, description, time_limit_minutes, status")
+    .select("id, title, description, time_limit_minutes, status, generated_by, position_id")
     .eq("id", id)
     .single();
   if (!assessment) notFound();
 
   const { data: sections } = await supabase
     .from("assessment_sections")
-    .select("id, title, sequence, questions(id, question_type, prompt, options, sequence)")
+    .select("id, title, sequence, target_score, questions(id, question_type, prompt, options, sequence)")
     .eq("assessment_id", id)
     .order("sequence");
 
   type Q = { id: string; question_type: string; prompt: string; options: { key: string; text: string }[] | null; sequence: number };
+
+  const checks = publishChecks({
+    sections: (sections || []).map((s) => ({
+      target_score: s.target_score,
+      questions: (s.questions || []) as unknown as CheckQuestion[],
+    })),
+    hasPosition: !!assessment.position_id,
+  });
 
   return (
     <div className="p-6 lg:p-10 max-w-3xl mx-auto">
@@ -37,14 +48,14 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
           <Icon name="arrowLeft" className="w-4 h-4" />
           Back to builder
         </Link>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-3 py-1.5 rounded-full">
+        <span className="inline-flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-3 py-1.5 rounded-full">
           <Icon name="eye" className="w-3.5 h-3.5" />
           Candidate preview — nothing is saved
         </span>
       </div>
 
       <Card className="p-8 mb-5">
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-2">Ready to begin</p>
+        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-2">Ready to begin</p>
         <h1 className="text-xl font-bold text-foreground mb-2">{assessment.title}</h1>
         {assessment.description && <p className="text-sm text-muted mb-4">{assessment.description}</p>}
         <span className="inline-flex items-center gap-1.5 text-xs text-muted font-semibold">
@@ -57,14 +68,14 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
         const qs = ((s.questions || []) as unknown as Q[]).sort((a, b) => a.sequence - b.sequence);
         return (
           <Card key={s.id} className="p-6 mb-5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-4">
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-4">
               Section {si + 1} · {s.title}
             </p>
             <div className="space-y-6">
               {qs.map((q, qi) => (
                 <div key={q.id}>
                   <p className="text-sm text-foreground mb-3">
-                    <span className="text-faint font-semibold mr-1.5">{qi + 1}.</span>
+                    <span className="text-muted font-semibold mr-1.5">{qi + 1}.</span>
                     {q.prompt}
                   </p>
                   {q.question_type === "mcq" && q.options ? (
@@ -80,19 +91,29 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
                       ))}
                     </div>
                   ) : (
-                    <div className="border border-dashed border-line rounded-xl px-4 py-6 text-xs text-faint">
+                    <div className="border border-dashed border-line rounded-xl px-4 py-6 text-xs text-muted">
                       Free-text answer box appears here
                     </div>
                   )}
                 </div>
               ))}
-              {qs.length === 0 && <p className="text-sm text-faint">No questions in this section yet.</p>}
+              {qs.length === 0 && <p className="text-sm text-muted">No questions in this section yet.</p>}
             </div>
           </Card>
         );
       })}
       {(sections || []).length === 0 && (
-        <Card className="p-8 text-center text-sm text-faint">No sections yet — add some in the builder first.</Card>
+        <Card className="p-8 text-center text-sm text-muted">No sections yet — add some in the builder first.</Card>
+      )}
+
+      {assessment.status !== "published" && (
+        <Card className="p-6 mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-bold text-foreground">Ready to publish?</p>
+            <p className="text-xs text-muted mt-0.5">Check the same list the builder uses before candidates can see this.</p>
+          </div>
+          <PublishChecklist title={assessment.title} checks={checks} aiDraft={!!assessment.generated_by} action={publishAssessment.bind(null, id)} />
+        </Card>
       )}
     </div>
   );

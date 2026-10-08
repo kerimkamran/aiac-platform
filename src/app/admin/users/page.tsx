@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { Avatar, Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
+import { Avatar, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+import { DataTable, DataTablePagination, type DataTableColumn } from "@/components/DataTable";
 
 const TOASTS: ToastSpec[] = [
   { param: "ok", variant: "success" },
@@ -46,6 +47,70 @@ export default async function AdminUsersPage({
     return `/admin/users?${params.toString()}`;
   };
 
+  type UserRow = NonNullable<typeof users>[number];
+  // Matches the actual .order() direction below (full_name/email ascending,
+  // everything else descending) so the header arrow never lies about which
+  // way the column is currently sorted.
+  const sortDir = (col: string) => (col === "full_name" || col === "email" ? "asc" : "desc");
+  const columns: DataTableColumn<UserRow>[] = [
+    {
+      key: "user",
+      label: "User",
+      sortHref: qs({ sort: "full_name", page: "1" }),
+      sortActive: sort === "full_name" ? sortDir("full_name") : undefined,
+      render: (u) => (
+        <div className="flex items-center gap-3">
+          <Avatar name={u.full_name || "?"} />
+          <div className="min-w-0">
+            <p className="font-semibold text-foreground truncate flex items-center gap-2">
+              {u.full_name}
+              {u.is_employee && (
+                <span className="text-2xs font-bold uppercase tracking-wider text-accent-dark bg-brand-50 px-1.5 py-0.5 rounded">Employee</span>
+              )}
+            </p>
+            <p className="text-xs text-muted truncate">{u.email}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: "role",
+      label: "Role",
+      sortHref: qs({ sort: "role", page: "1" }),
+      sortActive: sort === "role" ? sortDir("role") : undefined,
+      render: (u) => <span className="text-muted whitespace-nowrap">{u.role.replace(/_/g, " ")}</span>,
+    },
+    { key: "status", label: "Status", render: (u) => <StatusBadge status={u.status} /> },
+    { key: "department", label: "Department", render: (u) => <span className="text-muted">{u.department || "—"}</span> },
+    {
+      key: "last_login_at",
+      label: "Last login",
+      sortHref: qs({ sort: "last_login_at", page: "1" }),
+      sortActive: sort === "last_login_at" ? sortDir("last_login_at") : undefined,
+      render: (u) => (
+        <span className="text-muted whitespace-nowrap">{u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "never"}</span>
+      ),
+    },
+    {
+      key: "created_at",
+      label: "Created",
+      sortHref: qs({ sort: "created_at", page: "1" }),
+      sortActive: sort === "created_at" ? sortDir("created_at") : undefined,
+      render: (u) => <span className="text-muted whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</span>,
+    },
+    {
+      key: "actions",
+      label: "",
+      align: "right",
+      render: (u) => (
+        <Link href={`/admin/users/${u.id}`} className="inline-flex items-center gap-1.5 text-accent-dark font-semibold hover:underline whitespace-nowrap">
+          Manage
+          <Icon name="arrowRight" className="w-3.5 h-3.5" />
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader title="Users" subtitle={`${total} account(s) — server-side pagination, filters, and sorting. Invitations and bulk import live in People.`}>
@@ -58,7 +123,7 @@ export default async function AdminUsersPage({
         </a>
         <Link
           href="/staff/people"
-          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors"
+          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
         >
           <Icon name="plus" className="w-4 h-4" />
           Invite / bulk import
@@ -70,12 +135,12 @@ export default async function AdminUsersPage({
       {/* Filters */}
       <form action="/admin/users" className="flex flex-wrap items-center gap-2.5 mb-5">
         <div className="relative flex-1 min-w-56 max-w-sm">
-          <Icon name="search" className="w-4 h-4 text-faint absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Icon name="search" className="w-4 h-4 text-muted absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             name="q"
             defaultValue={q}
             placeholder="Search name, email, department…"
-            className="w-full bg-surface border border-line rounded-xl pl-10 pr-3.5 py-2.5 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl pl-10 pr-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
         <select name="role" defaultValue={role} className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by role">
@@ -95,87 +160,19 @@ export default async function AdminUsersPage({
           <option value="employee">Internal employees</option>
           <option value="external">External candidates</option>
         </select>
-        <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">Filter</button>
+        <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">Filter</button>
       </form>
 
-      <Card className="overflow-x-auto">
-        <table className="w-full text-sm min-w-[760px]">
-          <thead className="text-faint text-[11px] uppercase tracking-wider border-b border-line">
-            <tr>
-              {[
-                ["full_name", "User"],
-                ["role", "Role"],
-                ["", "Status"],
-                ["", "Department"],
-                ["last_login_at", "Last login"],
-                ["created_at", "Created"],
-              ].map(([col, label]) => (
-                <th key={label} className="text-left px-5 py-3.5 font-semibold">
-                  {col ? (
-                    <Link href={qs({ sort: col, page: "1" })} className={`hover:text-foreground ${sort === col ? "text-brand" : ""}`}>
-                      {label} {sort === col ? "↓" : ""}
-                    </Link>
-                  ) : (
-                    label
-                  )}
-                </th>
-              ))}
-              <th className="px-5 py-3.5" />
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-line">
-            {(users || []).map((u) => (
-              <tr key={u.id} className="hover:bg-background/70 transition-colors">
-                <td className="px-5 py-3.5">
-                  <div className="flex items-center gap-3">
-                    <Avatar name={u.full_name || "?"} />
-                    <div className="min-w-0">
-                      <p className="font-semibold text-foreground truncate flex items-center gap-2">
-                        {u.full_name}
-                        {u.is_employee && (
-                          <span className="text-[10px] font-bold uppercase tracking-wider text-brand bg-brand-50 px-1.5 py-0.5 rounded">Employee</span>
-                        )}
-                      </p>
-                      <p className="text-xs text-muted truncate">{u.email}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-5 py-3.5 text-muted whitespace-nowrap">{u.role.replace(/_/g, " ")}</td>
-                <td className="px-5 py-3.5"><StatusBadge status={u.status} /></td>
-                <td className="px-5 py-3.5 text-muted">{u.department || "—"}</td>
-                <td className="px-5 py-3.5 text-muted whitespace-nowrap">{u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : "never"}</td>
-                <td className="px-5 py-3.5 text-muted whitespace-nowrap">{new Date(u.created_at).toLocaleDateString()}</td>
-                <td className="px-5 py-3.5 text-right">
-                  <Link href={`/admin/users/${u.id}`} className="inline-flex items-center gap-1.5 text-accent-dark font-semibold hover:underline whitespace-nowrap">
-                    Manage
-                    <Icon name="arrowRight" className="w-3.5 h-3.5" />
-                  </Link>
-                </td>
-              </tr>
-            ))}
-            {(!users || users.length === 0) && (
-              <tr><td colSpan={7} className="px-5 py-12 text-center text-faint text-sm">No users match these filters.</td></tr>
-            )}
-          </tbody>
-        </table>
-      </Card>
+      <DataTable
+        columns={columns}
+        rows={users || []}
+        getRowKey={(u) => u.id}
+        caption="Users"
+        minWidthClassName="min-w-[760px]"
+        emptyMessage="No users match these filters."
+      />
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between mt-5 text-sm">
-        <p className="text-faint">Page {pageNum} of {totalPages} · {total} total</p>
-        <div className="flex gap-2">
-          {pageNum > 1 && (
-            <Link href={qs({ page: String(pageNum - 1) })} className="border border-line rounded-xl px-4 py-2 font-semibold text-foreground hover:border-brand">
-              Previous
-            </Link>
-          )}
-          {pageNum < totalPages && (
-            <Link href={qs({ page: String(pageNum + 1) })} className="border border-line rounded-xl px-4 py-2 font-semibold text-foreground hover:border-brand">
-              Next
-            </Link>
-          )}
-        </div>
-      </div>
+      <DataTablePagination pageNum={pageNum} totalPages={totalPages} total={total} makeHref={(p) => qs({ page: String(p) })} />
     </div>
   );
 }

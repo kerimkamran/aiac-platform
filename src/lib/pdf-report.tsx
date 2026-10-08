@@ -34,6 +34,7 @@ const styles = StyleSheet.create({
   questionPrompt: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
   questionAnswer: { fontSize: 8.5, color: MUTED, marginBottom: 4, lineHeight: 1.4 },
   rationale: { fontSize: 8, color: ACCENT, fontFamily: "Helvetica-Oblique" },
+  needsReviewBadge: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#92651a", backgroundColor: "#fdf3dd", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
   decisionRow: { flexDirection: "row", gap: 8, marginBottom: 6, alignItems: "flex-start" },
   decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: "#fff" },
   footer: { position: "absolute", bottom: 24, left: 40, right: 40, borderTop: `1 solid ${LINE}`, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
@@ -90,7 +91,7 @@ export type ReportData = {
   submittedAt: string | null;
   tabSwitchCount?: number;
   competencies: { name: string; category: string; score: number; level: string }[];
-  responses: { prompt: string; answer: string; score: number; rationale: string }[];
+  responses: { prompt: string; answer: string; score: number; rationale: string; needsReview?: boolean }[];
   decisions: { decision: string; comment: string; reviewer: string; createdAt: string }[];
   generatedAt: string;
 };
@@ -112,7 +113,17 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
     .filter((g) => g.rows.length > 0);
 
   return (
-    <Document title={`${data.candidateName} — Assessment Report`} author="Vantage by Azerconnect Group">
+    // Design-execution-plan Phase 2 / T2.5: @react-pdf/renderer only exposes
+    // a document-level `language` (the PDF's own Lang catalog entry) --
+    // there's no per-Text override in this version, unlike the HTML report
+    // pages this mirrors. The report chrome (scores, labels, the always-
+    // English AI rationale -- see scoring.ts) is the overwhelming majority
+    // of the document, so "en" is the accurate declaration even though an
+    // Azerbaijani/Russian question or answer may appear inside it verbatim;
+    // that's a real gap in what this library can express, not a decision to
+    // mislabel the content. Previously unset entirely, which is its own
+    // accessibility gap (no declared document language at all).
+    <Document title={`${data.candidateName} — Assessment Report`} author="Vantage by Azerconnect Group" language="en">
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBar}>
           <View style={styles.brandBlock}>
@@ -248,6 +259,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
               {i + 1}. {r.prompt}
             </Text>
             <Text style={styles.questionAnswer}>{r.answer || "(no answer provided)"}</Text>
+            {r.needsReview && <Text style={styles.needsReviewBadge}>NEEDS REVIEW -- low-confidence score, confirm before relying on it</Text>}
             <Text style={styles.rationale}>
               AI rationale ({Math.round(r.score)}/100): {r.rationale}
             </Text>

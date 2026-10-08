@@ -64,7 +64,7 @@ export default async function SettingsPage({
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="mail" className="w-4 h-4 text-brand" />
+          <Icon name="mail" className="w-4 h-4 text-accent-dark" />
           Candidate invite email
         </p>
         <p className="text-xs text-muted mb-5">
@@ -92,7 +92,7 @@ export default async function SettingsPage({
               className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
-          <button className="bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors">
+          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
             Save template
           </button>
         </form>
@@ -100,7 +100,7 @@ export default async function SettingsPage({
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="image" className="w-4 h-4 text-brand" />
+          <Icon name="image" className="w-4 h-4 text-accent-dark" />
           Header image
         </p>
         <p className="text-xs text-muted mb-4">PNG or JPG, shown at the top of the invite email.</p>
@@ -116,7 +116,7 @@ export default async function SettingsPage({
             type="file"
             accept="image/png,image/jpeg"
             required
-            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand file:text-white file:text-sm file:font-semibold file:cursor-pointer"
+            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand-deep file:text-white file:text-sm file:font-semibold file:cursor-pointer"
           />
           <button className="bg-foreground text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity shrink-0">
             Upload
@@ -131,7 +131,7 @@ export default async function SettingsPage({
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="wand" className="w-4 h-4 text-brand" />
+          <Icon name="wand" className="w-4 h-4 text-accent-dark" />
           AI generation engines
         </p>
         <p className="text-xs text-muted mb-5">
@@ -145,7 +145,7 @@ export default async function SettingsPage({
               <div className="flex items-center justify-between gap-3 mb-3">
                 <p className="text-sm font-bold text-foreground">{e.display_name}</p>
                 <span
-                  className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                  className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                     e.enabled && e.api_key_secret_id
                       ? "bg-green-50 text-green-700 ring-green-600/20"
                       : "bg-gray-100 text-gray-600 ring-gray-500/20"
@@ -163,15 +163,15 @@ export default async function SettingsPage({
                   name="api_key"
                   type="password"
                   placeholder={e.api_key_secret_id ? "•••••••••••• (set — leave blank to keep)" : "Paste API key"}
-                  className="flex-1 min-w-48 bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-faint focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="flex-1 min-w-48 bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
-                <button className="bg-brand text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand-light transition-colors">
+                <button className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors">
                   Save
                 </button>
               </form>
               {e.api_key_secret_id && (
                 <form action={clearEngineKey.bind(null, e.key as "claude" | "fugu" | "kimi")} className="mt-2">
-                  <button className="text-[11px] text-critical hover:underline">Remove key & disable</button>
+                  <button className="text-2xs text-critical hover:underline">Remove key & disable</button>
                 </form>
               )}
             </div>
@@ -193,7 +193,7 @@ export default async function SettingsPage({
       <Card className="p-0 overflow-hidden">
         <div className="px-6 pt-5 pb-1 flex items-center justify-between gap-4">
           <p className="text-sm font-bold text-foreground flex items-center gap-2">
-            <Icon name="clock" className="w-4 h-4 text-brand" />
+            <Icon name="clock" className="w-4 h-4 text-accent-dark" />
             Activity log
           </p>
           <a
@@ -209,7 +209,7 @@ export default async function SettingsPage({
           deactivations, and password resets. Download the CSV for the complete history.
         </p>
         {audit.length === 0 ? (
-          <p className="px-6 pb-6 text-sm text-faint">No admin actions logged yet.</p>
+          <p className="px-6 pb-6 text-sm text-muted">No admin actions logged yet.</p>
         ) : (
           <div className="divide-y divide-line border-t border-line">
             {audit.map((a) => (
@@ -217,7 +217,7 @@ export default async function SettingsPage({
                 <span className="font-semibold text-foreground">{a.actor?.full_name || "Someone"}</span>
                 <span className="text-muted">{AUDIT_LABEL[a.action] || a.action.replace(/_/g, " ")}</span>
                 {a.target?.full_name && <span className="font-semibold text-foreground">{a.target.full_name}</span>}
-                <span className="text-faint text-xs ml-auto">{new Date(a.created_at).toLocaleString()}</span>
+                <span className="text-muted text-xs ml-auto">{new Date(a.created_at).toLocaleString()}</span>
               </div>
             ))}
           </div>

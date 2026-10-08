@@ -6,7 +6,7 @@ type Operation = { summary?: string };
 type Spec = { info: { title: string; version: string; description: string }; paths: Record<string, Record<string, Operation>> };
 
 const METHOD_TONE: Record<string, string> = {
-  get: "bg-brand-50 text-brand",
+  get: "bg-brand-50 text-accent-dark",
   post: "bg-accent-soft text-accent-dark",
   patch: "bg-amber-50 text-warning",
   delete: "bg-red-50 text-critical",
@@ -31,11 +31,11 @@ export default async function ApiDocsPage() {
       <div className="space-y-3">
         {Object.entries(spec.paths).map(([route, ops]) => (
           <Card key={route} className="p-5">
-            <p className="font-mono text-[13.5px] font-bold text-foreground mb-3">{route}</p>
+            <p className="font-mono text-sm font-bold text-foreground mb-3">{route}</p>
             <div className="space-y-2">
               {Object.entries(ops).map(([method, op]) => (
                 <div key={method} className="flex items-start gap-3 text-sm">
-                  <span className={`text-[10.5px] font-bold uppercase px-2 py-1 rounded-md w-14 text-center shrink-0 ${METHOD_TONE[method] || "bg-line/60 text-muted"}`}>
+                  <span className={`text-2xs font-bold uppercase px-2 py-1 rounded-md w-14 text-center shrink-0 ${METHOD_TONE[method] || "bg-line/60 text-muted"}`}>
                     {method}
                   </span>
                   <span className="text-muted">{op.summary}</span>
@@ -46,7 +46,7 @@ export default async function ApiDocsPage() {
         ))}
       </div>
 
-      <p className="text-xs text-faint mt-6 max-w-xl">
+      <p className="text-xs text-muted mt-6 max-w-xl">
         Authentication: send requests with the web app&apos;s session cookies (same origin). Rate limit: 60 requests/minute per IP.
         Every mutating call and every PII read is written to the audit log.
       </p>

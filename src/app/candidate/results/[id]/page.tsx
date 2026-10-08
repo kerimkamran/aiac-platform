@@ -58,7 +58,7 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
         <PageHeader title={meta?.title || "Result"} subtitle="Your reviewed competency profile for this assessment." />
         <a
           href={`/report/${id}/pdf`}
-          className="inline-flex items-center gap-2 bg-brand text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand-light transition-colors shrink-0"
+          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0"
         >
           <Icon name="download" className="w-4 h-4" />
           Download PDF
@@ -69,11 +69,11 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
 
       <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
         <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint">Overall Role Fit</p>
+          <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted">Overall Role Fit</p>
           <ScoreRing score={Math.round(ca.overall_score)} size={128} label={band.label} />
         </Card>
         <Card className="p-7">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-faint mb-4">Competency radar</p>
+          <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-4">Competency radar</p>
           {items.length >= 3 ? (
             <RadarChart items={items.slice(0, 8).map((i) => ({ label: i.competencies!.name, value: Math.round(i.score) }))} />
           ) : (
@@ -99,7 +99,7 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
       {feedback && (
         <Card className="p-6 mb-6">
           <p className="flex items-center gap-2 text-sm font-bold text-foreground mb-1">
-            <Icon name="wand" className="w-4 h-4 text-brand" />
+            <Icon name="wand" className="w-4 h-4 text-accent-dark" />
             Your development feedback
           </p>
           <p className="text-xs text-muted mb-5">
@@ -107,27 +107,27 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
           </p>
           <div className="grid md:grid-cols-2 gap-5">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-3">Build on these strengths</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-3">Build on these strengths</p>
               <div className="space-y-3">
                 {feedback.strengths.map((s) => (
                   <div key={s.name} className="border border-line rounded-xl p-4">
                     <p className="text-sm font-semibold text-foreground mb-1">
-                      {s.name} <span className="text-faint font-normal tabular-nums">· {s.score}</span>
+                      {s.name} <span className="text-muted font-normal tabular-nums">· {s.score}</span>
                     </p>
-                    <p className="text-[13px] text-muted leading-relaxed">{s.blurb}</p>
+                    <p className="text-xs text-muted leading-relaxed">{s.blurb}</p>
                   </div>
                 ))}
               </div>
             </div>
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wider text-faint mb-3">Focus your growth here</p>
+              <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-3">Focus your growth here</p>
               <div className="space-y-3">
                 {feedback.growthAreas.map((g) => (
                   <div key={g.name} className="border border-line rounded-xl p-4">
                     <p className="text-sm font-semibold text-foreground mb-1">
-                      {g.name} <span className="text-faint font-normal tabular-nums">· {g.score}</span>
+                      {g.name} <span className="text-muted font-normal tabular-nums">· {g.score}</span>
                     </p>
-                    <p className="text-[13px] text-muted leading-relaxed">{g.blurb}</p>
+                    <p className="text-xs text-muted leading-relaxed">{g.blurb}</p>
                   </div>
                 ))}
               </div>
@@ -149,10 +149,10 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
                 const b = bandFor(r.score);
                 return (
                   <div key={i}>
-                    <div className="flex items-center justify-between text-[13px] mb-1.5">
+                    <div className="flex items-center justify-between text-xs mb-1.5">
                       <span className="font-medium text-foreground">{r.competencies!.name}</span>
                       <span className="flex items-center gap-2.5">
-                        <span className={`text-[10.5px] font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>{r.level}</span>
+                        <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>{r.level}</span>
                         <span className="font-bold tabular-nums w-8 text-right">{Math.round(r.score)}</span>
                       </span>
                     </div>
@@ -167,7 +167,7 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
         );
       })}
 
-      <p className="text-xs text-faint mt-6 max-w-lg">
+      <p className="text-xs text-muted mt-6 max-w-lg">
         Scores are confirmed by a human reviewer against Azerconnect&apos;s competency behavioural anchors. Bands:
         Exceeds ≥85 · Fully Meets ≥70 · Partially Meets ≥50.
       </p>

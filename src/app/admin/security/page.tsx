@@ -28,20 +28,20 @@ export default async function AdminSecurityPage() {
         <Card className="p-6">
           <form action={saveSecurity} className="space-y-5">
             <p className="text-sm font-bold text-foreground flex items-center gap-2">
-              <Icon name="ban" className="w-4 h-4 text-brand" />
+              <Icon name="ban" className="w-4 h-4 text-accent-dark" />
               Access policy
             </p>
             <div>
-              <label className="block text-[12px] font-semibold text-muted mb-1.5" htmlFor="session_timeout_minutes">Session timeout (minutes)</label>
+              <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="session_timeout_minutes">Session timeout (minutes)</label>
               <input id="session_timeout_minutes" name="session_timeout_minutes" type="number" min={15} defaultValue={settings.session_timeout_minutes} className={input} />
-              <p className="text-[11px] text-faint mt-1">Idle sessions beyond this are signed out on their next request.</p>
+              <p className="text-2xs text-muted mt-1">Idle sessions beyond this are signed out on their next request.</p>
             </div>
             <div>
-              <label className="block text-[12px] font-semibold text-muted mb-1.5" htmlFor="ip_allowlist">IP allowlist for staff/admin (one per line, empty = no restriction)</label>
+              <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="ip_allowlist">IP allowlist for staff/admin (one per line, empty = no restriction)</label>
               <textarea id="ip_allowlist" name="ip_allowlist" rows={3} defaultValue={settings.ip_allowlist.join("\n")} className={input} placeholder="203.0.113.0&#10;198.51.100.14" />
             </div>
             <div>
-              <p className="text-[12px] font-semibold text-muted mb-2">Require MFA for roles</p>
+              <p className="text-2xs font-semibold text-muted mb-2">Require MFA for roles</p>
               <div className="flex flex-wrap gap-3">
                 {["system_admin", "org_admin", "hr_admin", "recruiter"].map((r) => (
                   <label key={r} className="inline-flex items-center gap-2 text-sm cursor-pointer">
@@ -51,14 +51,14 @@ export default async function AdminSecurityPage() {
                 ))}
               </div>
             </div>
-            <button className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-light transition-colors">Save security settings</button>
+            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save security settings</button>
           </form>
         </Card>
 
         <div className="space-y-6">
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-3">What the platform enforces</p>
-            <ul className="space-y-2.5 text-[13px] text-muted">
+            <ul className="space-y-2.5 text-xs text-muted">
               {[
                 "Authorization on every server action and API route via the central RBAC layer (has_perm in Postgres).",
                 "Row-Level Security on every table; candidates see only their own rows.",
@@ -77,7 +77,7 @@ export default async function AdminSecurityPage() {
 
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-3">Configured in Supabase (dashboard-level)</p>
-            <ul className="space-y-2.5 text-[13px] text-muted">
+            <ul className="space-y-2.5 text-xs text-muted">
               <li><span className="font-semibold text-foreground">MFA (TOTP):</span> users enroll under Account → Security; enforcement above blocks non-enrolled admins at login.</li>
               <li><span className="font-semibold text-foreground">SSO (SAML / OIDC):</span> available on the Supabase Pro plan — Dashboard → Authentication → SSO. The app is provider-agnostic once enabled.</li>
               <li><span className="font-semibold text-foreground">Password policy:</span> minimum length & leaked-password protection — Dashboard → Authentication → Policies.</li>

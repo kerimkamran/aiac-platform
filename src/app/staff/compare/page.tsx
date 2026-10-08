@@ -188,14 +188,14 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                   <p className="text-xs text-muted mt-3 truncate">{c.assessments?.title}</p>
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     <StatusBadge status={c.status} />
-                    {decision ? <StatusBadge status={decision} /> : <span className="text-[11px] text-faint">No decision</span>}
+                    {decision ? <StatusBadge status={decision} /> : <span className="text-2xs text-muted">No decision</span>}
                   </div>
                 </div>
                 <div className="shrink-0">
                   {c.overall_score !== null ? (
                     <ScoreRing score={Math.round(c.overall_score)} size={72} />
                   ) : (
-                    <span className="text-[11px] text-faint text-center block w-[72px]">Not submitted</span>
+                    <span className="text-2xs text-muted text-center block w-[72px]">Not submitted</span>
                   )}
                 </div>
               </div>
@@ -214,13 +214,13 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
       <div className="grid lg:grid-cols-[1fr_1.4fr] gap-6 items-start">
         <Card className="p-6">
           <p className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-            <Icon name="chart" className="w-4 h-4 text-brand" />
+            <Icon name="chart" className="w-4 h-4 text-accent-dark" />
             Competency overlay
           </p>
           {radarLabels.length >= 3 ? (
             <RadarChart labels={radarLabels} series={radarSeries} showLegend />
           ) : (
-            <p className="text-sm text-faint py-8 text-center">
+            <p className="text-sm text-muted py-8 text-center">
               {scored.length < 2
                 ? "At least two candidates need scored results before the overlay can be drawn."
                 : "These candidates share fewer than three scored competencies, so an overlay wouldn't be meaningful — use the table instead."}
@@ -231,7 +231,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
         <div className="space-y-6">
           <Card className="overflow-x-auto">
             <table className="w-full text-sm min-w-[520px]">
-              <thead className="text-faint text-[11px] uppercase tracking-wider border-b border-line">
+              <thead className="text-muted text-2xs uppercase tracking-wider border-b border-line">
                 <tr>
                   <th className="text-left px-5 py-3.5 font-semibold">Competency</th>
                   {candidates.map((c) => (
@@ -250,7 +250,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                   return [
                     <tr key={cat} className="bg-background/60">
                       <td colSpan={cols + 1} className="px-5 py-2">
-                        <span className={`inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider ${style.text}`}>
+                        <span className={`inline-flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider ${style.text}`}>
                           <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`} />
                           {cat}
                         </span>
@@ -268,7 +268,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                             return (
                               <td key={c.id} className="px-3 py-2.5 text-center tabular-nums">
                                 {v === null ? (
-                                  <span className="text-faint">—</span>
+                                  <span className="text-muted">—</span>
                                 ) : (
                                   <span className={`inline-block min-w-9 px-1.5 py-0.5 rounded-lg ${isBest ? "bg-accent-soft text-accent-dark font-bold" : "text-muted"}`}>
                                     {Math.round(v)}
@@ -284,7 +284,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                 })}
                 {categories.length === 0 && (
                   <tr>
-                    <td colSpan={cols + 1} className="px-5 py-10 text-center text-faint">
+                    <td colSpan={cols + 1} className="px-5 py-10 text-center text-muted">
                       No competency scores yet for any selected candidate.
                     </td>
                   </tr>
@@ -296,7 +296,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
           {rollupCats.length > 0 && (
             <Card className="overflow-x-auto">
               <table className="w-full text-sm min-w-[420px]">
-                <thead className="text-faint text-[11px] uppercase tracking-wider border-b border-line">
+                <thead className="text-muted text-2xs uppercase tracking-wider border-b border-line">
                   <tr>
                     <th className="text-left px-5 py-3.5 font-semibold">Category average</th>
                     {candidates.map((c) => (
@@ -324,7 +324,7 @@ export default async function ComparePage({ searchParams }: { searchParams: Prom
                           return (
                             <td key={candidates[i].id} className="px-3 py-3 text-center tabular-nums">
                               {v === null ? (
-                                <span className="text-faint">—</span>
+                                <span className="text-muted">—</span>
                               ) : (
                                 <span className={`inline-block min-w-9 px-1.5 py-0.5 rounded-lg ${isBest ? "bg-accent-soft text-accent-dark font-bold" : "text-muted"}`}>
                                   {v}

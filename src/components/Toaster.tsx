@@ -12,7 +12,7 @@ const ToastContext = createContext<{ push: (variant: ToastVariant, message: stri
 const VARIANT_META: Record<ToastVariant, { icon: string; ring: string; iconWrap: string }> = {
   success: { icon: "checkCircle", ring: "ring-accent/25", iconWrap: "bg-accent-soft text-accent-dark" },
   error: { icon: "alertTriangle", ring: "ring-red-200", iconWrap: "bg-red-50 text-critical" },
-  info: { icon: "info", ring: "ring-line", iconWrap: "bg-surface text-brand" },
+  info: { icon: "info", ring: "ring-line", iconWrap: "bg-surface text-accent-dark" },
 };
 
 const DURATION_MS = 5200;
@@ -49,11 +49,11 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               <span className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${meta.iconWrap}`}>
                 <Icon name={meta.icon} className="w-4 h-4" />
               </span>
-              <p className="text-[13px] leading-snug text-foreground flex-1 pt-0.5">{t.message}</p>
+              <p className="text-xs leading-snug text-foreground flex-1 pt-0.5">{t.message}</p>
               <button
                 onClick={() => dismiss(t.id)}
                 aria-label="Dismiss notification"
-                className="text-faint hover:text-foreground shrink-0 -mt-0.5 -mr-1 p-1"
+                className="text-muted hover:text-foreground shrink-0 -mt-0.5 -mr-1.5 p-1.5"
               >
                 <Icon name="x" className="w-3.5 h-3.5" />
               </button>
@@ -123,6 +123,12 @@ function ToastFromParamsInner({ specs }: { specs: ToastSpec[] }) {
     for (const spec of specs) {
       const value = searchParams.get(spec.param);
       if (value === null || value === "") continue;
+      // Design-execution-plan Phase 5 / T5.5: an `error` redirect that also
+      // carries `?field=` is meant for an <InlineFormError> next to the
+      // relevant input, not this floating toast -- skip it here and let that
+      // component show and clear it, so the same message doesn't appear
+      // twice.
+      if (spec.param === "error" && searchParams.get("field")) continue;
       fired = true;
       const message = spec.kind
         ? KNOWN_KINDS[spec.kind](value, searchParams)

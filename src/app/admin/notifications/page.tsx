@@ -40,14 +40,14 @@ export default async function AdminNotificationsPage() {
             </select>
             <input name="title" required placeholder="Title" className={input} aria-label="Title" />
             <textarea name="body" rows={3} placeholder="Message…" className={input} aria-label="Message" />
-            <button className="bg-brand text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand-light transition-colors">Send broadcast</button>
+            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Send broadcast</button>
           </form>
         </Card>
 
         <div className="space-y-6">
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
-              <Icon name="mail" className="w-4 h-4 text-brand" />
+              <Icon name="mail" className="w-4 h-4 text-accent-dark" />
               Email templates
             </p>
             <div className="space-y-2.5 mb-4">
@@ -57,12 +57,12 @@ export default async function AdminNotificationsPage() {
                     <p className="font-semibold text-foreground">{t.template_key.replace(/_/g, " ")}</p>
                     <p className="text-xs text-muted truncate max-w-56">{t.subject}</p>
                   </div>
-                  <span className="text-[11px] text-faint">{t.updated_at ? new Date(t.updated_at).toLocaleDateString() : ""}</span>
+                  <span className="text-2xs text-muted">{t.updated_at ? new Date(t.updated_at).toLocaleDateString() : ""}</span>
                 </div>
               ))}
-              {(!templates || templates.length === 0) && <p className="text-xs text-faint">No templates yet.</p>}
+              {(!templates || templates.length === 0) && <p className="text-xs text-muted">No templates yet.</p>}
             </div>
-            <Link href="/staff/settings" className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-accent-dark hover:underline">
+            <Link href="/staff/settings" className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline">
               Edit templates in Settings
               <Icon name="arrowRight" className="w-3.5 h-3.5" />
             </Link>
@@ -71,8 +71,8 @@ export default async function AdminNotificationsPage() {
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-2">Scheduled reminders</p>
             <p className="text-xs text-muted leading-relaxed">
-              Reminder scheduling (e.g. “nudge invited candidates after 3 days”) runs as a <code className="text-brand">pg_cron</code> job in
-              Supabase. A ready-to-run job template is documented in <code className="text-brand">supabase/migrations/0004_admin.sql</code>;
+              Reminder scheduling (e.g. “nudge invited candidates after 3 days”) runs as a <code className="text-accent-dark">pg_cron</code> job in
+              Supabase. A ready-to-run job template is documented in <code className="text-accent-dark">supabase/migrations/0004_admin.sql</code>;
               enable the pg_cron extension in your project to activate it.
             </p>
           </Card>

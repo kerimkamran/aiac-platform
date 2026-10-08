@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreTextResponse, type CompetencyContext, type ScoringEngine } from "@/lib/scoring";
+import { isLevelKey } from "@/lib/levels";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
@@ -31,13 +32,15 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
-    .select("id, assessment_id, candidate_id, assessments(engine)")
+    .select("id, assessment_id, candidate_id, assessments(engine, target_level)")
     .eq("id", candidateAssessmentId)
     .single();
 
   if (!ca) redirect("/candidate");
 
-  const engineRaw = (ca.assessments as unknown as { engine: string | null } | null)?.engine || null;
+  const caAssessment = ca.assessments as unknown as { engine: string | null; target_level: string | null } | null;
+  const engineRaw = caAssessment?.engine || null;
+  const targetLevel = isLevelKey(caAssessment?.target_level) ? caAssessment.target_level : null;
   const engine: ScoringEngine | null =
     engineRaw === "claude" || engineRaw === "fugu" || engineRaw === "kimi" ? engineRaw : null;
 
@@ -82,7 +85,7 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
       supabase.from("competency_indicators").select("competency_id, level, indicator_text").in("competency_id", competencyIds),
     ]);
     for (const c of comps || []) {
-      competencyMap.set(c.id, { name: c.name, description: c.description, indicators: [] });
+      competencyMap.set(c.id, { name: c.name, description: c.description, indicators: [], targetLevel });
     }
     for (const i of indicators || []) {
       competencyMap.get(i.competency_id)?.indicators.push({ level: i.level, indicator_text: i.indicator_text });
@@ -119,6 +122,7 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
         name: "General",
         description: null,
         indicators: [],
+        targetLevel,
       };
       const scored = await scoreTextResponse({ questionPrompt: q.prompt, responseText: text, competency, engine, apiKey });
       const { error } = await supabase.from("candidate_responses").insert({
@@ -127,6 +131,12 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
         response_text: text,
         score: scored.score,
         ai_rationale: scored.rationale,
+        // Design-execution-plan Phase 0 / T0.3: this signal used to be
+        // computed by scoreTextResponse() and then dropped here -- the
+        // human-in-the-loop safeguard had no data behind it. Now persisted
+        // so reviewers can see (and eventually filter on) low-confidence
+        // scores. See supabase/migrations/0013_needs_review_flag.sql.
+        needs_review: scored.needsReview,
       });
       // 23505 = unique_violation -- a retried submit for a question already
       // recorded. Same "skip, don't throw" handling as the MCQ branch above.
@@ -171,5 +181,11 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
     })
     .eq("id", candidateAssessmentId);
 
-  redirect(`/candidate/assessments/${candidateAssessmentId}/submitted`);
+  // Design-execution-plan Phase 6 / T6.4: carries the runner's submit reason
+  // through to the confirmation page so it never celebrates a submission the
+  // countdown forced through at zero -- see the matching note on doSubmit in
+  // runner.tsx.
+  const reason = String(formData.get("submit_reason") || "manual");
+  const suffix = reason === "expiry" ? "?reason=expiry" : "";
+  redirect(`/candidate/assessments/${candidateAssessmentId}/submitted${suffix}`);
 }
