@@ -36,6 +36,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     { href: "/staff", label: "Home", icon: "home", exact: true },
     { href: "/staff/reports", label: "Reports & Analytics", icon: "chart" },
     { href: "/staff/builder", label: "Assessment Builder", icon: "layers" },
+    { href: "/staff/builder/positions", label: "Positions", icon: "building" },
   ];
   if (isAdmin) {
     links.push({ href: "/staff/people", label: "People & Access", icon: "shield" });
@@ -52,7 +53,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
 
   const actions: NavLink[] = [
-    { href: "/staff/builder", label: "New assessment", icon: "plus" },
+    { href: "/staff/builder/new", label: "New assessment", icon: "plus" },
     { href: "/staff/compare", label: "Compare candidates", icon: "chart" },
   ];
   if (isAdmin) {

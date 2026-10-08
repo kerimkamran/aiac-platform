@@ -150,7 +150,7 @@ export default async function StaffHomePage() {
           </div>
 
           <Link
-            href="/staff/builder"
+            href="/staff/builder/new"
             className="mt-10 flex items-center justify-center gap-2 bg-foreground text-background text-xs font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
           >
             <Icon name="plus" className="w-4 h-4" />

@@ -232,6 +232,22 @@ export async function saveSettings(key: string, formData: FormData) {
   revalidatePath(`/admin/${key === "data_governance" ? "data-governance" : key === "ai" ? "ai-governance" : "security"}`);
 }
 
+// Whether an engine may receive job descriptions and reference files. Off by
+// default for every engine except Claude (set in migration 0014).
+export async function setEngineContextConsent(engineKey: string, formData: FormData) {
+  const admin = await requirePermission("settings", "update");
+  if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") return;
+  const supabase = await createClient();
+  const allow = formData.get("allow_context") === "on";
+  await supabase
+    .from("generation_engines")
+    .update({ allow_context: allow, updated_by: admin.id, updated_at: new Date().toISOString() })
+    .eq("key", engineKey);
+  await logAudit({ module: "ai", action: "engine_context_updated", targetType: "generation_engine", targetId: engineKey, details: { allow_context: allow } });
+  revalidatePath("/admin/ai-governance");
+  revalidatePath("/staff/builder/new");
+}
+
 /* ---------------- Notifications ---------------- */
 
 export async function broadcastNotification(formData: FormData) {

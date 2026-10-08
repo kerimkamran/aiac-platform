@@ -4,10 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole, requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { assertCanGenerate, AiPolicyError, loadAiPolicy } from "@/lib/ai-policy";
+import { assertCanGenerate, AiPolicyError, type AiPolicy } from "@/lib/ai-policy";
 import type { EngineKey } from "@/lib/ai-engine";
+import { generateAssessmentContent, LENGTH_TOTALS, type AssessmentLength, type QuestionMix, type GenerationLanguage } from "@/lib/generation";
+import { prepareContext, type ContextItem, MAX_REFERENCE_FILES, REFERENCE_FILE_MAX_CHARS } from "@/lib/ai-context";
+import { LEVELS, isLevelKey, includesLeadership, type LevelKey } from "@/lib/levels";
 
 export type AssessmentPurpose = "hiring" | "promotion" | "development";
+
+const STAFF_ROLE_LIST = ["recruiter", "hiring_manager", "hr_admin", "org_admin", "system_admin"];
 
 function normalizePurpose(raw: FormDataEntryValue | null): AssessmentPurpose {
   return raw === "promotion" || raw === "development" ? raw : "hiring";
@@ -211,41 +216,43 @@ export async function updateProctoringSettings(assessmentId: string, formData: F
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
 
-// Checks AI Governance (enabled switch, allowed roles, monthly quota) before
-// any generation starts. Returns the caller's session and the policy.
-async function requireGenerationAccess(runs: number) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).single();
-
-  let policyError: string | null = null;
-  let policy: Awaited<ReturnType<typeof loadAiPolicy>> | null = null;
-  try {
-    policy = await assertCanGenerate(supabase, profile?.role ?? "", runs);
-  } catch (e) {
-    policyError = e instanceof AiPolicyError ? e.message : "Generation isn't available right now.";
-  }
-  if (policyError || !policy) {
-    redirect("/staff/builder?error=" + encodeURIComponent(policyError || "Generation isn't available right now."));
-  }
-  return { supabase, userId: user.id, fullName: (profile?.full_name as string) || "", policy };
-}
+type EnginePolicy = { key: string; display_name: string; enabled: boolean; configured: boolean; allow_context: boolean };
 
 // Uses the engine the admin picked if it is valid, else the default model from
 // AI Governance.
-function chooseEngine(raw: string, fallback: EngineKey): EngineKey {
+function chooseEngine(raw: string | null | undefined, fallback: EngineKey): EngineKey {
   return raw === "claude" || raw === "fugu" || raw === "kimi" ? raw : fallback;
 }
 
-// Records one AI generation attempt. The quota counts these rows, and the
-// finish call records the outcome without letting the caller rewrite other runs.
-async function startGenerationRun(supabase: Awaited<ReturnType<typeof createClient>>, engine: EngineKey) {
+// Records one AI generation attempt with its metadata (position, level, batch,
+// the context that was sent, as counts and names only -- never the text). The
+// quota counts these rows. The idempotency key is unique per user, so a retried
+// draft gets a new key rather than generating twice under the same one.
+async function startGenerationRun(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  run: {
+    userId: string;
+    engine: EngineKey;
+    positionId: string | null;
+    batchId: string | null;
+    idempotencyKey: string | null;
+    level: LevelKey;
+    contextSnapshot: Record<string, unknown>;
+  }
+) {
   const { data, error } = await supabase
     .from("generation_runs")
-    .insert({ created_by: (await supabase.auth.getUser()).data.user!.id, engine, status: "running" })
+    .insert({
+      created_by: run.userId,
+      engine: run.engine,
+      status: "running",
+      position_id: run.positionId,
+      batch_id: run.batchId,
+      idempotency_key: run.idempotencyKey,
+      target_level: run.level,
+      prompt_version: "v2-levels",
+      context_snapshot: run.contextSnapshot,
+    })
     .select("id")
     .single();
   if (error || !data) throw new Error("Couldn't start the generation run. Nothing was generated.");
@@ -276,18 +283,17 @@ async function loadEngine(
   supabase: Awaited<ReturnType<typeof createClient>>,
   engineKey: "claude" | "fugu" | "kimi"
 ) {
-  const { data: engine } = await supabase
-    .from("generation_engines")
-    .select("enabled")
-    .eq("key", engineKey)
-    .maybeSingle();
+  // Read through the staff-safe function: generation_engines itself is
+  // admin-only, so a recruiter's direct read would come back empty.
+  const { data: rows } = await supabase.rpc("engine_policy_for_staff");
+  const engine = ((rows || []) as EnginePolicy[]).find((e) => e.key === engineKey) ?? null;
 
   // The key itself lives in Supabase Vault (encrypted at rest), not on this
   // row -- get_engine_api_key() is a SECURITY DEFINER RPC that decrypts it
   // server-side only, re-checking is_staff() independently of this call site.
   const { data: apiKey } = await supabase.rpc("get_engine_api_key", { p_engine_key: engineKey });
 
-  if (!engine || !engine.enabled || !apiKey) {
+  if (!engine || !engine.enabled || !engine.configured || !apiKey) {
     throw new Error(
       `The ${engineDisplayName(engineKey)} engine isn't configured. Add an API key and enable it in Settings first.`
     );
@@ -323,19 +329,23 @@ async function insertGeneratedAssessment(
   params: {
     title: string;
     description: string;
-    mode: "default_core" | "default_leadership" | "default_mix" | "generated";
-    engine: "claude" | "fugu" | "kimi";
+    mode: "generated";
+    engine: EngineKey;
     generatedBy: string;
     competencies: { id: string; code: string; name: string }[];
     generated: import("@/lib/generation").GeneratedAssessment;
     purpose: AssessmentPurpose;
-    language: "en" | "az" | "ru";
+    language: GenerationLanguage;
+    positionId: string | null;
+    vacancyTitle: string;
+    level: LevelKey;
   }
 ) {
   const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
 
   const totalQuestions = params.generated.sections.reduce((n, s) => n + s.questions.length, 0);
   const timeLimitMinutes = Math.max(20, totalQuestions * 5);
+  const passMark = LEVELS[params.level].passMark;
 
   const { data: assessment, error } = await supabase
     .from("assessments")
@@ -351,121 +361,346 @@ async function insertGeneratedAssessment(
       generated_by: params.generatedBy,
       generated_at: new Date().toISOString(),
       purpose: params.purpose,
-      // Design-execution-plan Phase 2 / T2.5: this column existed but was
-      // never written -- generated content's language (chosen at
-      // generation time, above) was lost the moment the assessment was
-      // created, so nothing downstream (runner, report, PDF) could ever
-      // have known to set lang="az"/"ru" on it. Persist it here.
       content_language: params.language,
+      position_id: params.positionId,
+      vacancy_title: params.vacancyTitle,
+      target_level: params.level,
     })
     .select("id")
     .single();
 
   if (error || !assessment) throw new Error(error?.message || "Failed to create the generated assessment.");
 
-  // Bulk-insert every section in a single round trip, then every question in
-  // another single round trip, instead of one insert per row — a generated
-  // assessment with, say, 5 sections and 15 questions used to take 20
-  // sequential network round trips to Supabase; this cuts it to 2.
-  const sectionRowsToInsert = params.generated.sections.map((section, i) => {
-    const comp = params.competencies.find((c) => c.code === section.competencyCode);
-    return {
-      assessment_id: assessment.id,
-      title: comp?.name || section.competencyCode,
-      competency_id: comp?.id || null,
-      sequence: i + 1,
-    };
-  });
-
-  const { data: insertedSections, error: sectionsError } = await supabase
-    .from("assessment_sections")
-    .insert(sectionRowsToInsert)
-    .select("id");
-
-  if (sectionsError || !insertedSections) {
-    throw new Error(sectionsError?.message || "Failed to create the assessment's sections.");
-  }
-
-  const questionRowsToInsert = params.generated.sections.flatMap((section, i) => {
-    const comp = params.competencies.find((c) => c.code === section.competencyCode);
-    const sectionId = insertedSections[i]?.id;
-    if (!sectionId) return [];
-    return section.questions.map((q, qi) => {
-      const options =
-        q.type === "mcq" && q.options
-          ? q.options.map((o, oi) => ({ key: String.fromCharCode(65 + oi), text: o.text, correct: !!o.correct }))
-          : null;
+  // Anything that fails after this point removes the half-built draft, so a
+  // failed generation never leaves an assessment with missing questions.
+  try {
+    const sectionRowsToInsert = params.generated.sections.map((section, i) => {
+      const comp = params.competencies.find((c) => c.code === section.competencyCode);
       return {
-        section_id: sectionId,
-        question_type: q.type,
-        prompt: q.prompt,
-        options,
+        assessment_id: assessment.id,
+        title: comp?.name || section.competencyCode,
         competency_id: comp?.id || null,
-        weight: 1,
-        sequence: qi + 1,
+        sequence: i + 1,
+        target_score: passMark,
       };
     });
-  });
 
-  if (questionRowsToInsert.length > 0) {
-    const { error: questionsError } = await supabase.from("questions").insert(questionRowsToInsert);
-    if (questionsError) throw new Error(questionsError.message || "Failed to create the assessment's questions.");
+    const { data: insertedSections, error: sectionsError } = await supabase
+      .from("assessment_sections")
+      .insert(sectionRowsToInsert)
+      .select("id");
+
+    if (sectionsError || !insertedSections) {
+      throw new Error(sectionsError?.message || "Failed to create the assessment's sections.");
+    }
+
+    const questionRowsToInsert = params.generated.sections.flatMap((section, i) => {
+      const comp = params.competencies.find((c) => c.code === section.competencyCode);
+      const sectionId = insertedSections[i]?.id;
+      if (!sectionId) return [];
+      return section.questions.map((q, qi) => {
+        const options =
+          q.type === "mcq" && q.options
+            ? q.options.map((o, oi) => ({ key: String.fromCharCode(65 + oi), text: o.text, correct: !!o.correct }))
+            : null;
+        return {
+          section_id: sectionId,
+          question_type: q.type,
+          prompt: q.prompt,
+          options,
+          competency_id: comp?.id || null,
+          weight: 1,
+          sequence: qi + 1,
+        };
+      });
+    });
+
+    if (questionRowsToInsert.length > 0) {
+      const { error: questionsError } = await supabase.from("questions").insert(questionRowsToInsert);
+      if (questionsError) throw new Error(questionsError.message || "Failed to create the assessment's questions.");
+    }
+  } catch (e) {
+    await supabase.from("assessments").delete().eq("id", assessment.id);
+    throw e;
   }
 
   return assessment.id as string;
 }
 
-export async function generateDefaultAssessment(category: "Core" | "Leadership" | "Mix", formData: FormData) {
-  const { generateAssessmentContent } = await import("@/lib/generation");
-  const { supabase, userId, policy } = await requireGenerationAccess(1);
+export type DraftInput = {
+  batchId: string;
+  // Unique per draft and attempt, e.g. "<batch>:<position>:<level>:<attempt>".
+  idempotencyKey: string;
+  positionId: string | null;
+  positionTitle: string;
+  department: string | null;
+  level: LevelKey;
+  purpose: AssessmentPurpose;
+  language: GenerationLanguage;
+  competencyIds: string[];
+  length: AssessmentLength;
+  mix: QuestionMix;
+  engine: EngineKey | null;
+  instructions: string;
+  jobDescription: string;
+  notes: string;
+  // Reference files saved on the position (saved again when saveContext is on).
+  files: { name: string; text: string }[];
+  // One-off files for this batch only. They are sent but never saved.
+  oneOffFiles: { name: string; text: string }[];
+  saveContext: boolean;
+  // Create a draft with no questions (for staff without AI access).
+  emptyDraft: boolean;
+};
 
-  const engineKey = chooseEngine(String(formData.get("engine") || ""), policy.defaultEngine);
-  const customTitle = String(formData.get("title") || "").trim();
-  const purpose = normalizePurpose(formData.get("purpose"));
-  const langRaw = String(formData.get("language") || "en");
-  const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
+export type DraftResult =
+  | { ok: true; assessmentId: string; warnings: string[] }
+  | { ok: false; error: string; emptyDraftAllowed: boolean };
 
-  let newId: string;
+// Finds or creates the position a draft belongs to, and (when asked) saves its
+// job description, notes and reference files for next time.
+async function resolvePosition(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  input: DraftInput
+): Promise<string> {
+  const title = input.positionTitle.trim();
+  let positionId = input.positionId;
+  if (!positionId) {
+    const { data: existing } = await supabase
+      .from("positions")
+      .select("id")
+      .ilike("title", title)
+      .is("archived_at", null)
+      .maybeSingle();
+    positionId = existing?.id ?? null;
+  }
+  if (!positionId) {
+    const { data: created, error } = await supabase
+      .from("positions")
+      .insert({ title, department: input.department, default_level: input.level, created_by: userId, updated_by: userId })
+      .select("id")
+      .single();
+    if (error || !created) throw new Error(error?.message || "Couldn't create the position.");
+    positionId = created.id as string;
+  }
+
+  if (input.saveContext) {
+    await supabase
+      .from("positions")
+      .update({
+        department: input.department,
+        job_description: input.jobDescription,
+        notes: input.notes,
+        default_level: input.level,
+        updated_by: userId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", positionId);
+    await supabase.from("position_files").delete().eq("position_id", positionId);
+    if (input.files.length > 0) {
+      await supabase.from("position_files").insert(
+        input.files.map((f) => ({
+          position_id: positionId,
+          filename: f.name.slice(0, 120),
+          content_text: f.text,
+          size_bytes: new TextEncoder().encode(f.text).length,
+          created_by: userId,
+        }))
+      );
+    }
+  }
+  return positionId as string;
+}
+
+// One draft per call. The client calls this once per (position, level)
+// combination, at most two at a time, so each draft shows its own progress and
+// can be retried without redoing the others.
+export async function generateDraft(input: DraftInput): Promise<DraftResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", user.id).maybeSingle();
+  if (!profile || profile.status !== "active" || !STAFF_ROLE_LIST.includes(profile.role)) {
+    return { ok: false, error: "Not authorized.", emptyDraftAllowed: false };
+  }
+
+  const title = input.positionTitle.trim();
+  if (title.length < 2) return { ok: false, error: "Choose or type a position first.", emptyDraftAllowed: false };
+  if (!isLevelKey(input.level)) return { ok: false, error: "Choose a level.", emptyDraftAllowed: false };
+  if (input.competencyIds.length === 0) return { ok: false, error: "Choose at least one competency.", emptyDraftAllowed: false };
+
+  // Governance runs before anything is written or sent to an engine.
+  let policy: AiPolicy | null = null;
+  if (!input.emptyDraft) {
+    try {
+      policy = await assertCanGenerate(supabase, profile.role, 1);
+    } catch (e) {
+      const message = e instanceof AiPolicyError ? e.message : "Generation isn't available right now.";
+      return { ok: false, error: message, emptyDraftAllowed: true };
+    }
+  }
+
+  // A key that already succeeded returns the draft it made, so a double click
+  // or a retried request cannot create two drafts.
+  if (input.idempotencyKey) {
+    const { data: done } = await supabase
+      .from("generation_runs")
+      .select("assessment_id, status")
+      .eq("created_by", user.id)
+      .eq("idempotency_key", input.idempotencyKey)
+      .maybeSingle();
+    if (done?.status === "succeeded" && done.assessment_id) {
+      return { ok: true, assessmentId: done.assessment_id, warnings: [] };
+    }
+    if (done?.status === "running") {
+      return { ok: false, error: "This draft is already being generated. Wait for it to finish.", emptyDraftAllowed: false };
+    }
+  }
+
+  let positionId: string;
+  try {
+    positionId = await resolvePosition(supabase, user.id, input);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Couldn't save the position.", emptyDraftAllowed: false };
+  }
+
+  const levelLabel = LEVELS[input.level].label;
+  const draftTitle = `${title} — ${levelLabel}`;
+
+  if (input.emptyDraft) {
+    try {
+      const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
+      const { data: created, error } = await supabase
+        .from("assessments")
+        .insert({
+          organization_id: org?.id,
+          title: draftTitle,
+          description: "",
+          time_limit_minutes: 60,
+          created_by: user.id,
+          status: "draft",
+          purpose: input.purpose,
+          content_language: input.language,
+          position_id: positionId,
+          vacancy_title: title,
+          target_level: input.level,
+        })
+        .select("id")
+        .single();
+      if (error || !created) throw new Error(error?.message || "Couldn't create the draft.");
+      revalidatePath("/staff/builder");
+      return { ok: true, assessmentId: created.id as string, warnings: [] };
+    } catch (e) {
+      return { ok: false, error: e instanceof Error ? e.message : "Couldn't create the draft.", emptyDraftAllowed: false };
+    }
+  }
+
+  const engineKey = chooseEngine(input.engine, policy!.defaultEngine);
+
+  // Consent: an engine that isn't approved for context gets competencies and
+  // level only. The draft still generates, and the brief card says so.
+  const { data: engineRows } = await supabase.rpc("engine_policy_for_staff");
+  const contextAllowed = ((engineRows || []) as EnginePolicy[]).some((e) => e.key === engineKey && e.allow_context === true);
+  const hadContext = !!(input.instructions || input.jobDescription || input.notes || input.files.length + input.oneOffFiles.length > 0);
+
+  const warnings: string[] = [];
+  const allFiles = [...input.files, ...input.oneOffFiles];
+  if (allFiles.length > MAX_REFERENCE_FILES) {
+    return { ok: false, error: `Attach at most ${MAX_REFERENCE_FILES} reference files.`, emptyDraftAllowed: false };
+  }
+  if (allFiles.some((f) => f.text.length > REFERENCE_FILE_MAX_CHARS)) {
+    return { ok: false, error: "A reference file is larger than 200 KB.", emptyDraftAllowed: false };
+  }
+  let prepared: ReturnType<typeof prepareContext>;
+  try {
+    prepared = prepareContext({
+      instructions: contextAllowed ? input.instructions : "",
+      jobDescription: contextAllowed ? input.jobDescription : "",
+      notes: contextAllowed ? input.notes : "",
+      files: contextAllowed ? allFiles : [],
+    });
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "The context couldn't be prepared.", emptyDraftAllowed: false };
+  }
+  if (!contextAllowed && hadContext) {
+    warnings.push(`${engineDisplayName(engineKey)} isn't approved for job descriptions or files, so this draft was generated from the competencies and level only.`);
+  }
+  if (prepared.trimmed.length > 0) warnings.push(`Trimmed to fit the context limit: ${prepared.trimmed.join(", ")}.`);
+  if (prepared.redaction.emails + prepared.redaction.phones > 0) {
+    warnings.push(`Removed ${prepared.redaction.emails} e-mail address(es) and ${prepared.redaction.phones} phone number(s) before sending.`);
+  }
+
+  const contextItems: ContextItem[] = prepared.items;
+  const contextSnapshot = {
+    contextSent: contextItems.length > 0,
+    items: contextItems.map((c) => ({ label: c.label, chars: c.text.length })),
+    trimmed: prepared.trimmed,
+    redaction: prepared.redaction,
+  };
+
   let runId: string | null = null;
   try {
-    const categories = category === "Mix" ? ["Core", "Leadership"] : [category];
-    const [{ data: comps }, apiKey] = await Promise.all([
-      supabase.from("competencies").select("id, code, name, category, description").in("category", categories),
+    const [apiKey, { data: comps }] = await Promise.all([
       loadEngine(supabase, engineKey),
+      supabase.from("competencies").select("id, code, name, category, description").in("id", input.competencyIds),
     ]);
-
-    if (!comps || comps.length === 0) {
-      throw new Error(`No ${category} competencies found in the library.`);
+    const levelComps = (comps || []).filter((c) => includesLeadership(input.level) || c.category !== "Leadership");
+    if (levelComps.length === 0) {
+      throw new Error("None of the chosen competencies apply at this level. Choose at least one Core or Functional competency.");
     }
 
-    runId = await startGenerationRun(supabase, engineKey);
-    const competencies = await loadCompetenciesForPrompt(supabase, comps);
-    const result = await generateAssessmentContent(engineKey, apiKey, competencies, language);
-
-    const modeMap = { Core: "default_core", Leadership: "default_leadership", Mix: "default_mix" } as const;
-    const labelMap = { Core: "Core", Leadership: "Leadership", Mix: "Core + Leadership (mixed)" } as const;
-
-    newId = await insertGeneratedAssessment(supabase, {
-      title: customTitle || `${labelMap[category]} Competency Assessment (Default) — ${new Date().toLocaleDateString()}`,
-      // Neutral, candidate-safe text: no admin name, no engine name.
-      description: "",
-      mode: modeMap[category],
+    runId = await startGenerationRun(supabase, {
+      userId: user.id,
       engine: engineKey,
-      generatedBy: userId,
-      competencies: comps,
-      generated: result.assessment,
-      purpose,
-      language,
+      positionId,
+      batchId: input.batchId || null,
+      idempotencyKey: input.idempotencyKey || null,
+      level: input.level,
+      contextSnapshot,
     });
-    await finishGenerationRun(supabase, runId, { assessmentId: newId, usage: { ...result.usage, dropped: result.report.droppedQuestions } });
+
+    const competencies = await loadCompetenciesForPrompt(supabase, levelComps);
+    const result = await generateAssessmentContent(engineKey, apiKey, competencies, {
+      language: input.language,
+      level: input.level,
+      purpose: input.purpose,
+      questionTotal: LENGTH_TOTALS[input.length],
+      mix: input.mix,
+      position: { title, department: input.department },
+      context: contextItems,
+    });
+    if (result.report.droppedQuestions > 0) {
+      warnings.push(`${result.report.droppedQuestions} question(s) were rejected as invalid and left out.`);
+    }
+
+    const newId = await insertGeneratedAssessment(supabase, {
+      title: draftTitle,
+      description: "",
+      mode: "generated",
+      engine: engineKey,
+      generatedBy: user.id,
+      competencies: levelComps,
+      generated: result.assessment,
+      purpose: input.purpose,
+      language: input.language,
+      positionId,
+      vacancyTitle: title,
+      level: input.level,
+    });
+    await finishGenerationRun(supabase, runId, {
+      assessmentId: newId,
+      usage: { ...result.usage, dropped: result.report.droppedQuestions },
+    });
+    revalidatePath("/staff/builder");
+    return { ok: true, assessmentId: newId, warnings };
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
     if (runId) await finishGenerationRun(supabase, runId, { error: message });
-    redirect("/staff/builder?error=" + encodeURIComponent(message));
+    return { ok: false, error: message, emptyDraftAllowed: true };
   }
-
-  revalidatePath("/staff/builder");
-  redirect(`/staff/builder/${newId}`);
 }
 
 export async function deleteAssessment(assessmentId: string) {
@@ -559,59 +794,6 @@ export async function moveQuestion(questionId: string, sectionId: string, assess
   await requireStaff();
   await moveRow("questions", "section_id", sectionId, questionId, direction);
   revalidatePath(`/staff/builder/${assessmentId}`);
-}
-
-export async function generateCustomAssessment(formData: FormData) {
-  const { generateAssessmentContent } = await import("@/lib/generation");
-  const { supabase, userId, policy } = await requireGenerationAccess(1);
-
-  const title = String(formData.get("title") || "").trim();
-  const engineKey = chooseEngine(String(formData.get("engine") || ""), policy.defaultEngine);
-  const langRaw = String(formData.get("language") || "en");
-  const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
-  const competencyIds = formData.getAll("competency_ids") as string[];
-  const purpose = normalizePurpose(formData.get("purpose"));
-
-  if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title.") + "&field=title");
-  if (competencyIds.length === 0) {
-    redirect(
-      "/staff/builder?error=" +
-        encodeURIComponent("Select at least one competency to generate from.") +
-        "&field=competencies"
-    );
-  }
-
-  let newId: string;
-  let runId: string | null = null;
-  try {
-    const [apiKey, { data: comps }] = await Promise.all([
-      loadEngine(supabase, engineKey),
-      supabase.from("competencies").select("id, code, name, category, description").in("id", competencyIds),
-    ]);
-    runId = await startGenerationRun(supabase, engineKey);
-    const competencies = await loadCompetenciesForPrompt(supabase, comps || []);
-    const result = await generateAssessmentContent(engineKey, apiKey, competencies, language);
-
-    newId = await insertGeneratedAssessment(supabase, {
-      title,
-      description: "",
-      mode: "generated",
-      engine: engineKey,
-      generatedBy: userId,
-      competencies: comps || [],
-      generated: result.assessment,
-      purpose,
-      language,
-    });
-    await finishGenerationRun(supabase, runId, { assessmentId: newId, usage: { ...result.usage, dropped: result.report.droppedQuestions } });
-  } catch (e) {
-    const message = e instanceof Error ? e.message : "Generation failed.";
-    if (runId) await finishGenerationRun(supabase, runId, { error: message });
-    redirect("/staff/builder?error=" + encodeURIComponent(message));
-  }
-
-  revalidatePath("/staff/builder");
-  redirect(`/staff/builder/${newId}`);
 }
 
 // Lets staff assign an assessment (draft or published) to any existing account

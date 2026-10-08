@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/authz";
 import { Avatar, Card, Icon, PageHeader } from "@/components/ui";
-import { saveSettings } from "../actions";
+import { saveSettings, setEngineContextConsent } from "../actions";
 
 type AiSettings = { scoring_enabled: boolean; allowed_roles: string[]; monthly_quota: number; model: string };
 
@@ -19,7 +19,7 @@ export default async function AdminAiGovernancePage() {
   monthStart.setHours(0, 0, 0, 0);
 
   const [{ data: engines }, { data: monthUsage }, { data: aiAudit }] = await Promise.all([
-    supabase.from("generation_engines").select("key, display_name, enabled"),
+    supabase.from("generation_engines").select("key, display_name, enabled, api_key_secret_id, allow_context").order("key"),
     supabase.rpc("ai_runs_this_month"),
     supabase
       .from("admin_audit_log")
@@ -81,6 +81,42 @@ export default async function AdminAiGovernancePage() {
         </Card>
 
         <div className="space-y-6">
+          <Card className="p-6 space-y-4">
+            <div>
+              <p className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Icon name="shield" className="w-4 h-4 text-accent-dark" />
+                Context an engine may receive
+              </p>
+              <p className="text-xs text-muted mt-1">
+                Job descriptions, notes and reference files are sent only to engines switched on here. Emails and phone numbers are removed first. Everything else still goes to every engine.
+              </p>
+            </div>
+            <ul className="divide-y divide-line">
+              {(engines || []).map((e) => {
+                const save = setEngineContextConsent.bind(null, e.key);
+                return (
+                  <li key={e.key} className="py-3">
+                    <form action={save} className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="text-sm">
+                        <p className="font-semibold text-foreground">{e.display_name}</p>
+                        <p className="text-2xs text-muted">
+                          {!e.api_key_secret_id ? "No API key" : e.enabled ? "On" : "Switched off"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <label className="inline-flex items-center gap-2 text-xs font-medium cursor-pointer">
+                          <input type="checkbox" name="allow_context" defaultChecked={!!e.allow_context} className="w-4 h-4 accent-[color:var(--brand)]" />
+                          Allow job descriptions and files
+                        </label>
+                        <button className="text-xs font-semibold border border-line rounded-lg px-3 py-1.5 hover:border-accent">Save</button>
+                      </div>
+                    </form>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
+
           <Card className="p-6">
             <p className="text-sm font-bold text-foreground mb-1">Usage this month</p>
             <p className="text-2xl font-bold text-accent-dark tabular-nums">

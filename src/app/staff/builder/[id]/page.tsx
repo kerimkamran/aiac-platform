@@ -21,6 +21,7 @@ import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { CaseLibraryPicker } from "@/components/CaseLibraryPicker";
 import { InlineFormError } from "@/components/InlineFormError";
+import { LEVELS, isLevelKey } from "@/lib/levels";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -116,6 +117,27 @@ export default async function BuilderDetailPage({
   }[];
 
   const compList = (competencies || []) as { id: string; name: string; category: string }[];
+
+  // The brief card: where this draft came from and what context the engine
+  // was given. Counts and labels only; the context text is never shown here.
+  const brief = (assessment as { position_id?: string | null; target_level?: string | null; vacancy_title?: string | null; engine?: string | null; content_language?: string | null; generated_at?: string | null; generated_by?: string | null }) ;
+  const [{ data: briefPosition }, { data: briefRun }] = await Promise.all([
+    brief.position_id
+      ? supabase.from("positions").select("id, title, department").eq("id", brief.position_id).maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("generation_runs")
+      .select("context_snapshot, engine, created_at")
+      .eq("assessment_id", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+  const briefLevel = isLevelKey(brief.target_level) ? brief.target_level : null;
+  const snapshot = (briefRun?.context_snapshot ?? null) as
+    | { contextSent?: boolean; items?: { label: string; chars: number }[]; trimmed?: string[]; redaction?: { emails: number; phones: number } }
+    | null;
+
   const questionCount = (sections || []).reduce((n, s) => n + ((s.questions as unknown[]) || []).length, 0);
   const addSectionWithId = addSection.bind(null, id);
   const updateProctoringWithId = updateProctoringSettings.bind(null, id);
@@ -212,6 +234,65 @@ export default async function BuilderDetailPage({
       </details>
 
       <ToastFromParams specs={TOAST_SPECS} />
+
+      <Card className="p-6 mb-6">
+        <p className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
+          <Icon name="layers" className="w-4 h-4 text-accent-dark" />
+          Brief
+        </p>
+        <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
+          <div>
+            <dt className="text-2xs font-semibold text-muted">Position</dt>
+            <dd className="font-medium text-foreground">
+              {briefPosition ? (
+                <Link href={`/staff/builder/positions/${briefPosition.id}`} className="text-accent-dark hover:underline">
+                  {briefPosition.title}
+                </Link>
+              ) : (
+                brief.vacancy_title || "Not linked to a position"
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-2xs font-semibold text-muted">Level</dt>
+            <dd className="font-medium text-foreground">
+              {briefLevel ? `${LEVELS[briefLevel].label} · pass mark ${LEVELS[briefLevel].passMark}%` : "Not set"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-2xs font-semibold text-muted">Purpose and language</dt>
+            <dd className="font-medium text-foreground capitalize">
+              {purpose} · {brief.content_language === "az" ? "Azərbaycan dili" : brief.content_language === "ru" ? "Русский" : "English"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-2xs font-semibold text-muted">Generated with</dt>
+            <dd className="font-medium text-foreground">
+              {assessment.mode === "manual" || !assessment.generated_at
+                ? "Written by hand or created empty"
+                : `${brief.engine ?? "AI engine"}${brief.generated_at ? ` · ${new Date(brief.generated_at).toLocaleDateString()}` : ""}`}
+            </dd>
+          </div>
+        </dl>
+        <div className="mt-4 border-t border-line pt-4 text-xs text-muted space-y-1.5">
+          {!snapshot ? (
+            <p>No AI generation was recorded for this draft.</p>
+          ) : snapshot.contextSent && snapshot.items && snapshot.items.length > 0 ? (
+            <>
+              <p className="font-semibold text-foreground">Role context sent to the engine</p>
+              <p>{snapshot.items.map((i) => `${i.label} (${i.chars.toLocaleString()} characters)`).join(" · ")}</p>
+            </>
+          ) : (
+            <p>Generated from the competencies and level only. No role context was sent.</p>
+          )}
+          {snapshot?.trimmed && snapshot.trimmed.length > 0 && <p>Trimmed to fit the limit: {snapshot.trimmed.join(", ")}.</p>}
+          {snapshot?.redaction && snapshot.redaction.emails + snapshot.redaction.phones > 0 && (
+            <p>
+              Removed before sending: {snapshot.redaction.emails} e-mail address(es), {snapshot.redaction.phones} phone number(s).
+            </p>
+          )}
+        </div>
+      </Card>
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">

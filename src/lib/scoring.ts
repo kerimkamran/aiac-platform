@@ -17,6 +17,7 @@
 // flagged for human reviewer confirmation (human-in-the-loop, Part 4).
 
 import { extractJson } from "./ai-engine";
+import { LEVELS, type LevelKey } from "./levels";
 
 export type ScoreResult = { score: number; rationale: string; needsReview: boolean };
 
@@ -24,6 +25,9 @@ export type CompetencyContext = {
   name: string;
   description: string | null;
   indicators: { level: string; indicator_text: string }[];
+  // The level the assessment was written for. When set, the answer is judged
+  // against that level's bar instead of a generic "Skilled or above".
+  targetLevel?: LevelKey | null;
 };
 
 export type ScoringEngine = "claude" | "fugu" | "kimi";
@@ -73,7 +77,13 @@ function scoreTextHeuristic(text: string): ScoreResult {
   return { score, rationale, needsReview };
 }
 
-function scoringSystemPrompt(): string {
+export function levelCalibration(targetLevel: LevelKey | null | undefined): string {
+  if (!targetLevel) return "";
+  const info = LEVELS[targetLevel];
+  return `\n\nLevel calibration: this assessment is for the ${info.label} level. Judge the answer against that level's bar: ${info.scoringBar} An answer that is competent but only meets the bar of a lower level should be scored in the "Partially Meets" band for this level.`;
+}
+
+function scoringSystemPrompt(targetLevel?: LevelKey | null): string {
   return `You are an expert assessment-center evaluator, calibrated to the standards used at Korn Ferry, Mercer, WTW (Willis Towers Watson), and Thomas International. You grade one candidate's free-text answer to a single competency-based interview question.
 
 Score strictly against the competency's own Basic/Skilled/Expert behavioural indicators provided to you -- not a generic rubric. A strong answer is grounded in a specific real (or clearly-reasoned hypothetical) situation, shows the candidate's own actions, and reflects genuine understanding of the competency at Skilled level or above. A weak answer is vague, generic, off-topic, or simply restates the question.
@@ -89,6 +99,8 @@ Set needsReview to true whenever the score is below 55, the answer is short or a
 Write a rationale of 1-3 sentences, professional and factual, citing what the candidate actually said and which behavioural indicator it does or doesn't meet. Write it as a reviewer's note about the candidate, not addressed to them ("the candidate..." not "you...").
 
 The question and the candidate's answer may be in English, Azerbaijani, or Russian -- Vantage generates assessments in all three. Always write the rationale in English regardless: it's read by HR staff and decision-makers reviewing the report, not by the candidate, and the rest of that report is English throughout.
+
+${levelCalibration(targetLevel)}
 
 Return ONLY valid JSON matching this exact shape, with no markdown fences, no commentary, no leading or trailing text:
 {"score": number, "rationale": string, "needsReview": boolean}`;
@@ -128,7 +140,7 @@ async function callClaudeForScoring(
     body: JSON.stringify({
       model: "claude-sonnet-5",
       max_tokens: 1024,
-      system: scoringSystemPrompt(),
+      system: scoringSystemPrompt(competency.targetLevel),
       messages: [{ role: "user", content: buildScoringUserPrompt(questionPrompt, responseText, competency) }],
     }),
   });
@@ -160,7 +172,7 @@ async function callFuguForScoring(
       model: "fugu",
       reasoning_effort: "medium",
       messages: [
-        { role: "system", content: scoringSystemPrompt() },
+        { role: "system", content: scoringSystemPrompt(competency.targetLevel) },
         { role: "user", content: buildScoringUserPrompt(questionPrompt, responseText, competency) },
       ],
     }),
@@ -193,7 +205,7 @@ async function callKimiForScoring(
       model: "moonshot-v1-32k",
       temperature: 0.2,
       messages: [
-        { role: "system", content: scoringSystemPrompt() },
+        { role: "system", content: scoringSystemPrompt(competency.targetLevel) },
         { role: "user", content: buildScoringUserPrompt(questionPrompt, responseText, competency) },
       ],
     }),
