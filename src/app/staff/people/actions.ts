@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { inviteRedirectUrl } from "@/lib/site-url";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -27,9 +28,8 @@ async function sendInviteEmail(
   supabase: Awaited<ReturnType<typeof createClient>>,
   email: string
 ): Promise<string | null> {
-  const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://vantage-ag.vercel.app");
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${site}/invite/callback`,
+    redirectTo: inviteRedirectUrl(),
   });
   return error ? error.message : null;
 }

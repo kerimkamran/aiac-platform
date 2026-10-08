@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { inviteRedirectUrl } from "@/lib/site-url";
 
 export const runtime = "nodejs";
 
@@ -43,8 +44,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const site = process.env.NEXT_PUBLIC_SITE_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://vantage-ag.vercel.app");
-
   let sent = 0;
   const failures: string[] = [];
   for (const row of due || []) {
@@ -52,7 +51,7 @@ export async function GET(request: NextRequest) {
     if (!candidate?.email) continue;
 
     const { error: mailError } = await admin.auth.resetPasswordForEmail(candidate.email, {
-      redirectTo: `${site}/invite/callback`,
+      redirectTo: inviteRedirectUrl(),
     });
 
     if (mailError) {
