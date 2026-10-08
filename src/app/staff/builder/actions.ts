@@ -6,7 +6,17 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { assertCanGenerate, AiPolicyError, type AiPolicy } from "@/lib/ai-policy";
 import type { EngineKey } from "@/lib/ai-engine";
-import { generateAssessmentContent, LENGTH_TOTALS, type AssessmentLength, type QuestionMix, type GenerationLanguage } from "@/lib/generation";
+import {
+  generateAssessmentContent,
+  regenerateQuestion,
+  translateAssessmentText,
+  LENGTH_TOTALS,
+  type AssessmentLength,
+  type QuestionMix,
+  type GenerationLanguage,
+  type TranslationItem,
+} from "@/lib/generation";
+import { normalizePurpose as normalizePurposeKey } from "@/lib/purpose";
 import { prepareContext, type ContextItem, MAX_REFERENCE_FILES, REFERENCE_FILE_MAX_CHARS } from "@/lib/ai-context";
 import { LEVELS, isLevelKey, includesLeadership, type LevelKey } from "@/lib/levels";
 
@@ -50,9 +60,21 @@ export async function createAssessment(formData: FormData) {
   redirect(`/staff/builder/${data.id}`);
 }
 
+const LOCKED_MESSAGE = "Candidates have started this assessment, so its questions are locked. Make a copy to change them.";
+
+// True once any candidate has started an attempt. Enforced in the database too
+// (questions_lock_guard); checking here gives the staff member a clear message.
+async function isLockedForEditing(supabase: Awaited<ReturnType<typeof createClient>>, assessmentId: string): Promise<boolean> {
+  const { data } = await supabase.rpc("assessment_is_locked", { p_assessment_id: assessmentId });
+  return data === true;
+}
+
 export async function addSection(assessmentId: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+  if (await isLockedForEditing(supabase, assessmentId)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  }
   const title = String(formData.get("title") || "");
   const competencyId = String(formData.get("competency_id") || "");
 
@@ -74,6 +96,9 @@ export async function addSection(assessmentId: string, formData: FormData) {
 export async function addQuestion(sectionId: string, assessmentId: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
+  if (await isLockedForEditing(supabase, assessmentId)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  }
 
   const questionType = String(formData.get("question_type") || "text");
   const prompt = String(formData.get("prompt") || "");
@@ -743,6 +768,9 @@ export async function deleteSection(sectionId: string, assessmentId: string) {
 export async function deleteQuestion(questionId: string, sectionId: string, assessmentId: string) {
   await requireStaff();
   const supabase = await createClient();
+  if (await isLockedForEditing(supabase, assessmentId)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  }
   const { error } = await supabase.from("questions").delete().eq("id", questionId);
   if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
   revalidatePath(`/staff/builder/${assessmentId}`);
@@ -792,6 +820,9 @@ export async function moveSection(sectionId: string, assessmentId: string, direc
 
 export async function moveQuestion(questionId: string, sectionId: string, assessmentId: string, direction: "up" | "down") {
   await requireStaff();
+  if (await isLockedForEditing(await createClient(), assessmentId)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  }
   await moveRow("questions", "section_id", sectionId, questionId, direction);
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
@@ -920,6 +951,13 @@ export async function duplicateAssessment(assessmentId: string) {
       mode: source.mode,
       engine: source.engine,
       content_language: source.content_language,
+      // Position, level and vacancy carry over. An AI-generated source stays an
+      // AI draft, so the copy still needs a reviewer before it can be published.
+      position_id: source.position_id,
+      target_level: source.target_level,
+      vacancy_title: source.vacancy_title,
+      generated_by: source.generated_by,
+      generated_at: source.generated_at,
     })
     .select("id")
     .single();
@@ -980,4 +1018,331 @@ export async function setAssessmentArchived(assessmentId: string, archived: bool
   if (error) redirect("/staff/builder?error=" + encodeURIComponent(error.message));
   revalidatePath("/staff/builder");
   redirect("/staff/builder?added=" + encodeURIComponent(archived ? "Assessment archived." : "Assessment restored to draft."));
+}
+
+// ---------------------------------------------------------------------------
+// Review tools (Phase 2)
+// ---------------------------------------------------------------------------
+
+function optionKey(index: number): string {
+  return String.fromCharCode(65 + index);
+}
+
+// Edits one question's prompt and, for multiple choice, its options and the
+// one correct answer. Blank options are dropped; the answer key is re-lettered.
+export async function updateQuestion(questionId: string, assessmentId: string, formData: FormData) {
+  await requireStaff();
+  const supabase = await createClient();
+  const back = `/staff/builder/${assessmentId}`;
+  function fail(message: string): never {
+    redirect(`${back}?error=` + encodeURIComponent(message));
+  }
+
+  if (await isLockedForEditing(supabase, assessmentId)) fail(LOCKED_MESSAGE);
+
+  const { data: question } = await supabase.from("questions").select("question_type").eq("id", questionId).maybeSingle();
+  if (!question) fail("That question no longer exists.");
+
+  const prompt = String(formData.get("prompt") || "").trim();
+  if (prompt.length < 10) fail("A question needs a prompt of at least 10 characters.");
+
+  let options: { key: string; text: string; correct: boolean }[] | null = null;
+  if (question.question_type === "mcq") {
+    const texts = (formData.getAll("option_text") as string[]).map((t) => String(t).trim());
+    const correctIndex = Number(formData.get("correct_option"));
+    const kept = texts
+      .map((text, index) => ({ text, correct: index === correctIndex }))
+      .filter((o) => o.text.length > 0);
+    if (kept.length < 2) fail("A multiple-choice question needs at least two options.");
+    if (kept.filter((o) => o.correct).length !== 1) fail("Mark exactly one option as correct, and make sure it has text.");
+    options = kept.map((o, i) => ({ key: optionKey(i), text: o.text, correct: o.correct }));
+  }
+
+  const { error } = await supabase.from("questions").update({ prompt, options }).eq("id", questionId);
+  if (error) fail(error.message);
+
+  revalidatePath(back);
+  redirect(`${back}?added=` + encodeURIComponent("Question saved. Check the answer key before publishing."));
+}
+
+// Replaces one question with a new one for the same competency and level. The
+// reviewer's note shapes the scenario only; it cannot change the answer format.
+export async function regenerateOneQuestion(questionId: string, assessmentId: string, formData: FormData) {
+  const profile = await requireStaff();
+  const supabase = await createClient();
+  const back = `/staff/builder/${assessmentId}`;
+  function fail(message: string): never {
+    redirect(`${back}?error=` + encodeURIComponent(message));
+  }
+
+  if (await isLockedForEditing(supabase, assessmentId)) fail(LOCKED_MESSAGE);
+
+  let policy: AiPolicy;
+  try {
+    policy = await assertCanGenerate(supabase, profile.role, 1);
+  } catch (e) {
+    fail(e instanceof AiPolicyError ? e.message : "Generation isn't available right now.");
+    return;
+  }
+
+  const [{ data: question }, { data: assessment }] = await Promise.all([
+    supabase.from("questions").select("id, question_type, prompt, competency_id").eq("id", questionId).maybeSingle(),
+    supabase
+      .from("assessments")
+      .select("id, title, description, position_id, target_level, purpose, content_language, vacancy_title, engine")
+      .eq("id", assessmentId)
+      .maybeSingle(),
+  ]);
+  if (!question || !assessment) fail("That question or assessment couldn't be found.");
+  if (!question.competency_id) fail("This question isn't linked to a competency, so it can't be regenerated. Edit it by hand.");
+
+  const level: LevelKey = isLevelKey(assessment.target_level) ? assessment.target_level : "manager";
+  const note = String(formData.get("note") || "").trim().slice(0, 300);
+  const engineKey = chooseEngine(assessment.engine, policy.defaultEngine);
+  const language: GenerationLanguage = assessment.content_language === "az" || assessment.content_language === "ru" ? assessment.content_language : "en";
+
+  // Position context goes only to an engine approved for it, like a draft.
+  const { data: engineRows } = await supabase.rpc("engine_policy_for_staff");
+  const contextAllowed = ((engineRows || []) as EnginePolicy[]).some((e) => e.key === engineKey && e.allow_context === true);
+  let positionTitle = assessment.vacancy_title || assessment.title;
+  let department: string | null = null;
+  let context: ContextItem[] = [];
+  if (assessment.position_id) {
+    const [{ data: pos }, { data: files }] = await Promise.all([
+      supabase.from("positions").select("title, department, job_description, notes").eq("id", assessment.position_id).maybeSingle(),
+      supabase.from("position_files").select("filename, content_text").eq("position_id", assessment.position_id).order("created_at"),
+    ]);
+    if (pos) {
+      positionTitle = pos.title;
+      department = pos.department;
+      if (contextAllowed) {
+        try {
+          context = prepareContext({
+            instructions: "",
+            jobDescription: pos.job_description ?? "",
+            notes: pos.notes ?? "",
+            files: (files || []).map((f) => ({ name: f.filename, text: f.content_text })),
+          }).items;
+        } catch {
+          context = [];
+        }
+      }
+    }
+  }
+
+  const [apiKey, { data: compRows }] = await Promise.all([
+    loadEngine(supabase, engineKey).catch((e: Error) => fail(e.message)),
+    supabase.from("competencies").select("id, code, name, category, description").eq("id", question.competency_id!),
+  ]);
+  const compRow = (compRows || [])[0];
+  if (!compRow) fail("The competency for this question couldn't be found.");
+  const [competency] = await loadCompetenciesForPrompt(supabase, [compRow]);
+
+  const runId = await startGenerationRun(supabase, {
+    userId: profile.id,
+    engine: engineKey,
+    positionId: assessment.position_id,
+    batchId: null,
+    idempotencyKey: null,
+    level,
+    contextSnapshot: { purpose: "regenerate_question", contextSent: context.length > 0, items: context.map((c) => ({ label: c.label, chars: c.text.length })) },
+  });
+
+  try {
+    const result = await regenerateQuestion(engineKey, apiKey as string, competency, {
+      language,
+      level,
+      purpose: normalizePurposeKey(assessment.purpose),
+      questionTotal: 1,
+      mix: "balanced",
+      position: { title: positionTitle, department },
+      context,
+    }, {
+      type: question!.question_type === "mcq" ? "mcq" : "text",
+      previousPrompt: question!.prompt,
+      note,
+    });
+
+    const newOptions =
+      result.question.type === "mcq" && result.question.options
+        ? result.question.options.map((o, i) => ({ key: optionKey(i), text: o.text, correct: !!o.correct }))
+        : null;
+    const { error } = await supabase.from("questions").update({ prompt: result.question.prompt, options: newOptions }).eq("id", question!.id);
+    if (error) throw new Error(error.message);
+
+    await finishGenerationRun(supabase, runId, { assessmentId, usage: { ...result.usage } });
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "The question couldn't be regenerated.";
+    await finishGenerationRun(supabase, runId, { error: message });
+    fail(message);
+  }
+
+  revalidatePath(back);
+  redirect(`${back}?added=` + encodeURIComponent("Question replaced. Check it before publishing."));
+}
+
+// Makes a translated copy of a draft: same position, level, vacancy and
+// questions, with the candidate-facing text in another language. The correct
+// option stays the same option. The copy is an AI draft and needs its own
+// review before it can be published.
+export async function createTranslatedVersion(assessmentId: string, formData: FormData) {
+  const profile = await requireStaff();
+  const supabase = await createClient();
+  const back = `/staff/builder/${assessmentId}`;
+  function fail(message: string): never {
+    redirect(`${back}?error=` + encodeURIComponent(message));
+  }
+
+  const language = String(formData.get("language") || "");
+  if (language !== "az" && language !== "ru") fail("Choose Azerbaijani or Russian.");
+
+  let policy: AiPolicy;
+  try {
+    policy = await assertCanGenerate(supabase, profile.role, 1);
+  } catch (e) {
+    fail(e instanceof AiPolicyError ? e.message : "Generation isn't available right now.");
+    return;
+  }
+
+  const { data: src } = await supabase.from("assessments").select("*").eq("id", assessmentId).maybeSingle();
+  if (!src) fail("That assessment couldn't be found.");
+  if (src.content_language === language) fail("This draft is already in that language.");
+
+  const { data: sections } = await supabase
+    .from("assessment_sections")
+    .select("id, title, sequence, competency_id, target_score, questions(id, question_type, prompt, options, weight, sequence, competency_id)")
+    .eq("assessment_id", assessmentId)
+    .order("sequence");
+  const sectionList = sections || [];
+  type SrcQuestion = {
+    id: string;
+    question_type: string;
+    prompt: string;
+    options: { key: string; text: string; correct?: boolean }[] | null;
+    weight: number;
+    sequence: number;
+    competency_id: string | null;
+  };
+
+  const items: TranslationItem[] = [];
+  for (const s of sectionList) {
+    for (const q of (s.questions || []) as unknown as SrcQuestion[]) {
+      items.push({ id: q.id, prompt: q.prompt, options: (q.options || []).map((o) => o.text) });
+    }
+  }
+  if (items.length === 0) fail("There are no questions to translate yet.");
+
+  const engineKey = chooseEngine(src!.engine, policy.defaultEngine);
+  let apiKey: string;
+  try {
+    apiKey = await loadEngine(supabase, engineKey);
+  } catch (e) {
+    fail(e instanceof Error ? e.message : "The AI engine isn't available.");
+    return;
+  }
+
+  const level: LevelKey = isLevelKey(src!.target_level) ? src!.target_level : "manager";
+  const runId = await startGenerationRun(supabase, {
+    userId: profile.id,
+    engine: engineKey,
+    positionId: src!.position_id,
+    batchId: null,
+    idempotencyKey: null,
+    level,
+    contextSnapshot: { purpose: "translate", language, contextSent: false, items: [] },
+  });
+
+  let translated: Awaited<ReturnType<typeof translateAssessmentText>>;
+  try {
+    translated = await translateAssessmentText(
+      engineKey,
+      apiKey,
+      language,
+      sectionList.map((s) => ({ id: s.id, title: s.title })),
+      items
+    );
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "The translation failed.";
+    await finishGenerationRun(supabase, runId, { error: message });
+    fail(message);
+    return;
+  }
+
+  const { data: org } = await supabase.from("organizations").select("id").limit(1).single();
+  const suffix = language === "az" ? "AZ" : "RU";
+  const { data: created, error: createError } = await supabase
+    .from("assessments")
+    .insert({
+      organization_id: org?.id,
+      title: `${src!.title} (${suffix})`,
+      description: src!.description,
+      time_limit_minutes: src!.time_limit_minutes,
+      created_by: profile.id,
+      status: "draft",
+      purpose: src!.purpose,
+      mode: src!.mode,
+      engine: engineKey,
+      generated_by: profile.id,
+      generated_at: new Date().toISOString(),
+      content_language: language,
+      position_id: src!.position_id,
+      vacancy_title: src!.vacancy_title,
+      target_level: src!.target_level,
+    })
+    .select("id")
+    .single();
+  if (createError || !created) {
+    await finishGenerationRun(supabase, runId, { error: createError?.message || "Couldn't create the translated copy." });
+    fail(createError?.message || "Couldn't create the translated copy.");
+    return;
+  }
+
+  try {
+    const { data: newSections, error: sectionsError } = await supabase
+      .from("assessment_sections")
+      .insert(
+        sectionList.map((s, i) => ({
+          assessment_id: created.id,
+          title: translated.sections[s.id] ?? s.title,
+          sequence: s.sequence ?? i + 1,
+          competency_id: s.competency_id,
+          target_score: s.target_score,
+        }))
+      )
+      .select("id");
+    if (sectionsError || !newSections) throw new Error(sectionsError?.message || "Couldn't copy the sections.");
+
+    const rows = sectionList.flatMap((s, i) =>
+      ((s.questions || []) as unknown as SrcQuestion[]).map((q) => {
+        const t = translated.questions[q.id];
+        const options =
+          q.question_type === "mcq" && q.options
+            ? q.options.map((o, oi) => ({ key: o.key, text: t?.options[oi] ?? o.text, correct: !!o.correct }))
+            : null;
+        return {
+          section_id: newSections[i].id,
+          question_type: q.question_type,
+          prompt: t?.prompt ?? q.prompt,
+          options,
+          competency_id: q.competency_id,
+          weight: q.weight,
+          sequence: q.sequence,
+        };
+      })
+    );
+    if (rows.length > 0) {
+      const { error: questionsError } = await supabase.from("questions").insert(rows);
+      if (questionsError) throw new Error(questionsError.message);
+    }
+  } catch (e) {
+    await supabase.from("assessments").delete().eq("id", created.id);
+    const message = e instanceof Error ? e.message : "Couldn't copy the questions.";
+    await finishGenerationRun(supabase, runId, { error: message });
+    fail(message);
+    return;
+  }
+
+  await finishGenerationRun(supabase, runId, { assessmentId: created.id, usage: { ...translated.usage } });
+  revalidatePath("/staff/builder");
+  redirect(`/staff/builder/${created.id}?added=` + encodeURIComponent(`${suffix} version created. Review every question before publishing.`));
 }

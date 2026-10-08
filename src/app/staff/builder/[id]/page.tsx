@@ -14,7 +14,12 @@ import {
   deleteQuestion,
   moveSection,
   moveQuestion,
+  updateQuestion,
+  regenerateOneQuestion,
+  createTranslatedVersion,
+  duplicateAssessment,
 } from "../actions";
+import { PublishChecklist, type PublishCheck } from "./PublishChecklist";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { normalizePurpose } from "@/lib/purpose";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -138,7 +143,39 @@ export default async function BuilderDetailPage({
     | { contextSent?: boolean; items?: { label: string; chars: number }[]; trimmed?: string[]; redaction?: { emails: number; phones: number } }
     | null;
 
+  const { data: lockedData } = await supabase.rpc("assessment_is_locked", { p_assessment_id: id });
+  const locked = lockedData === true;
+
   const questionCount = (sections || []).reduce((n, s) => n + ((s.questions as unknown[]) || []).length, 0);
+  const allQuestions = (sections || []).flatMap((s) =>
+    ((s.questions || []) as unknown as { question_type: string; options: { correct?: boolean; text: string }[] | null }[])
+  );
+  const badMcq = allQuestions.filter((q) => {
+    if (q.question_type !== "mcq") return false;
+    const opts = (q.options || []).filter((o) => o.text && o.text.trim());
+    return opts.length < 2 || opts.filter((o) => o.correct).length !== 1;
+  }).length;
+  const publishChecks: PublishCheck[] = [
+    { label: `${questionCount} question${questionCount === 1 ? "" : "s"} in ${(sections || []).length} section${(sections || []).length === 1 ? "" : "s"}`, ok: questionCount > 0, blocking: true },
+    {
+      label: "Every multiple-choice question has at least two options and exactly one correct answer",
+      ok: badMcq === 0,
+      blocking: true,
+    },
+    {
+      label: "Every section has at least one question",
+      ok: (sections || []).every((s) => ((s.questions as unknown[]) || []).length > 0),
+      blocking: false,
+    },
+    {
+      label: "Every section has a target score",
+      ok: (sections || []).every((s) => s.target_score != null),
+      blocking: false,
+    },
+    { label: "Linked to a position", ok: !!brief.position_id, blocking: false },
+  ];
+  const sourceLanguage = brief.content_language === "az" || brief.content_language === "ru" ? brief.content_language : "en";
+  const translationTargets = (["az", "ru"] as const).filter((l) => l !== sourceLanguage);
   const addSectionWithId = addSection.bind(null, id);
   const updateProctoringWithId = updateProctoringSettings.bind(null, id);
   const updateMetaWithId = updateAssessmentMeta.bind(null, id);
@@ -160,29 +197,17 @@ export default async function BuilderDetailPage({
           Preview as candidate
         </Link>
         {assessment.status !== "published" && (
-          <form
-            action={async (formData: FormData) => {
-              "use server";
-              await publishAssessment(id, formData);
-            }}
-            className="flex flex-wrap items-center gap-3"
-          >
-            {assessment.generated_by && (
-              <label className="inline-flex items-center gap-2 text-xs font-medium text-muted">
-                <input type="checkbox" name="reviewed" required className="w-4 h-4 accent-[color:var(--brand)]" />
-                I reviewed every question
-              </label>
-            )}
-            <ConfirmSubmitButton
-              confirmMessage={`Publish "${assessment.title}"? Candidates will be able to start taking it.`}
-              icon="zap"
-              tone="accent"
-              disabled={questionCount === 0}
-              className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors disabled:opacity-50"
-            >
-              Publish
-            </ConfirmSubmitButton>
-          </form>
+          <PublishChecklist
+            title={assessment.title}
+            checks={publishChecks}
+            aiDraft={!!assessment.generated_by}
+            action={publishAssessment.bind(null, id)}
+          />
+        )}
+        {assessment.status === "published" && (
+          <Link href="/staff/people" className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors">
+            Invite candidates
+          </Link>
         )}
         {isAdmin && (
           <form action={deleteAssessment.bind(null, id)}>
@@ -234,6 +259,38 @@ export default async function BuilderDetailPage({
       </details>
 
       <ToastFromParams specs={TOAST_SPECS} />
+
+      {locked && (
+        <p role="status" className="mb-6 text-sm text-warning bg-amber-50 rounded-xl px-4 py-3">
+          Candidates have started this assessment, so its questions are locked. Make a copy to change them.
+        </p>
+      )}
+
+      <Card className="p-5 mb-6 flex flex-wrap items-center gap-3">
+        <p className="text-sm font-bold text-foreground mr-auto">Reuse</p>
+        {brief.position_id && (
+          <Link href={`/staff/builder/new?position=${brief.position_id}`} className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">
+            New from this position
+          </Link>
+        )}
+        <form action={duplicateAssessment.bind(null, id)}>
+          <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Make an exact copy</button>
+        </form>
+        {translationTargets.map((lang) => (
+          <form key={lang} action={createTranslatedVersion.bind(null, id)}>
+            <input type="hidden" name="language" value={lang} />
+            <button
+              disabled={questionCount === 0}
+              className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent disabled:opacity-50"
+            >
+              Create {lang === "az" ? "Azərbaycan" : "Русская"} version
+            </button>
+          </form>
+        ))}
+        <p className="basis-full text-2xs text-muted">
+          A translation keeps the same questions, options and correct answer, so candidates for the same vacancy get comparable tests. It is a new draft and needs its own review.
+        </p>
+      </Card>
 
       <Card className="p-6 mb-6">
         <p className="text-sm font-bold text-foreground mb-3 flex items-center gap-2">
@@ -292,50 +349,6 @@ export default async function BuilderDetailPage({
             </p>
           )}
         </div>
-      </Card>
-
-      <Card className="p-6 mb-6">
-        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="camera" className="w-4 h-4 text-accent-dark" />
-          Proctoring
-        </p>
-        <p className="text-xs text-muted mb-4">
-          When enabled, candidates are asked for camera consent and a video of the session is recorded. This is a
-          consent-gated recording only — it is not analyzed automatically for gestures, emotions, or behavior.
-          {proctoring == null && (
-            <>
-              {" "}
-              {purpose === "hiring"
-                ? "Defaulted on for hiring assessments — untick if this isn't needed."
-                : "Defaulted off for " + (purpose === "promotion" ? "promotion" : "development") + " assessments — existing employees typically don't need camera proctoring, but you can turn it on."}
-            </>
-          )}
-        </p>
-        <form action={updateProctoringWithId} className="flex flex-wrap items-center gap-4">
-          <label className="inline-flex items-center gap-2.5 text-sm font-medium cursor-pointer">
-            <input
-              type="checkbox"
-              name="camera_enabled"
-              defaultChecked={proctoring ? proctoring.camera_enabled : purpose === "hiring"}
-              className="w-4 h-4 accent-[color:var(--brand)]"
-            />
-            Require camera recording for this assessment
-          </label>
-          <label className="inline-flex items-center gap-2 text-sm">
-            <span className="text-muted">Store recordings in:</span>
-            <select
-              name="storage_backend"
-              defaultValue={proctoring?.storage_backend || "supabase"}
-              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="supabase">Project database (Supabase secure storage)</option>
-              <option value="local">Candidate&apos;s device only (not uploaded)</option>
-            </select>
-          </label>
-          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
-            Save
-          </button>
-        </form>
       </Card>
 
       <div className="grid lg:grid-cols-[1.7fr_1fr] gap-6 items-start">
@@ -476,11 +489,75 @@ export default async function BuilderDetailPage({
                           ))}
                         </ul>
                       )}
+                      {locked ? (
+                        <p className="text-2xs text-muted mt-2">Locked: candidates have started this assessment.</p>
+                      ) : (
+                        <details className="mt-3">
+                          <summary className="cursor-pointer text-xs font-semibold text-accent-dark list-none">Edit or regenerate</summary>
+                          <form action={updateQuestion.bind(null, q.id, id)} className="mt-3 space-y-3 bg-background rounded-xl p-4 border border-line">
+                            <label className="block text-2xs font-semibold text-muted" htmlFor={`prompt-${q.id}`}>
+                              Question
+                            </label>
+                            <textarea
+                              id={`prompt-${q.id}`}
+                              name="prompt"
+                              defaultValue={q.prompt}
+                              rows={3}
+                              className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                            />
+                            {q.question_type === "mcq" && (
+                              <fieldset className="space-y-2">
+                                <legend className="text-2xs font-semibold text-muted mb-1">Options. Mark the one correct answer.</legend>
+                                {[0, 1, 2, 3].map((i) => {
+                                  const o = (q.options || [])[i];
+                                  const letter = String.fromCharCode(65 + i);
+                                  return (
+                                    <div key={i} className="flex items-center gap-2.5">
+                                      <input
+                                        type="radio"
+                                        name="correct_option"
+                                        value={i}
+                                        defaultChecked={!!o?.correct}
+                                        aria-label={`Option ${letter} is the correct answer`}
+                                        className="w-4 h-4 accent-[color:var(--brand)]"
+                                      />
+                                      <span className="text-xs font-semibold text-muted w-4">{letter}</span>
+                                      <input
+                                        name="option_text"
+                                        defaultValue={o?.text ?? ""}
+                                        aria-label={`Option ${letter}`}
+                                        placeholder={`Option ${letter}`}
+                                        className="flex-1 bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                      />
+                                    </div>
+                                  );
+                                })}
+                              </fieldset>
+                            )}
+                            <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+                              Save question
+                            </button>
+                          </form>
+                          <form action={regenerateOneQuestion.bind(null, q.id, id)} className="mt-3 flex flex-wrap items-end gap-2">
+                            <label className="flex-1 min-w-[12rem] text-2xs font-semibold text-muted">
+                              Replace with a new question (optional note)
+                              <input
+                                name="note"
+                                maxLength={300}
+                                placeholder="e.g. make it harder, more telecom"
+                                className="mt-1 w-full bg-surface border border-line rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-accent"
+                              />
+                            </label>
+                            <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Regenerate</button>
+                          </form>
+                        </details>
+                      )}
                     </div>
                   ))}
                   {questions.length === 0 && <p className="text-xs text-muted">No questions yet — add the first one below.</p>}
                 </div>
 
+                {!locked && (
                 <details className="group">
                   <summary className="cursor-pointer text-sm text-accent-dark font-semibold inline-flex items-center gap-1.5 list-none">
                     <Icon name="plus" className="w-4 h-4" />
@@ -532,6 +609,7 @@ export default async function BuilderDetailPage({
                     </button>
                   </form>
                 </details>
+                )}
 
                 {caseList.length > 0 && (
                   <details className="group mt-3">
@@ -611,6 +689,50 @@ export default async function BuilderDetailPage({
           </div>
         </Card>
       </div>
+
+      <Card className="p-6 mb-6">
+        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
+          <Icon name="camera" className="w-4 h-4 text-accent-dark" />
+          Proctoring
+        </p>
+        <p className="text-xs text-muted mb-4">
+          When enabled, candidates are asked for camera consent and a video of the session is recorded. This is a
+          consent-gated recording only — it is not analyzed automatically for gestures, emotions, or behavior.
+          {proctoring == null && (
+            <>
+              {" "}
+              {purpose === "hiring"
+                ? "Defaulted on for hiring assessments — untick if this isn't needed."
+                : "Defaulted off for " + (purpose === "promotion" ? "promotion" : "development") + " assessments — existing employees typically don't need camera proctoring, but you can turn it on."}
+            </>
+          )}
+        </p>
+        <form action={updateProctoringWithId} className="flex flex-wrap items-center gap-4">
+          <label className="inline-flex items-center gap-2.5 text-sm font-medium cursor-pointer">
+            <input
+              type="checkbox"
+              name="camera_enabled"
+              defaultChecked={proctoring ? proctoring.camera_enabled : purpose === "hiring"}
+              className="w-4 h-4 accent-[color:var(--brand)]"
+            />
+            Require camera recording for this assessment
+          </label>
+          <label className="inline-flex items-center gap-2 text-sm">
+            <span className="text-muted">Store recordings in:</span>
+            <select
+              name="storage_backend"
+              defaultValue={proctoring?.storage_backend || "supabase"}
+              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            >
+              <option value="supabase">Project database (Supabase secure storage)</option>
+              <option value="local">Candidate&apos;s device only (not uploaded)</option>
+            </select>
+          </label>
+          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+            Save
+          </button>
+        </form>
+      </Card>
     </div>
   );
 }
