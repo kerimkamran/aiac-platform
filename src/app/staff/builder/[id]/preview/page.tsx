@@ -3,6 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Card, Icon } from "@/components/ui";
 import { requireRole, STAFF_ROLES } from "@/lib/authz";
+import { PublishChecklist } from "../PublishChecklist";
+import { publishAssessment } from "../../actions";
+import { publishChecks, type CheckQuestion } from "@/lib/publish-checks";
 
 /** Read-only "exactly what the candidate sees" preview of an assessment,
  *  for builders to sanity-check before publishing. No timer, no proctoring,
@@ -14,18 +17,26 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
 
   const { data: assessment } = await supabase
     .from("assessments")
-    .select("id, title, description, time_limit_minutes, status")
+    .select("id, title, description, time_limit_minutes, status, generated_by, position_id")
     .eq("id", id)
     .single();
   if (!assessment) notFound();
 
   const { data: sections } = await supabase
     .from("assessment_sections")
-    .select("id, title, sequence, questions(id, question_type, prompt, options, sequence)")
+    .select("id, title, sequence, target_score, questions(id, question_type, prompt, options, sequence)")
     .eq("assessment_id", id)
     .order("sequence");
 
   type Q = { id: string; question_type: string; prompt: string; options: { key: string; text: string }[] | null; sequence: number };
+
+  const checks = publishChecks({
+    sections: (sections || []).map((s) => ({
+      target_score: s.target_score,
+      questions: (s.questions || []) as unknown as CheckQuestion[],
+    })),
+    hasPosition: !!assessment.position_id,
+  });
 
   return (
     <div className="p-6 lg:p-10 max-w-3xl mx-auto">
@@ -93,6 +104,16 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
       })}
       {(sections || []).length === 0 && (
         <Card className="p-8 text-center text-sm text-muted">No sections yet — add some in the builder first.</Card>
+      )}
+
+      {assessment.status !== "published" && (
+        <Card className="p-6 mb-5 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-bold text-foreground">Ready to publish?</p>
+            <p className="text-xs text-muted mt-0.5">Check the same list the builder uses before candidates can see this.</p>
+          </div>
+          <PublishChecklist title={assessment.title} checks={checks} aiDraft={!!assessment.generated_by} action={publishAssessment.bind(null, id)} />
+        </Card>
       )}
     </div>
   );

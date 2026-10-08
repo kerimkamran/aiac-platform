@@ -49,6 +49,9 @@ export function MeasureCard({
   engines,
   defaultEngine,
   levelsIncluded,
+  customTitle,
+  setCustomTitle,
+  draftCount,
 }: {
   competencies: CatalogCompetency[];
   competencyIds: string[];
@@ -66,6 +69,9 @@ export function MeasureCard({
   engines: CatalogEngine[];
   defaultEngine: EngineKey;
   levelsIncluded: LevelKey[];
+  customTitle: string;
+  setCustomTitle: (v: string) => void;
+  draftCount: number;
 }) {
   const groups = CATEGORY_ORDER.map((cat) => ({ cat, items: competencies.filter((c) => c.category === cat) })).filter((g) => g.items.length > 0);
   const selectedLeadership = competencies.some((c) => c.category === "Leadership" && competencyIds.includes(c.id));
@@ -197,7 +203,26 @@ export function MeasureCard({
 
       <details className="rounded-xl border border-line bg-canvas px-4 py-3">
         <summary className="text-sm font-semibold cursor-pointer text-foreground">Advanced</summary>
-        <div className="mt-3 space-y-2">
+        <div className="mt-3 space-y-4">
+          <div className="space-y-2">
+            <label htmlFor="custom-title" className="text-xs font-semibold text-muted block">
+              Custom title (optional)
+            </label>
+            <input
+              id="custom-title"
+              value={customTitle}
+              maxLength={120}
+              onChange={(e) => setCustomTitle(e.target.value)}
+              placeholder="Leave blank to use the position and level"
+              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <p className="text-2xs text-muted">
+              {draftCount > 1
+                ? "Applies only when one draft is created. A batch keeps the position and level as titles."
+                : "Used as the draft's title."}
+            </p>
+          </div>
+          <div className="space-y-2">
           <label htmlFor="engine" className="text-xs font-semibold text-muted block">
             AI engine
           </label>
@@ -218,6 +243,7 @@ export function MeasureCard({
           <p className="text-2xs text-muted">
             Only engines approved in AI Governance receive job descriptions and reference files. Others get the competencies and level only.
           </p>
+          </div>
         </div>
       </details>
     </section>

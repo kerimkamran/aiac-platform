@@ -476,6 +476,8 @@ export type DraftInput = {
   saveContext: boolean;
   // Create a draft with no questions (for staff without AI access).
   emptyDraft: boolean;
+  // Optional title for a single draft. Ignored when a batch makes several.
+  customTitle?: string;
 };
 
 export type DraftResult =
@@ -593,7 +595,8 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
   }
 
   const levelLabel = LEVELS[input.level].label;
-  const draftTitle = `${title} — ${levelLabel}`;
+  const customTitle = (input.customTitle ?? "").trim().slice(0, 120);
+  const draftTitle = customTitle || `${title} — ${levelLabel}`;
 
   if (input.emptyDraft) {
     try {

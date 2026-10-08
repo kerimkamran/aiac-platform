@@ -8,6 +8,7 @@ import { loadPositionContext } from "../positions/actions";
 import { LEVELS, LEVEL_KEYS, type LevelKey } from "@/lib/levels";
 import { CONTEXT_BUDGET_CHARS, INSTRUCTIONS_MAX_CHARS, JD_MAX_CHARS, NOTES_MAX_CHARS } from "@/lib/ai-context";
 import { PositionLevelPicker } from "./PositionLevelPicker";
+import { includesLeadership } from "@/lib/levels";
 import { ContextCard } from "./ContextCard";
 import { MeasureCard } from "./MeasureCard";
 import { GenerationProgress } from "./GenerationProgress";
@@ -20,6 +21,9 @@ export type { CatalogCompetency, CatalogEngine, CatalogPosition } from "./types"
 const STORAGE_KEY = "aiac-new-assessment-v1";
 const MAX_COMBINATIONS = 6;
 const CONCURRENCY = 2;
+// Core competencies pre-selected; two places are kept free for Leadership.
+const CORE_DEFAULT = 6;
+const LEADERSHIP_SEED = 2;
 
 type Saved = {
   positions: PositionSel[];
@@ -34,10 +38,24 @@ type Saved = {
   purpose: AssessmentPurpose;
   language: GenerationLanguage;
   engine: EngineKey | "";
+  customTitle?: string;
 };
 
 export function comboKey(posKey: string, level: LevelKey) {
   return `${posKey}|${level}`;
+}
+
+function leadershipSeedIds(comps: CatalogCompetency[], alreadySelected: number): string[] {
+  return comps
+    .filter((c) => c.category === "Leadership")
+    .slice(0, Math.max(0, Math.min(LEADERSHIP_SEED, MAX_COMPETENCIES - alreadySelected)))
+    .map((c) => c.id);
+}
+
+function initialCompetencies(comps: CatalogCompetency[], levels: LevelKey[]): string[] {
+  const core = comps.filter((c) => c.category === "Core").slice(0, CORE_DEFAULT).map((c) => c.id);
+  if (!levels.some((l) => includesLeadership(l))) return core;
+  return [...core, ...leadershipSeedIds(comps, core.length)];
 }
 
 // Orders levels the same way as the level table, so the grid reads top to bottom.
@@ -75,14 +93,19 @@ export function NewAssessmentForm({
   const [ctx, setCtx] = useState<Record<string, PositionContext>>({});
   const [instructions, setInstructions] = useState("");
   const [oneOffs, setOneOffs] = useState<OneOff[]>([]);
-  const [competencyIds, setCompetencyIds] = useState<string[]>(
-    competencies.filter((c) => c.category === "Core").slice(0, MAX_COMPETENCIES).map((c) => c.id)
+  const [competencyIds, setCompetencyIds] = useState<string[]>(() =>
+    initialCompetencies(competencies, preselect ? [preselect.defaultLevel] : [])
   );
   const [length, setLength] = useState<AssessmentLength>("standard");
   const [mix, setMix] = useState<QuestionMix>("balanced");
   const [purpose, setPurpose] = useState<AssessmentPurpose>("hiring");
   const [language, setLanguage] = useState<GenerationLanguage>("en");
   const [engine, setEngine] = useState<EngineKey | "">("");
+  const [customTitle, setCustomTitle] = useState("");
+  // Leadership competencies are added once, when a manager-or-above level is
+  // first chosen, so the form starts with room for them. After that the
+  // reviewer's own choices are never changed.
+  const leadershipSeeded = useRef(!!preselect && includesLeadership(preselect.defaultLevel));
   const [jobs, setJobs] = useState<Record<string, Job>>({});
   const [running, setRunning] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -107,12 +130,16 @@ export function NewAssessmentForm({
         if (saved.ctx) setCtx(saved.ctx);
         if (saved.instructions) setInstructions(saved.instructions);
         if (saved.oneOffs) setOneOffs(saved.oneOffs);
-        if (saved.competencyIds) setCompetencyIds(saved.competencyIds);
+        if (saved.competencyIds) {
+          setCompetencyIds(saved.competencyIds);
+          leadershipSeeded.current = true;
+        }
         if (saved.length) setLength(saved.length);
         if (saved.mix) setMix(saved.mix);
         if (saved.purpose) setPurpose(saved.purpose);
         if (saved.language) setLanguage(saved.language);
         if (saved.engine !== undefined) setEngine(saved.engine);
+        if (saved.customTitle) setCustomTitle(saved.customTitle);
       }
     } catch {
       // Storage can be blocked or full; the form still works without it.
@@ -124,12 +151,13 @@ export function NewAssessmentForm({
   useEffect(() => {
     if (!restored) return;
     try {
-      const saved: Saved = { positions: positionsSel, levels, excluded, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine };
+      const saved: Saved = { positions: positionsSel, levels, excluded, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine, customTitle };
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     } catch {
       // ignore
     }
-  }, [restored, positionsSel, levels, excluded, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine]);
+  }, [restored, positionsSel, levels, excluded, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine, customTitle]);
+
 
   // Any position on the form whose saved context is not loaded yet (the
   // preselected one, or one restored from this session) is loaded here.
@@ -140,6 +168,17 @@ export function NewAssessmentForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [restored, positionsSel]);
+
+  // Choosing a manager-or-above level seeds Leadership competencies once.
+  function changeLevels(next: LevelKey[]) {
+    setLevels(next);
+    if (leadershipSeeded.current || !next.some((l) => includesLeadership(l))) return;
+    leadershipSeeded.current = true;
+    setCompetencyIds((ids) => {
+      if (ids.some((id) => competencies.find((c) => c.id === id)?.category === "Leadership")) return ids;
+      return [...ids, ...leadershipSeedIds(competencies, ids.length)];
+    });
+  }
 
   const combos = useMemo(() => {
     const out: { key: string; posKey: string; level: LevelKey; included: boolean }[] = [];
@@ -215,6 +254,7 @@ export function NewAssessmentForm({
       notes: c?.notes ?? "",
       files: c?.files ?? [],
       oneOffFiles: oneOffs,
+      customTitle: includedCombos.length === 1 ? customTitle : undefined,
       saveContext: c?.saveContext ?? false,
       emptyDraft: empty,
     };
@@ -311,7 +351,7 @@ export function NewAssessmentForm({
         positionsSel={positionsSel}
         setPositionsSel={setPositionsSel}
         levels={levels}
-        setLevels={setLevels}
+        setLevels={changeLevels}
         combos={combos}
         onToggleCombo={toggleCombo}
               onNeedContext={loadContextFor}
@@ -333,6 +373,9 @@ export function NewAssessmentForm({
         competencies={competencies}
         competencyIds={competencyIds}
         setCompetencyIds={setCompetencyIds}
+        customTitle={customTitle}
+        setCustomTitle={setCustomTitle}
+        draftCount={includedCombos.length}
         length={length}
         setLength={setLength}
         mix={mix}

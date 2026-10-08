@@ -19,7 +19,8 @@ import {
   createTranslatedVersion,
   duplicateAssessment,
 } from "../actions";
-import { PublishChecklist, type PublishCheck } from "./PublishChecklist";
+import { PublishChecklist } from "./PublishChecklist";
+import { publishChecks as publishChecksFor, type CheckQuestion, type PublishCheck } from "@/lib/publish-checks";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { normalizePurpose } from "@/lib/purpose";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
@@ -147,33 +148,13 @@ export default async function BuilderDetailPage({
   const locked = lockedData === true;
 
   const questionCount = (sections || []).reduce((n, s) => n + ((s.questions as unknown[]) || []).length, 0);
-  const allQuestions = (sections || []).flatMap((s) =>
-    ((s.questions || []) as unknown as { question_type: string; options: { correct?: boolean; text: string }[] | null }[])
-  );
-  const badMcq = allQuestions.filter((q) => {
-    if (q.question_type !== "mcq") return false;
-    const opts = (q.options || []).filter((o) => o.text && o.text.trim());
-    return opts.length < 2 || opts.filter((o) => o.correct).length !== 1;
-  }).length;
-  const publishChecks: PublishCheck[] = [
-    { label: `${questionCount} question${questionCount === 1 ? "" : "s"} in ${(sections || []).length} section${(sections || []).length === 1 ? "" : "s"}`, ok: questionCount > 0, blocking: true },
-    {
-      label: "Every multiple-choice question has at least two options and exactly one correct answer",
-      ok: badMcq === 0,
-      blocking: true,
-    },
-    {
-      label: "Every section has at least one question",
-      ok: (sections || []).every((s) => ((s.questions as unknown[]) || []).length > 0),
-      blocking: false,
-    },
-    {
-      label: "Every section has a target score",
-      ok: (sections || []).every((s) => s.target_score != null),
-      blocking: false,
-    },
-    { label: "Linked to a position", ok: !!brief.position_id, blocking: false },
-  ];
+  const publishChecks: PublishCheck[] = publishChecksFor({
+    sections: (sections || []).map((s) => ({
+      target_score: s.target_score,
+      questions: (s.questions || []) as unknown as CheckQuestion[],
+    })),
+    hasPosition: !!brief.position_id,
+  });
   const sourceLanguage = brief.content_language === "az" || brief.content_language === "ru" ? brief.content_language : "en";
   const translationTargets = (["az", "ru"] as const).filter((l) => l !== sourceLanguage);
   const addSectionWithId = addSection.bind(null, id);

@@ -1,8 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-
-export type PublishCheck = { label: string; ok: boolean; blocking: boolean };
+import type { PublishCheck } from "@/lib/publish-checks";
 
 // Replaces the swipe-to-confirm slider. The checklist shows what blocks
 // publishing and what is only a warning, and AI drafts need the review tick
