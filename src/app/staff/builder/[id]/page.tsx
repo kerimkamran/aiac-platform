@@ -139,11 +139,18 @@ export default async function BuilderDetailPage({
         </Link>
         {assessment.status !== "published" && (
           <form
-            action={async () => {
+            action={async (formData: FormData) => {
               "use server";
-              await publishAssessment(id);
+              await publishAssessment(id, formData);
             }}
+            className="flex flex-wrap items-center gap-3"
           >
+            {assessment.generated_by && (
+              <label className="inline-flex items-center gap-2 text-xs font-medium text-muted">
+                <input type="checkbox" name="reviewed" required className="w-4 h-4 accent-[color:var(--brand)]" />
+                I reviewed every question
+              </label>
+            )}
             <ConfirmSubmitButton
               confirmMessage={`Publish "${assessment.title}"? Candidates will be able to start taking it.`}
               icon="zap"

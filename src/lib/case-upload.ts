@@ -23,6 +23,8 @@
 
 import ExcelJS from "exceljs";
 import type { CaseLibraryQuestionType, GeneratedCase, MethodologyTag } from "@/lib/case-library";
+import { redactForAi, type RedactionReport } from "@/lib/ai-input";
+import type { EngineKey } from "@/lib/ai-engine";
 
 export const VALID_METHODOLOGY_TAGS: MethodologyTag[] = [
   "Hogan-style derailment",
@@ -138,7 +140,10 @@ export async function parseExcelBuffer(buffer: ArrayBuffer): Promise<ParseResult
       errors.push(`${ref}: mcq type needs at least 2 options — skipped.`);
       continue;
     }
-    if (questionType === "mcq" && !options.some((o) => o.correct)) options[0].correct = true;
+    if (questionType === "mcq" && options.filter((o) => o.correct).length !== 1) {
+      errors.push(`${ref}: mcq needs exactly one correct option (set "Correct option" to A, B, C or D) — skipped.`);
+      continue;
+    }
 
     rows.push({
       ref,
@@ -167,7 +172,7 @@ export async function parseExcelBuffer(buffer: ArrayBuffer): Promise<ParseResult
 // below normalizes all of these before falling back to reporting "no cases
 // recognized".
 
-const FIELD_KEYS = ["title", "competency", "difficulty", "methodologynotes", "methodology", "scenario", "question", "type", "options"];
+const FIELD_KEYS = ["title", "competency", "difficulty", "methodologynotes", "methodology", "scenario", "question", "type", "options", "correct"];
 
 // Strip markdown bold/strong markers (**text** / __text__) so "**Competency:**"
 // and "Competency:" parse identically. Deliberately leaves single */_ (italics)
@@ -178,7 +183,7 @@ function stripBold(line: string): string {
 
 function fieldKeyFor(rawLine: string): { key: string; rest: string } | null {
   const line = stripBold(rawLine);
-  const m = line.match(/^#{0,6}\s*(Title|Competency|Difficulty|Methodology Notes|Methodology|Scenario|Question|Type|Options)\s*:\s*(.*)$/i);
+  const m = line.match(/^#{0,6}\s*(Title|Competency|Difficulty|Methodology Notes|Methodology|Scenario|Question|Type|Options|Correct)\s*:\s*(.*)$/i);
   if (!m) return null;
   const key = m[1].toLowerCase().replace(/\s+/g, "");
   if (!FIELD_KEYS.includes(key)) return null;
@@ -279,8 +284,9 @@ export function parseStructuredText(text: string): ParseResult {
     }
 
     const mappedOptions = options.map((o) => ({ text: o.text, correct: correctKey ? o.key === correctKey : false }));
-    if (questionType === "mcq" && !mappedOptions.some((o) => o.correct) && mappedOptions.length > 0) {
-      mappedOptions[0].correct = true;
+    if (questionType === "mcq" && mappedOptions.filter((o) => o.correct).length !== 1) {
+      errors.push(`${ref}: mcq needs exactly one correct answer — add a line "Correct: A" (or B, C, D) — skipped.`);
+      return;
     }
 
     rows.push({
@@ -328,52 +334,36 @@ Return ONLY valid JSON, no markdown fences, no commentary:
 {"cases": [{"title": string, "scenarioText": string, "questionStem": string, "questionType": "mcq" | "text", "options"?: [{"text": string, "correct"?: boolean}], "difficulty": "mid" | "high", "methodologyTag": "Hogan-style derailment" | "Mettl-style SJT" | "WTW/Saville-style situation" | "Korn Ferry-style exercise" | "McLean-style behavioral anchor" | "Blended", "methodologyNotes": string, "competencyCode": string | null}]}`;
 }
 
-// Redacts patterns that are unambiguously PII and never legitimate case-study
-// substance -- email addresses and phone numbers -- before any text leaves
-// this process for an external AI provider. Deliberately does NOT attempt to
-// strip personal names: case studies routinely use fictional protagonist
-// names ("Sarah, a mid-level manager...") as the actual content, and there's
-// no reliable regex/heuristic way to tell a fictional case name apart from a
-// real one without an NER model, so guessing would either strip legitimate
-// content or miss real names anyway. Uploaders are still expected to use
-// generic/anonymized case studies, not real HR records -- this is a
-// best-effort backstop for the two PII categories that are safe to redact
-// with high confidence, not a substitute for that expectation.
-function redactPiiForAi(text: string): string {
-  return text
-    .replace(/[\w.+-]+@[\w-]+\.[A-Za-z]{2,}/g, "[EMAIL REDACTED]")
-    .replace(/(?:\+?\d{1,3}[-.\s]?)?\(?\d{2,4}\)?[-.\s]?\d{3,4}[-.\s]?\d{3,4}\b/g, (m) =>
-      // Avoid clobbering short numeric tokens (years, scores, section numbers)
-      // that happen to match loosely -- require at least 7 digits total.
-      (m.match(/\d/g) || []).length >= 7 ? "[PHONE REDACTED]" : m
-    );
-}
-
 export async function extractCasesWithAI(
-  engine: "claude" | "fugu" | "kimi",
+  engine: EngineKey,
   apiKey: string,
   text: string,
   competencies: { code: string; name: string }[]
-): Promise<{ rows: AiExtractedRow[]; truncated: boolean }> {
-  const { callEngine, validateCases } = await import("@/lib/case-library");
-  const { extractJson } = await import("@/lib/generation");
+): Promise<{ rows: AiExtractedRow[]; truncated: boolean; dropped: string[]; redaction: RedactionReport }> {
+  const { validateCases } = await import("@/lib/case-library");
+  const { callEngine, extractJson } = await import("@/lib/ai-engine");
 
   const MAX_CHARS = 14000;
   const truncated = text.length > MAX_CHARS;
-  const clipped = redactPiiForAi(truncated ? text.slice(0, MAX_CHARS) : text);
+  const { text: clipped, report: redaction } = redactForAi(truncated ? text.slice(0, MAX_CHARS) : text);
 
   const competencyList = competencies.map((c) => `${c.code} — ${c.name}`).join("\n");
   const system = aiExtractionSystemPrompt(competencyList);
-  const raw = await callEngine(engine, apiKey, system, `Document contents:\n\n${clipped}`);
+  const { text: raw } = await callEngine(engine, apiKey, system, `Document contents:\n\n${clipped}`);
   const data = extractJson(raw) as { cases?: (Record<string, unknown> & { competencyCode?: unknown })[] };
-  const competencyCodes = (data.cases || []).map((c) => (typeof c.competencyCode === "string" ? c.competencyCode : undefined));
-  const validated = validateCases(data);
+  const rawCases = data.cases || [];
+  const { cases: validated, dropped } = validateCases(data);
 
+  // validateCases drops invalid entries, so pair each kept case with the
+  // competency guess from the raw entry that has the same title.
+  const guessByTitle = new Map(
+    rawCases.map((c) => [typeof c.title === "string" ? c.title.trim() : "", typeof c.competencyCode === "string" ? c.competencyCode : undefined])
+  );
   const rows: AiExtractedRow[] = validated.map((c, i) => ({
     ...c,
     ref: `AI-extracted case ${i + 1} (${c.title})`,
-    competencyCode: competencyCodes[i] || undefined,
+    competencyCode: guessByTitle.get(c.title) || undefined,
   }));
 
-  return { rows, truncated };
+  return { rows, truncated, dropped, redaction };
 }

@@ -18,9 +18,9 @@ export default async function AdminAiGovernancePage() {
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);
 
-  const [{ data: engines }, { count: monthUsage }, { data: aiAudit }] = await Promise.all([
+  const [{ data: engines }, { data: monthUsage }, { data: aiAudit }] = await Promise.all([
     supabase.from("generation_engines").select("key, display_name, enabled"),
-    supabase.from("admin_audit_log").select("id", { count: "exact", head: true }).eq("module", "ai").gte("created_at", monthStart.toISOString()),
+    supabase.rpc("ai_runs_this_month"),
     supabase
       .from("admin_audit_log")
       .select("id, action, details, created_at, actor:profiles!admin_audit_log_actor_id_fkey(full_name)")
@@ -90,7 +90,7 @@ export default async function AdminAiGovernancePage() {
             <div className="h-2 rounded-full bg-line/70 overflow-hidden mt-2">
               <div
                 className="h-full rounded-full bg-brand"
-                style={{ width: `${Math.min(100, ((monthUsage ?? 0) / Math.max(1, settings.monthly_quota)) * 100)}%` }}
+                style={{ width: `${Math.min(100, (((typeof monthUsage === "number" ? monthUsage : 0)) / Math.max(1, settings.monthly_quota)) * 100)}%` }}
               />
             </div>
           </Card>

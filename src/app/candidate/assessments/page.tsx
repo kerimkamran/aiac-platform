@@ -15,13 +15,15 @@ export default async function CandidateAssessmentsPage() {
     .eq("candidate_id", user!.id)
     .order("invited_at", { ascending: false });
 
-  const list = (assessments || []) as unknown as {
+  // Rows whose assessment isn't visible (a draft that was assigned before it was
+  // published, or one the candidate can't see) come back with a null join; skip them.
+  const list = ((assessments || []) as unknown as {
     id: string;
     status: string;
     invited_at: string;
     due_at: string | null;
     assessments: { title: string; description: string; time_limit_minutes: number } | null;
-  }[];
+  }[]).filter((a) => a.assessments !== null);
   const now = nowMs();
 
   return (

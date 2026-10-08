@@ -1,3 +1,6 @@
+import { CASE_DESIGN_PLAYBOOK, callEngine, extractJson, type EngineKey } from "@/lib/ai-engine";
+
+export { extractJson };
 
 export type CompetencyForPrompt = {
   code: string;
@@ -22,19 +25,25 @@ export type GeneratedAssessment = {
   sections: GeneratedSection[];
 };
 
+export type GenerationReport = {
+  // Questions the model returned that were rejected (wrong option count, no
+  // single correct answer, empty prompt). They are dropped, never repaired.
+  droppedQuestions: number;
+  droppedReasons: string[];
+  // Which answer letter each kept MCQ's correct option ended up with after the
+  // server-side shuffle, for the brief card and tests.
+  correctLetters: Record<string, number>;
+};
+
 const MIN_TOTAL_QUESTIONS = 10;
+const OPTIONS_PER_MCQ = 4;
+
 // Follow-up ask: "make sure built assessments are intermediate to advance,
-// challenge candidates." The system prompt already told the model to write
-// mid-to-high difficulty cases, but the *grounding material* it was handed
-// included "Basic"-tier behavioral indicators (the entry-level rung of this
-// app's Basic/Skilled/Expert proficiency framework) right alongside
-// Skilled/Expert ones -- so a case could be fully "grounded" per the rules
-// and still be anchored on entry-level behavior. Anchoring generation only
-// on Skilled/Expert indicators makes "intermediate to advanced" a structural
-// property of the input, not just a prose instruction the model has to
-// remember to apply. Falls back to whatever indicators exist if a
-// competency happens to have only Basic ones on file, so a thinly-populated
-// competency doesn't lose its grounding material entirely.
+// challenge candidates." Anchoring generation only on Skilled/Expert indicators
+// makes "intermediate to advanced" a structural property of the input, not just
+// a prose instruction. Falls back to whatever indicators exist if a competency
+// has only Basic ones on file, so a thinly-populated competency keeps its
+// grounding material.
 export function indicatorsForGeneration<T extends { level: string }>(indicators: T[]): T[] {
   const advanced = indicators.filter((i) => i.level !== "Basic");
   return advanced.length > 0 ? advanced : indicators;
@@ -50,6 +59,8 @@ const LANGUAGE_INSTRUCTION: Record<GenerationLanguage, string> = {
 
 function systemInstructions(questionsPerCompetency: number, language: GenerationLanguage = "en"): string {
   return `You are a senior assessment-center designer with the caliber of practice used at Korn Ferry, Mercer, WTW (Willis Towers Watson), and Thomas International. You write situational judgment cases and competency-based interview-style questions for mid-to-senior management candidates in real organizations.
+
+${CASE_DESIGN_PLAYBOOK}
 
 Rules you must follow:
 - Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material. The indicators you are given are deliberately limited to this platform's "Skilled" and "Expert" proficiency tiers (never "Basic"/entry-level) — write to that level.
@@ -69,171 +80,126 @@ Generate exactly ${questionsPerCompetency} questions per competency provided. Th
 function buildUserPrompt(competencies: CompetencyForPrompt[]): string {
   const blocks = competencies
     .map((c) => {
-      const indicatorLines = c.indicators.length
-        ? c.indicators.map((i) => `  - [${i.level}] ${i.indicator_text}`).join("\n")
+      const indicators = indicatorsForGeneration(c.indicators);
+      const indicatorLines = indicators.length
+        ? indicators.map((i) => `  - [${i.level}] ${i.indicator_text}`).join("\n")
         : "  (no behavioral indicators on file — rely on the description only, do not invent indicators)";
-      return `Competency code: ${c.code}\nName: ${c.name}\nCategory: ${c.category}\nDescription: ${c.description || "(none provided)"}\nBehavioral indicators:\n${indicatorLines}`;
+      return `Competency code: ${c.code}\nName: ${c.name}\nCategory: ${c.category}\nDescription: ${c.description || "(none provided)"}\nBehavioral indicators (Skilled/Expert tier only):\n${indicatorLines}`;
     })
     .join("\n\n");
 
   return `Generate situational judgment cases and questions for the following governed competencies. Candidates are being assessed for mid-to-senior management roles.\n\n${blocks}\n\nReturn the JSON now.`;
 }
 
-export function extractJson(raw: string): unknown {
-  let text = raw.trim();
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced) text = fenced[1].trim();
-  const start = text.indexOf("{");
-  const end = text.lastIndexOf("}");
-  if (start === -1 || end === -1) throw new Error("No JSON object found in the model's response.");
-  return JSON.parse(text.slice(start, end + 1));
+// Fisher-Yates shuffle so the correct option is not always A. The correct
+// flag travels with its option; only the display order changes.
+function shuffle<T>(items: T[]): T[] {
+  const out = [...items];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
-function validateGenerated(data: unknown): GeneratedAssessment {
+// Validates the model's output. Invalid questions are dropped and counted, not
+// repaired: an MCQ without exactly one correct answer used to get option A
+// marked correct silently, which put wrong answers into published tests.
+export function validateGenerated(data: unknown): { assessment: GeneratedAssessment; report: GenerationReport } {
   if (!data || typeof data !== "object" || !Array.isArray((data as { sections?: unknown }).sections)) {
     throw new Error("Generated content did not match the expected shape (missing sections array).");
   }
-  const sections = (data as { sections: unknown[] }).sections.map((s) => {
+
+  const report: GenerationReport = { droppedQuestions: 0, droppedReasons: [], correctLetters: {} };
+  const sections: GeneratedSection[] = [];
+
+  for (const s of (data as { sections: unknown[] }).sections) {
     const sec = s as { competencyCode?: unknown; questions?: unknown };
     if (typeof sec.competencyCode !== "string" || !Array.isArray(sec.questions)) {
       throw new Error("A section was missing competencyCode or questions.");
     }
-    const questions = sec.questions.map((q) => {
+    const questions: GeneratedQuestion[] = [];
+
+    for (const q of sec.questions) {
       const qq = q as { type?: unknown; prompt?: unknown; options?: unknown };
+      const drop = (reason: string) => {
+        report.droppedQuestions += 1;
+        report.droppedReasons.push(reason);
+      };
+
       if ((qq.type !== "mcq" && qq.type !== "text") || typeof qq.prompt !== "string" || !qq.prompt.trim()) {
-        throw new Error("A question was missing a valid type or prompt.");
+        drop("question had no valid type or prompt");
+        continue;
       }
-      const question: GeneratedQuestion = { type: qq.type, prompt: qq.prompt.trim() };
-      if (qq.type === "mcq") {
-        const opts = Array.isArray(qq.options) ? qq.options : [];
-        question.options = opts
-          .map((o) => {
-            const oo = o as { text?: unknown; correct?: unknown };
-            return { text: typeof oo.text === "string" ? oo.text.trim() : "", correct: !!oo.correct };
-          })
-          .filter((o) => o.text.length > 0);
-        if (question.options.length < 2) throw new Error("An MCQ question had fewer than 2 usable options.");
-        if (!question.options.some((o) => o.correct)) question.options[0].correct = true;
+
+      if (qq.type === "text") {
+        questions.push({ type: "text", prompt: qq.prompt.trim() });
+        continue;
       }
-      return question;
-    });
-    return { competencyCode: sec.competencyCode, questions };
-  });
-  return { sections };
-}
 
-async function callClaude(apiKey: string, competencies: CompetencyForPrompt[], qpc: number, language: GenerationLanguage = "en"): Promise<GeneratedAssessment> {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-api-key": apiKey,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: "claude-sonnet-5",
-      max_tokens: 4096,
-      system: systemInstructions(qpc, language),
-      messages: [{ role: "user", content: buildUserPrompt(competencies) }],
-    }),
-  });
+      const opts = (Array.isArray(qq.options) ? qq.options : [])
+        .map((o) => {
+          const oo = o as { text?: unknown; correct?: unknown };
+          return { text: typeof oo.text === "string" ? oo.text.trim() : "", correct: oo.correct === true };
+        })
+        .filter((o) => o.text.length > 0);
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Claude API error (${res.status}): ${errText.slice(0, 300)}`);
+      if (opts.length !== OPTIONS_PER_MCQ) {
+        drop(`multiple-choice question had ${opts.length} options (need ${OPTIONS_PER_MCQ})`);
+        continue;
+      }
+      if (opts.filter((o) => o.correct).length !== 1) {
+        drop("multiple-choice question did not have exactly one correct answer");
+        continue;
+      }
+
+      questions.push({ type: "mcq", prompt: qq.prompt.trim(), options: shuffle(opts) });
+    }
+
+    if (questions.length > 0) sections.push({ competencyCode: sec.competencyCode, questions });
   }
 
-  const data = (await res.json()) as { content?: { type: string; text?: string }[] };
-  const text = (data.content || []).find((c) => c.type === "text")?.text;
-  if (!text) throw new Error("Claude returned no text content.");
-  return validateGenerated(extractJson(text));
+  const assessment = { sections };
+  sections.forEach((sec) =>
+    sec.questions.forEach((q, i) => {
+      if (q.type === "mcq" && q.options) {
+        const idx = q.options.findIndex((o) => o.correct);
+        report.correctLetters[`${sec.competencyCode}#${i + 1}`] = idx;
+      }
+    })
+  );
+  return { assessment, report };
 }
 
-async function callFugu(apiKey: string, competencies: CompetencyForPrompt[], qpc: number, language: GenerationLanguage = "en"): Promise<GeneratedAssessment> {
-  // Sakana Fugu is an OpenAI-compatible multi-agent orchestration API.
-  // https://console.sakana.ai/models — Chat Completions endpoint.
-  const res = await fetch("https://api.sakana.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "fugu",
-      reasoning_effort: "high",
-      messages: [
-        { role: "system", content: systemInstructions(qpc, language) },
-        { role: "user", content: buildUserPrompt(competencies) },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Sakana Fugu API error (${res.status}): ${errText.slice(0, 300)}`);
-  }
-
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("Sakana Fugu returned no message content.");
-  return validateGenerated(extractJson(text));
-}
-
-async function callKimi(apiKey: string, competencies: CompetencyForPrompt[], qpc: number, language: GenerationLanguage = "en"): Promise<GeneratedAssessment> {
-  const res = await fetch("https://api.moonshot.ai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "moonshot-v1-32k",
-      temperature: 0.4,
-      messages: [
-        { role: "system", content: systemInstructions(qpc, language) },
-        { role: "user", content: buildUserPrompt(competencies) },
-      ],
-    }),
-  });
-
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`Kimi API error (${res.status}): ${errText.slice(0, 300)}`);
-  }
-
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  const text = data.choices?.[0]?.message?.content;
-  if (!text) throw new Error("Kimi returned no message content.");
-  return validateGenerated(extractJson(text));
-}
-
-export type GenerationEngine = "claude" | "fugu" | "kimi";
+export type GenerationResult = { assessment: GeneratedAssessment; report: GenerationReport; usage: { model: string; inputTokens?: number; outputTokens?: number } };
 
 export async function generateAssessmentContent(
-  engine: GenerationEngine,
+  engine: EngineKey,
   apiKey: string,
   competencies: CompetencyForPrompt[],
   language: GenerationLanguage = "en"
-): Promise<GeneratedAssessment> {
+): Promise<GenerationResult> {
   if (competencies.length === 0) throw new Error("No competencies were selected for generation.");
 
-  // Always ask for enough questions per competency to clear the 10-question floor,
-  // regardless of how few or many competencies were selected.
-  const questionsPerCompetency = Math.max(2, Math.ceil(MIN_TOTAL_QUESTIONS / competencies.length));
+  // Ask for enough questions per competency to clear the 10-question floor,
+  // even after some are dropped by validation (see the over-ask below).
+  const questionsPerCompetency = Math.max(2, Math.ceil(MIN_TOTAL_QUESTIONS / competencies.length) + 1);
 
-  const result =
-    engine === "claude"
-      ? await callClaude(apiKey, competencies, questionsPerCompetency, language)
-      : engine === "kimi"
-        ? await callKimi(apiKey, competencies, questionsPerCompetency, language)
-        : await callFugu(apiKey, competencies, questionsPerCompetency, language);
+  const { text, usage } = await callEngine(
+    engine,
+    apiKey,
+    systemInstructions(questionsPerCompetency, language),
+    buildUserPrompt(competencies)
+  );
 
-  const totalQuestions = result.sections.reduce((n, s) => n + s.questions.length, 0);
+  const { assessment, report } = validateGenerated(extractJson(text));
+
+  const totalQuestions = assessment.sections.reduce((n, s) => n + s.questions.length, 0);
   if (totalQuestions < MIN_TOTAL_QUESTIONS) {
     throw new Error(
-      `The model only returned ${totalQuestions} questions (need at least ${MIN_TOTAL_QUESTIONS}). Try again, or select more competencies.`
+      `Only ${totalQuestions} usable questions came back (need at least ${MIN_TOTAL_QUESTIONS}; ${report.droppedQuestions} were rejected as invalid). Try again, or select more competencies.`
     );
   }
 
-  return result;
+  return { assessment, report, usage };
 }

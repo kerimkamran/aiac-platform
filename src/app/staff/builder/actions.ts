@@ -1,9 +1,11 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { requireStaff } from "@/lib/authz";
+import { requireRole, requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { assertCanGenerate, AiPolicyError, loadAiPolicy } from "@/lib/ai-policy";
+import type { EngineKey } from "@/lib/ai-engine";
 
 export type AssessmentPurpose = "hiring" | "promotion" | "development";
 
@@ -169,11 +171,20 @@ export async function addQuestionsFromCases(sectionId: string, assessmentId: str
   redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${rows.length} question${rows.length > 1 ? "s" : ""} added from the Case Library.`));
 }
 
-export async function publishAssessment(assessmentId: string) {
+// Publishing goes through publish_assessment() in the database, which checks
+// the questions, enforces the AI-draft rules (HR/org/system admin plus an
+// explicit review confirmation) and is the only route a trigger allows.
+export async function publishAssessment(assessmentId: string, formData?: FormData) {
   await requireStaff();
   const supabase = await createClient();
-  await supabase.from("assessments").update({ status: "published" }).eq("id", assessmentId);
+  const reviewed = formData?.get("reviewed") === "on";
+  const { error } = await supabase.rpc("publish_assessment", { p_assessment_id: assessmentId, p_reviewed: reviewed });
+  if (error) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+  }
   revalidatePath(`/staff/builder/${assessmentId}`);
+  revalidatePath("/staff/builder");
+  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent("Assessment published. Candidates can now be invited."));
 }
 
 export async function updateProctoringSettings(assessmentId: string, formData: FormData) {
@@ -200,17 +211,59 @@ export async function updateProctoringSettings(assessmentId: string, formData: F
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
 
-async function requireAdminForGeneration() {
+// Checks AI Governance (enabled switch, allowed roles, monthly quota) before
+// any generation starts. Returns the caller's session and the policy.
+async function requireGenerationAccess(runs: number) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
   const { data: profile } = await supabase.from("profiles").select("role, full_name").eq("id", user.id).single();
-  if (!profile || (profile.role !== "hr_admin" && profile.role !== "system_admin")) {
-    redirect("/staff/builder?error=" + encodeURIComponent("Only HR admins and the super admin can generate assessments."));
+
+  let policyError: string | null = null;
+  let policy: Awaited<ReturnType<typeof loadAiPolicy>> | null = null;
+  try {
+    policy = await assertCanGenerate(supabase, profile?.role ?? "", runs);
+  } catch (e) {
+    policyError = e instanceof AiPolicyError ? e.message : "Generation isn't available right now.";
   }
-  return { supabase, userId: user.id, fullName: profile.full_name as string };
+  if (policyError || !policy) {
+    redirect("/staff/builder?error=" + encodeURIComponent(policyError || "Generation isn't available right now."));
+  }
+  return { supabase, userId: user.id, fullName: (profile?.full_name as string) || "", policy };
+}
+
+// Uses the engine the admin picked if it is valid, else the default model from
+// AI Governance.
+function chooseEngine(raw: string, fallback: EngineKey): EngineKey {
+  return raw === "claude" || raw === "fugu" || raw === "kimi" ? raw : fallback;
+}
+
+// Records one AI generation attempt. The quota counts these rows, and the
+// finish call records the outcome without letting the caller rewrite other runs.
+async function startGenerationRun(supabase: Awaited<ReturnType<typeof createClient>>, engine: EngineKey) {
+  const { data, error } = await supabase
+    .from("generation_runs")
+    .insert({ created_by: (await supabase.auth.getUser()).data.user!.id, engine, status: "running" })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error("Couldn't start the generation run. Nothing was generated.");
+  return data.id as string;
+}
+
+async function finishGenerationRun(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  runId: string,
+  outcome: { assessmentId?: string; error?: string; usage?: Record<string, unknown> }
+) {
+  await supabase.rpc("finish_generation_run", {
+    p_run_id: runId,
+    p_status: outcome.error ? "failed" : "succeeded",
+    p_assessment_id: outcome.assessmentId ?? null,
+    p_error: outcome.error ?? null,
+    p_usage: outcome.usage ?? null,
+  });
 }
 
 function engineDisplayName(engine: "claude" | "fugu" | "kimi"): string {
@@ -364,23 +417,18 @@ async function insertGeneratedAssessment(
 
 export async function generateDefaultAssessment(category: "Core" | "Leadership" | "Mix", formData: FormData) {
   const { generateAssessmentContent } = await import("@/lib/generation");
-  const { supabase, userId, fullName } = await requireAdminForGeneration();
+  const { supabase, userId, policy } = await requireGenerationAccess(1);
 
-  const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
+  const engineKey = chooseEngine(String(formData.get("engine") || ""), policy.defaultEngine);
   const customTitle = String(formData.get("title") || "").trim();
   const purpose = normalizePurpose(formData.get("purpose"));
   const langRaw = String(formData.get("language") || "en");
   const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
 
-  if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
-    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine.") + "&field=engine");
-  }
-
   let newId: string;
+  let runId: string | null = null;
   try {
     const categories = category === "Mix" ? ["Core", "Leadership"] : [category];
-    // Fetch the competency rows and validate/load the engine's API key concurrently —
-    // these two reads don't depend on each other, so there's no reason to serialize them.
     const [{ data: comps }, apiKey] = await Promise.all([
       supabase.from("competencies").select("id, code, name, category, description").in("category", categories),
       loadEngine(supabase, engineKey),
@@ -390,25 +438,29 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
       throw new Error(`No ${category} competencies found in the library.`);
     }
 
+    runId = await startGenerationRun(supabase, engineKey);
     const competencies = await loadCompetenciesForPrompt(supabase, comps);
-    const generated = await generateAssessmentContent(engineKey, apiKey, competencies, language);
+    const result = await generateAssessmentContent(engineKey, apiKey, competencies, language);
 
     const modeMap = { Core: "default_core", Leadership: "default_leadership", Mix: "default_mix" } as const;
     const labelMap = { Core: "Core", Leadership: "Leadership", Mix: "Core + Leadership (mixed)" } as const;
 
     newId = await insertGeneratedAssessment(supabase, {
       title: customTitle || `${labelMap[category]} Competency Assessment (Default) — ${new Date().toLocaleDateString()}`,
-      description: `System-generated default assessment covering all ${labelMap[category]} competencies, by ${fullName}, via ${engineDisplayName(engineKey)}.`,
+      // Neutral, candidate-safe text: no admin name, no engine name.
+      description: "",
       mode: modeMap[category],
       engine: engineKey,
       generatedBy: userId,
       competencies: comps,
-      generated,
+      generated: result.assessment,
       purpose,
       language,
     });
+    await finishGenerationRun(supabase, runId, { assessmentId: newId, usage: { ...result.usage, dropped: result.report.droppedQuestions } });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
+    if (runId) await finishGenerationRun(supabase, runId, { error: message });
     redirect("/staff/builder?error=" + encodeURIComponent(message));
   }
 
@@ -417,7 +469,8 @@ export async function generateDefaultAssessment(category: "Core" | "Leadership" 
 }
 
 export async function deleteAssessment(assessmentId: string) {
-  const { supabase } = await requireAdminForGeneration();
+  await requireRole("hr_admin", "system_admin");
+  const supabase = await createClient();
   const { error } = await supabase.from("assessments").delete().eq("id", assessmentId);
   if (error) redirect("/staff/builder?error=" + encodeURIComponent(error.message));
   revalidatePath("/staff/builder");
@@ -510,19 +563,16 @@ export async function moveQuestion(questionId: string, sectionId: string, assess
 
 export async function generateCustomAssessment(formData: FormData) {
   const { generateAssessmentContent } = await import("@/lib/generation");
-  const { supabase, userId, fullName } = await requireAdminForGeneration();
+  const { supabase, userId, policy } = await requireGenerationAccess(1);
 
   const title = String(formData.get("title") || "").trim();
-  const engineKey = String(formData.get("engine") || "") as "claude" | "fugu" | "kimi";
+  const engineKey = chooseEngine(String(formData.get("engine") || ""), policy.defaultEngine);
   const langRaw = String(formData.get("language") || "en");
   const language = (langRaw === "az" || langRaw === "ru" ? langRaw : "en") as "en" | "az" | "ru";
   const competencyIds = formData.getAll("competency_ids") as string[];
   const purpose = normalizePurpose(formData.get("purpose"));
 
   if (!title) redirect("/staff/builder?error=" + encodeURIComponent("Give the generated assessment a title.") + "&field=title");
-  if (engineKey !== "claude" && engineKey !== "fugu" && engineKey !== "kimi") {
-    redirect("/staff/builder?error=" + encodeURIComponent("Choose a generation engine.") + "&field=engine");
-  }
   if (competencyIds.length === 0) {
     redirect(
       "/staff/builder?error=" +
@@ -532,27 +582,31 @@ export async function generateCustomAssessment(formData: FormData) {
   }
 
   let newId: string;
+  let runId: string | null = null;
   try {
     const [apiKey, { data: comps }] = await Promise.all([
       loadEngine(supabase, engineKey),
       supabase.from("competencies").select("id, code, name, category, description").in("id", competencyIds),
     ]);
+    runId = await startGenerationRun(supabase, engineKey);
     const competencies = await loadCompetenciesForPrompt(supabase, comps || []);
-    const generated = await generateAssessmentContent(engineKey, apiKey, competencies, language);
+    const result = await generateAssessmentContent(engineKey, apiKey, competencies, language);
 
     newId = await insertGeneratedAssessment(supabase, {
       title,
-      description: `Generated by ${fullName} using ${engineDisplayName(engineKey)}.`,
+      description: "",
       mode: "generated",
       engine: engineKey,
       generatedBy: userId,
       competencies: comps || [],
-      generated,
+      generated: result.assessment,
       purpose,
       language,
     });
+    await finishGenerationRun(supabase, runId, { assessmentId: newId, usage: { ...result.usage, dropped: result.report.droppedQuestions } });
   } catch (e) {
     const message = e instanceof Error ? e.message : "Generation failed.";
+    if (runId) await finishGenerationRun(supabase, runId, { error: message });
     redirect("/staff/builder?error=" + encodeURIComponent(message));
   }
 
@@ -572,6 +626,12 @@ export async function assignAssessment(assessmentId: string, formData: FormData)
 
   if (!userId) {
     redirect("/staff/builder?error=" + encodeURIComponent("Choose someone to assign this to."));
+  }
+
+  // Drafts are never assigned: candidates would see an unreviewed test.
+  const { data: target } = await supabase.from("assessments").select("status").eq("id", assessmentId).maybeSingle();
+  if (!target || target.status !== "published") {
+    redirect("/staff/builder?error=" + encodeURIComponent("Publish the assessment before assigning it."));
   }
 
   // No DB-level uniqueness on (assessment_id, candidate_id), so check first
@@ -677,6 +737,7 @@ export async function duplicateAssessment(assessmentId: string) {
       purpose: source.purpose,
       mode: source.mode,
       engine: source.engine,
+      content_language: source.content_language,
     })
     .select("id")
     .single();

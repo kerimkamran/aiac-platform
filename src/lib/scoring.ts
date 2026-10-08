@@ -16,7 +16,7 @@
 // heuristic rationale still says so, and low-confidence scores are still
 // flagged for human reviewer confirmation (human-in-the-loop, Part 4).
 
-import { extractJson } from "./generation";
+import { extractJson } from "./ai-engine";
 
 export type ScoreResult = { score: number; rationale: string; needsReview: boolean };
 
