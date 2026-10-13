@@ -16,16 +16,26 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
+  const { data: viewer } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
+  const isCandidate = viewer?.role === "candidate";
+
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, overall_score, submitted_at, tab_switch_count, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
+      "id, assessment_id, status, overall_score, submitted_at, tab_switch_count, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
     )
     .eq("id", id)
     .single();
 
   // RLS (candidate own / staff / assigned decision maker) already scoped the row away if unauthorized.
   if (!ca) return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 });
+
+  // A candidate only gets the report once a person has reviewed it, and that
+  // copy leaves out the AI rationale (plan v2, section 9, item 2). Row access
+  // alone was not enough to stop an early download.
+  if (isCandidate && ca.status !== "reviewed") {
+    return NextResponse.json({ error: "Your report is available once it has been reviewed." }, { status: 403 });
+  }
 
   const candidate = ca.candidate as unknown as { full_name: string; email: string; department: string | null } | null;
   const assessment = ca.assessments as unknown as { title: string; vacancy_title: string | null; purpose: string | null } | null;
@@ -117,6 +127,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       (d) => ({ decision: d.decision, comment: d.comment, reviewer: d.reviewer?.full_name || "Reviewer", createdAt: d.created_at })
     ),
     generatedAt: new Date().toISOString(),
+    showAiRationale: !isCandidate,
   };
 
   const buffer = await renderToBuffer(<CandidateReportDocument data={data} />);

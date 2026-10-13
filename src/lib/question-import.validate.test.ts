@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateCases } from "./case-library";
+import { validateCases } from "./question-import";
 
 const base = { title: "T", scenarioText: "S", questionStem: "Q", difficulty: "mid", methodologyTag: "Blended", methodologyNotes: "n" };
 

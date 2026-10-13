@@ -66,7 +66,7 @@ export function prepareContext(input: {
     throw new Error(`The shared instructions are too long (${instructions.length.toLocaleString()} characters; the limit is ${INSTRUCTIONS_MAX_CHARS.toLocaleString()}). Shorten them and try again.`);
   }
   if (notes.length > NOTES_MAX_CHARS) {
-    throw new Error(`The notes for this position are too long (limit ${NOTES_MAX_CHARS.toLocaleString()} characters). Shorten them and try again.`);
+    throw new Error(`The notes are too long (limit ${NOTES_MAX_CHARS.toLocaleString()} characters). Shorten them and try again.`);
   }
 
   let jd = clean(input.jobDescription).slice(0, JD_MAX_CHARS);
@@ -75,7 +75,7 @@ export function prepareContext(input: {
   const budget = CONTEXT_BUDGET_CHARS - instructions.length - notes.length;
   const items: ContextItem[] = [];
   if (instructions) items.push({ source: "instructions", label: "Shared instructions", text: instructions });
-  if (notes) items.push({ source: "notes", label: "Notes for this position", text: notes });
+  if (notes) items.push({ source: "notes", label: "Notes", text: notes });
 
   // Reference files are trimmed first (in order, the last one cut), then the
   // job description. Anything dropped is listed for the brief card.

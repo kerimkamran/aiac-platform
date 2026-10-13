@@ -5,7 +5,6 @@ import { submitReview } from "./actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
-import { ReportChatPanel } from "@/components/ReportChatPanel";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
@@ -145,7 +144,6 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           </div>
         </div>
         <div className="flex items-center gap-2 no-print">
-          <ReportChatPanel candidateAssessmentId={id} candidateName={candidate?.full_name || "This candidate"} />
           <a
             href={`/report/${id}/pdf`}
             className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
@@ -164,13 +162,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" />}
 
       {needsReviewCount > 0 && (
-        <Card className="p-5 mb-6 flex items-start gap-3 bg-amber-50 border-amber-200 no-print">
-          <Icon name="alertTriangle" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+        <Card className="p-5 mb-6 flex items-start gap-3 bg-warning-soft border-warning/40 no-print">
+          <Icon name="alertTriangle" className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">
+            <p className="text-sm font-semibold text-warning">
               {needsReviewCount} response{needsReviewCount === 1 ? "" : "s"} flagged for review
             </p>
-            <p className="text-xs text-amber-800 mt-0.5">
+            <p className="text-xs text-warning mt-0.5">
               The scoring engine wasn&apos;t confident in {needsReviewCount === 1 ? "this score" : "these scores"} — check
               the flagged answer{needsReviewCount === 1 ? "" : "s"} in Response evidence below before relying on{" "}
               {needsReviewCount === 1 ? "it" : "them"}.
@@ -206,7 +204,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <span className="flex items-center gap-2 shrink-0">
                       {r.needs_review && (
                         <span
-                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200"
+                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
                           title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
                         >
                           <Icon name="alertTriangle" className="w-3 h-3" />
@@ -338,7 +336,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           )}
         </>
       ) : (
-        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-amber-800 bg-amber-50 border-amber-200">
+        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-warning bg-warning-soft border-warning/40">
           <Icon name="clock" className="w-5 h-5 shrink-0" />
           Candidate has not yet submitted this assessment — scores will appear here once they do.
         </Card>

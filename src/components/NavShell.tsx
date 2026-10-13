@@ -5,19 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Avatar, Icon, LogoMark } from "@/components/ui";
 import { CommandPalette } from "@/components/CommandPalette";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { AppearanceMenu } from "@/components/AppearanceMenu";
 import { ToastProvider } from "@/components/Toaster";
-import { ScoutLauncher } from "@/components/ScoutLauncher";
-import type { ScoutRole } from "@/lib/scout-intents";
-
-// Maps the DB's raw role string to Scout's coarser role categories.
-function toScoutRole(role: string): ScoutRole {
-  if (role === "candidate") return "candidate";
-  if (role === "decision_maker") return "decision_maker";
-  if (role === "system_admin") return "admin";
-  return "staff";
-}
-
 export type NavLink = { href: string; label: string; icon: string; exact?: boolean };
 
 export function NavShell({
@@ -130,7 +119,7 @@ export function NavShell({
               <div className="hidden lg:block">
                 <CommandPalette links={links} actions={actions} />
               </div>
-              <ThemeToggle className="p-1.5 rounded-md text-muted hover:text-muted hover:bg-line-soft transition-colors hidden sm:inline-flex" />
+              <AppearanceMenu className="hidden sm:block" />
               <div className="hidden lg:flex items-center gap-2.5 pl-3 border-l border-line">
                 <Avatar name={name} className="w-7 h-7 text-2xs" />
                 <div className="leading-tight">
@@ -205,7 +194,7 @@ export function NavShell({
                     in this drawer at all, so it was simply unreachable below
                     that breakpoint -- the one place a phone user could always
                     get to. */}
-                <ThemeToggle className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted" />
+                <AppearanceMenu className="w-full" />
                 <form action="/logout" method="post">
                   <button className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted">
                     <Icon name="logout" className="w-[17px] h-[17px] text-muted" />
@@ -235,7 +224,6 @@ export function NavShell({
           </div>
         </footer>
 
-        <ScoutLauncher role={toScoutRole(role)} />
       </div>
     </ToastProvider>
   );

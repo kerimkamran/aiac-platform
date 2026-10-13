@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import {
   addSection,
   addQuestion,
-  addQuestionsFromCases,
   publishAssessment,
   updateProctoringSettings,
   deleteAssessment,
@@ -25,7 +24,6 @@ import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { normalizePurpose } from "@/lib/purpose";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
-import { CaseLibraryPicker } from "@/components/CaseLibraryPicker";
 import { InlineFormError } from "@/components/InlineFormError";
 import { LEVELS, isLevelKey } from "@/lib/levels";
 
@@ -94,7 +92,7 @@ export default async function BuilderDetailPage({
   if (!assessment) notFound();
   const purpose = normalizePurpose((assessment as { purpose?: string | null }).purpose);
 
-  const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }, { data: cases }] = await Promise.all([
+  const [{ data: sections }, { data: competencies }, { data: invitees }, { data: proctoring }] = await Promise.all([
     supabase
       .from("assessment_sections")
       .select("id, title, sequence, competency_id, target_score, competencies(name, category), questions(id, question_type, prompt, options, weight, sequence)")
@@ -106,39 +104,20 @@ export default async function BuilderDetailPage({
       .select("id, status, candidate_id, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email)")
       .eq("assessment_id", id),
     supabase.from("proctoring_settings").select("camera_enabled, storage_backend").eq("assessment_id", id).maybeSingle(),
-    supabase
-      .from("case_library")
-      .select("id, competency_id, title, question_stem, question_type, difficulty, competencies(name)")
-      .order("created_at", { ascending: false }),
   ]);
-
-  const caseList = (cases || []) as unknown as {
-    id: string;
-    competency_id: string | null;
-    title: string | null;
-    question_stem: string | null;
-    question_type: string;
-    difficulty: string | null;
-    competencies: { name: string } | null;
-  }[];
 
   const compList = (competencies || []) as { id: string; name: string; category: string }[];
 
   // The brief card: where this draft came from and what context the engine
   // was given. Counts and labels only; the context text is never shown here.
-  const brief = (assessment as { position_id?: string | null; target_level?: string | null; vacancy_title?: string | null; engine?: string | null; content_language?: string | null; generated_at?: string | null; generated_by?: string | null }) ;
-  const [{ data: briefPosition }, { data: briefRun }] = await Promise.all([
-    brief.position_id
-      ? supabase.from("positions").select("id, title, department").eq("id", brief.position_id).maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("generation_runs")
-      .select("context_snapshot, engine, created_at")
-      .eq("assessment_id", id)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const brief = assessment as { target_level?: string | null; vacancy_title?: string | null; engine?: string | null; content_language?: string | null; generated_at?: string | null; generated_by?: string | null };
+  const { data: briefRun } = await supabase
+    .from("generation_runs")
+    .select("context_snapshot, engine, created_at")
+    .eq("assessment_id", id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
   const briefLevel = isLevelKey(brief.target_level) ? brief.target_level : null;
   const snapshot = (briefRun?.context_snapshot ?? null) as
     | { contextSent?: boolean; items?: { label: string; chars: number }[]; trimmed?: string[]; redaction?: { emails: number; phones: number } }
@@ -153,7 +132,6 @@ export default async function BuilderDetailPage({
       target_score: s.target_score,
       questions: (s.questions || []) as unknown as CheckQuestion[],
     })),
-    hasPosition: !!brief.position_id,
   });
   const sourceLanguage = brief.content_language === "az" || brief.content_language === "ru" ? brief.content_language : "en";
   const translationTargets = (["az", "ru"] as const).filter((l) => l !== sourceLanguage);
@@ -195,7 +173,7 @@ export default async function BuilderDetailPage({
             <ConfirmSubmitButton
               confirmMessage={`Delete "${assessment.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
               icon="trash"
-              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
+              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
             >
               Delete
             </ConfirmSubmitButton>
@@ -242,18 +220,13 @@ export default async function BuilderDetailPage({
       <ToastFromParams specs={TOAST_SPECS} />
 
       {locked && (
-        <p role="status" className="mb-6 text-sm text-warning bg-amber-50 rounded-xl px-4 py-3">
+        <p role="status" className="mb-6 text-sm text-warning bg-warning-soft rounded-xl px-4 py-3">
           Candidates have started this assessment, so its questions are locked. Make a copy to change them.
         </p>
       )}
 
       <Card className="p-5 mb-6 flex flex-wrap items-center gap-3">
         <p className="text-sm font-bold text-foreground mr-auto">Reuse</p>
-        {brief.position_id && (
-          <Link href={`/staff/builder/new?position=${brief.position_id}`} className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">
-            New from this position
-          </Link>
-        )}
         <form action={duplicateAssessment.bind(null, id)}>
           <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Make an exact copy</button>
         </form>
@@ -280,16 +253,8 @@ export default async function BuilderDetailPage({
         </p>
         <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
-            <dt className="text-2xs font-semibold text-muted">Position</dt>
-            <dd className="font-medium text-foreground">
-              {briefPosition ? (
-                <Link href={`/staff/builder/positions/${briefPosition.id}`} className="text-accent-dark hover:underline">
-                  {briefPosition.title}
-                </Link>
-              ) : (
-                brief.vacancy_title || "Not linked to a position"
-              )}
-            </dd>
+            <dt className="text-2xs font-semibold text-muted">Job title / vacancy</dt>
+            <dd className="font-medium text-foreground">{brief.vacancy_title || "Not set"}</dd>
           </div>
           <div>
             <dt className="text-2xs font-semibold text-muted">Level</dt>
@@ -407,7 +372,7 @@ export default async function BuilderDetailPage({
                         confirmMessage={`Delete section "${section.title}" and all its questions?`}
                         icon="trash"
                         label={`Delete section "${section.title}"`}
-                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
                         compact
                       />
                     </form>
@@ -455,7 +420,7 @@ export default async function BuilderDetailPage({
                               confirmMessage="Delete this question?"
                               icon="trash"
                               label={`Delete question ${qi + 1}`}
-                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
                               compact
                             />
                           </form>
@@ -464,7 +429,7 @@ export default async function BuilderDetailPage({
                       {q.options && q.options.length > 0 && (
                         <ul className="text-xs text-muted mt-2 grid sm:grid-cols-2 gap-1">
                           {q.options.map((o) => (
-                            <li key={o.key} className={o.correct ? "text-emerald-700 font-medium" : ""}>
+                            <li key={o.key} className={o.correct ? "text-good font-medium" : ""}>
                               {o.key}. {o.text} {o.correct ? "✓" : ""}
                             </li>
                           ))}
@@ -592,26 +557,6 @@ export default async function BuilderDetailPage({
                 </details>
                 )}
 
-                {caseList.length > 0 && (
-                  <details className="group mt-3">
-                    <summary className="cursor-pointer text-sm text-accent-dark font-semibold inline-flex items-center gap-1.5 list-none">
-                      <Icon name="brain" className="w-4 h-4" />
-                      Add from Case Library
-                    </summary>
-                    <form
-                      action={async (formData: FormData) => {
-                        "use server";
-                        await addQuestionsFromCases(section.id, id, formData);
-                      }}
-                      className="mt-4 space-y-3 bg-background rounded-xl p-4 border border-line"
-                    >
-                      <p className="text-xs text-muted">
-                        Import one or more validated case-study questions directly into this section. Pick a competency to narrow the list, then check the cases to add.
-                      </p>
-                      <CaseLibraryPicker cases={caseList} defaultCompetencyId={(section as unknown as { competency_id: string | null }).competency_id} />
-                    </form>
-                  </details>
-                )}
               </Card>
             );
           })}

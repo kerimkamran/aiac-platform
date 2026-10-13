@@ -8,8 +8,8 @@ type Spec = { info: { title: string; version: string; description: string }; pat
 const METHOD_TONE: Record<string, string> = {
   get: "bg-brand-50 text-accent-dark",
   post: "bg-accent-soft text-accent-dark",
-  patch: "bg-amber-50 text-warning",
-  delete: "bg-red-50 text-critical",
+  patch: "bg-warning-soft text-warning",
+  delete: "bg-critical-soft text-critical",
 };
 
 export default async function ApiDocsPage() {

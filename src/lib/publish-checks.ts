@@ -7,8 +7,8 @@ export type PublishCheck = { label: string; ok: boolean; blocking: boolean };
 export type CheckQuestion = { question_type: string; options: { correct?: boolean; text: string }[] | null };
 export type CheckSection = { target_score: number | null; questions: CheckQuestion[] };
 
-export function publishChecks(input: { sections: CheckSection[]; hasPosition: boolean }): PublishCheck[] {
-  const { sections, hasPosition } = input;
+export function publishChecks(input: { sections: CheckSection[] }): PublishCheck[] {
+  const { sections } = input;
   const questions = sections.flatMap((s) => s.questions);
   const questionCount = questions.length;
   const badMcq = questions.filter((q) => {
@@ -38,6 +38,5 @@ export function publishChecks(input: { sections: CheckSection[]; hasPosition: bo
       ok: sections.every((s) => s.target_score != null),
       blocking: false,
     },
-    { label: "Linked to a position", ok: hasPosition, blocking: false },
   ];
 }

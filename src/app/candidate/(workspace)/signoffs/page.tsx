@@ -98,7 +98,7 @@ export default async function SignoffsPage() {
                             "use server";
                             await decideWithId("declined", formData);
                           }}
-                          className="inline-flex items-center gap-2 border border-line text-sm font-semibold px-4 py-2.5 rounded-xl text-foreground hover:border-red-400 hover:text-red-600 transition-colors"
+                          className="inline-flex items-center gap-2 border border-line text-sm font-semibold px-4 py-2.5 rounded-xl text-foreground hover:border-critical hover:text-critical transition-colors"
                         >
                           <Icon name="x" className="w-4 h-4" />
                           Decline

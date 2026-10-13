@@ -56,7 +56,7 @@ export default async function AdminDataGovernancePage() {
                 {(held || []).map((h) => (
                   <Link key={h.id} href={`/admin/users/${h.id}`} className="flex items-center justify-between text-sm border border-line rounded-xl px-3.5 py-2.5 hover:border-accent transition-colors">
                     <span className="font-semibold text-foreground">{h.full_name}</span>
-                    <span className="text-2xs font-bold text-warning bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-inset ring-amber-200">HELD</span>
+                    <span className="text-2xs font-bold text-warning bg-warning-soft px-2 py-0.5 rounded-full ring-1 ring-inset ring-warning/30">HELD</span>
                   </Link>
                 ))}
               </div>

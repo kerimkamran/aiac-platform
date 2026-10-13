@@ -1,112 +1,149 @@
 @import "tailwindcss";
 
+/* Vantage "Node Grid" design system (plan v2, section 4).
+   Colours come from Azerconnect Group's own assets: navy #133E72 and green
+   #356D1B. Every colour in the app comes from one of the tokens below; a
+   test (src/lib/no-raw-colours.test.ts) fails the build on hard-coded
+   Tailwind palette classes or hex values outside this file.
+
+   Themes: light is the default and the `.dark` class switches to dark
+   (set before first paint by src/app/layout.tsx). Canvases (white, cream,
+   grey) change only the page background in light mode; dark mode has one
+   canvas. The contrast tests in src/lib/contrast.test.ts read these blocks
+   directly, so the values here are the source of truth. */
+
 :root {
-  /* v4 "Field" design system -- deliberately plain, editorial, light-first.
-     Reaction to v3's "generic AI app" tells (purple gradients, squircles,
-     glassmorphism, wall-to-wall cards): near-white surfaces, hairline
-     dividers instead of boxed shadows, sharp minimal corners, and exactly
-     one accent color (clay/terracotta) used sparingly for the single most
-     important thing on a screen -- never as decoration, never repeated
-     across a whole page. Structure carries hierarchy, not color or shadow. */
+  /* Surfaces and text */
   --background: #ffffff;
   --surface: #ffffff;
-  --surface-sunken: #fafafa;
-  --foreground: #1a1a1a;
-  --muted: #6b6b6b;
-  --line: #ececec;
-  --line-soft: #f2f2f2;
-  /* Design-execution-plan Phase 1 / T1.1: this used to be `--faint`, a
-     third, lighter grey (#8a8a8a) offered alongside --foreground/--muted
-     for body text. It only ever reached ~3.45:1 against white -- well
-     under the 4.5:1 WCAG AA floor for text -- so every "faint" paragraph,
-     caption and label in the app was a real accessibility failure, not a
-     stylistic choice. Body text now has exactly two tiers (--foreground,
-     --muted; --muted alone clears 5.33:1 light / 7.22:1 dark -- see
-     src/lib/contrast.test.ts), and this token survives only for its
-     legitimate non-text uses (a slightly-more-visible border/dot than
-     --line on hover-or-decoration), renamed so it can't be reached for as
-     a text color by habit. */
-  --line-strong: #8a8a8a;
+  --surface-sunken: #f3f5f8;
+  --foreground: #0d1b2e;
+  --muted: #526070;
+  --line: #d5dce6;
+  --line-soft: #e8edf3;
+  /* Control borders (inputs, checkboxes) need 3:1 against the surface. */
+  --line-strong: #727e8e;
+  --line-control: #727e8e;
 
   --shadow-xs: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
 
-  /* Brand -- single accent. Clay/terracotta reads as considered and
-     distinct rather than "another purple SaaS app." Used for the one
-     primary action or the one number that matters per screen, nothing
-     else. brand and accent point at the same family on purpose -- this
-     system does not use two competing brand colors. */
-  --brand: #c96f42;
-  --brand-light: #d68a63;
-  --brand-deep: #8b4423;
-  --brand-50: #fbf1ea;
-  --accent: #c96f42;
-  --accent-dark: #a35a2f;
-  --accent-soft: #fbf1ea;
-  --gold: #a35a2f;
-  --gold-soft: #fbf1ea;
+  /* Primary: Azerconnect navy. Buttons, selected states, links. */
+  --brand: #133e72;
+  --brand-light: #2d5f97;
+  --brand-deep: #133e72;
+  --brand-hover: #0e2f57;
+  --brand-pressed: #0a2444;
+  --brand-50: #d9e5f5;
+  --on-primary: #ffffff;
+  --primary-container: #d9e5f5;
+  --on-primary-container: #0a2547;
 
-  --good: #3d7a4d;
-  --warning: #a35a2f;
-  --serious: #b23b3b;
-  --critical: #b23b3b;
-  --info: #6b6b6b;
+  /* Accent is the text and focus colour for the primary family. */
+  --accent: #133e72;
+  --accent-dark: #133e72;
+  --accent-soft: #d9e5f5;
+  --focus: #133e72;
 
-  --chart-1: #1a1a1a;
-  --chart-2: #c4c4c4;
-  --chart-3: #c96f42;
-  /* Design-execution-plan Phase 3 / T3.2: a 4th series token for the radar's
-     up-to-4-candidate comparison view. chart-2 is a graphical fill meant to
-     sit on a track (PipelineFunnel's inactive-stage bar) -- on its own
-     against the card surface it clears only ~1.7:1, well under the 3:1
-     WCAG 1.4.11 floor a radar stroke/dot needs. This is a cool slate,
-     distinct in hue from the warm neutral/accent already in use (keeping
-     the one-accent rule -- it's a neutral, not a second accent), and
-     clears 3:1 in both themes. */
-  --chart-4: #4a5568;
-  --chart-grid: #f2f2f2;
-  --chart-axis: #d8d8d8;
+  /* Secondary: Azerconnect green. Success, progress, small accent rules. */
+  --secondary: #356d1b;
+  --secondary-container: #e3f0d9;
+  --on-secondary-container: #1f4a0f;
+  --gold: #356d1b;
+  --gold-soft: #e3f0d9;
+
+  --good: #356d1b;
+  --good-soft: #e3f0d9;
+  --warning: #8a5a00;
+  --warning-soft: #fcf1d9;
+  --serious: #b42318;
+  --critical: #b42318;
+  --critical-soft: #fde7e4;
+  --info: #526070;
+
+  /* Charts: always labelled, because navy and green are only 1.7:1 apart. */
+  --chart-1: #133e72;
+  --chart-2: #356d1b;
+  --chart-3: #a86400;
+  --chart-4: #4f7fc3;
+  --chart-grid: #e8edf3;
+  --chart-axis: #c9d1dc;
+}
+
+/* Backgrounds. White is the default for staff and admin; cream is the
+   candidate's canvas, the exam and the report; grey is optional. The
+   selectors are light-only so they never override dark mode. */
+:root:not(.dark)[data-canvas="cream"] {
+  --background: #fbf9f4;
+  --surface-sunken: #f2eee3;
+}
+:root:not(.dark)[data-canvas="grey"] {
+  --background: #f3f5f8;
+  --surface-sunken: #e8edf3;
+}
+/* The focused exam is cream in light mode whatever the person's canvas
+   choice, so the question page reads as a paper, not an app screen. */
+:root:not(.dark) .exam-canvas {
+  --background: #fbf9f4;
+  --surface-sunken: #f2eee3;
 }
 
 .dark {
-  --background: #111111;
-  --surface: #171717;
-  --surface-sunken: #0d0d0d;
-  --foreground: #f0f0f0;
-  --muted: #a0a0a0;
-  --line: #2a2a2a;
-  --line-soft: #212121;
-  --line-strong: #757575;
+  --background: #0b1220;
+  --surface: #131c2e;
+  --surface-sunken: #0e1728;
+  --foreground: #e6ecf5;
+  --muted: #94a1b5;
+  --line: #26344d;
+  --line-soft: #1c2840;
+  --line-strong: #66758f;
+  --line-control: #66758f;
 
   --shadow-xs: none;
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
 
-  --brand: #d68a63;
-  --brand-light: #e0a482;
-  --brand-deep: #8b4423;
-  --brand-50: #2a1d15;
-  --accent: #d68a63;
-  --accent-dark: #e0a482;
-  --accent-soft: #2a1d15;
-  --gold: #d68a63;
-  --gold-soft: #2a1d15;
+  /* Filled buttons keep white text, so their fill stays dark navy in dark
+     mode. Text and focus use the lighter tint. */
+  --brand: #24508f;
+  --brand-light: #3a68a8;
+  --brand-deep: #1c4274;
+  --brand-hover: #24508f;
+  --brand-pressed: #2a5c9e;
+  --brand-50: #1c4274;
+  --on-primary: #ffffff;
+  --primary-container: #1c4274;
+  --on-primary-container: #d8e5ff;
 
-  --good: #6fae7f;
-  --warning: #d68a63;
-  --serious: #d4726f;
-  --critical: #d4726f;
-  --info: #a0a0a0;
+  --accent: #a8c8ff;
+  --accent-dark: #c0d7ff;
+  --accent-soft: #1c4274;
+  --focus: #a8c8ff;
 
-  --chart-1: #f0f0f0;
-  --chart-2: #4a4a4a;
-  --chart-3: #d68a63;
-  --chart-4: #94a3b8;
-  --chart-grid: #232323;
-  --chart-axis: #333333;
+  --secondary: #8fd16e;
+  --secondary-container: #1f3a17;
+  --on-secondary-container: #c6eaa9;
+  --gold: #8fd16e;
+  --gold-soft: #1f3a17;
+
+  --good: #8fd16e;
+  --good-soft: #1f3a17;
+  --warning: #f2c25b;
+  --warning-soft: #3a2b0c;
+  --serious: #ffb0a8;
+  --critical: #ffb0a8;
+  --critical-soft: #451a17;
+  --info: #94a1b5;
+
+  --chart-1: #a8c8ff;
+  --chart-2: #8fd16e;
+  --chart-3: #f2c25b;
+  --chart-4: #ff9fa3;
+  --chart-grid: #1c2840;
+  --chart-axis: #33415c;
 }
 
 @theme inline {
@@ -122,6 +159,18 @@
   --color-brand-light: var(--brand-light);
   --color-brand-deep: var(--brand-deep);
   --color-brand-50: var(--brand-50);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-pressed: var(--brand-pressed);
+  --color-on-primary: var(--on-primary);
+  --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
+  --color-secondary: var(--secondary);
+  --color-secondary-container: var(--secondary-container);
+  --color-good-soft: var(--good-soft);
+  --color-warning-soft: var(--warning-soft);
+  --color-critical-soft: var(--critical-soft);
+  --color-line-control: var(--line-control);
+  --color-focus: var(--focus);
   --color-accent: var(--accent);
   --color-accent-dark: var(--accent-dark);
   --color-accent-soft: var(--accent-soft);
@@ -150,7 +199,7 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-onest), var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Design-execution-plan Phase 1 / T1.2 -- the type scale. Replaces the
      322 one-off `text-[Npx]` arbitrary values scattered across the app
@@ -266,7 +315,7 @@ body {
 .anim-grow-y { transform-origin: bottom; animation: grow-bar-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 .skeleton {
-  background: linear-gradient(90deg, #ecebe3 25%, #f7f6f0 50%, #ecebe3 75%);
+  background: linear-gradient(90deg, var(--line-soft) 25%, var(--surface-sunken) 50%, var(--line-soft) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s linear infinite;
 }
@@ -329,7 +378,7 @@ body {
 /* ---------- Brand panels -- flat, no gradients. A solid dark panel with a
    thin rule is the "confident moment" now, not a mesh gradient. ---------- */
 .hero-mesh {
-  background: #1a1a1a;
+  background: var(--brand-deep);
 }
 
 /* Design-execution-plan Phase 1 / T1.4: three vestigial rules removed from

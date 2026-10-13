@@ -1,72 +1,91 @@
-import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect } from "@react-pdf/renderer";
+import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect, Circle, Font } from "@react-pdf/renderer";
+import { BRAND as PALETTE } from "@/lib/brand";
+import { PDF_FONT_INTER_400, PDF_FONT_INTER_700, PDF_FONT_ONEST_700 } from "@/lib/pdf-fonts";
 
-const BRAND = "#4338CA";
-const BRAND_DEEP = "#241E6B";
-const ACCENT = "#0F8A5F";
-const INK = "#111318";
-const MUTED = "#5D6674";
-const LINE = "#E3E8ED";
+// Registered once at load. Inter covers body text and Onest the headings, both
+// with Azerbaijani (ə ğ ı ş İ Ə) and Cyrillic glyphs; the built-in Helvetica
+// fonts cannot draw those characters.
+Font.register({
+  family: "Inter",
+  fonts: [
+    { src: PDF_FONT_INTER_400, fontWeight: 400 },
+    { src: PDF_FONT_INTER_700, fontWeight: 700 },
+  ],
+});
+Font.register({ family: "Onest", fonts: [{ src: PDF_FONT_ONEST_700, fontWeight: 700 }] });
+
+// Node Grid palette for the PDF (plan v2, section 4.1). The primary is navy and
+// the secondary is green; the old indigo palette is gone.
+const BRAND = PALETTE.navy;
+const BRAND_DEEP = PALETTE.navyDeep;
+const ACCENT = PALETTE.green;
+const INK = PALETTE.ink;
+const MUTED = PALETTE.muted;
+const LINE = PALETTE.line;
+const GOOD = PALETTE.green;
+const WARN = PALETTE.warning;
+const CRIT = PALETTE.critical;
 
 const styles = StyleSheet.create({
-  page: { padding: 40, fontSize: 10, color: INK, fontFamily: "Helvetica" },
+  page: { padding: 40, fontSize: 10, color: INK, fontFamily: "Inter" },
   headerBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: `2 solid ${BRAND}`, paddingBottom: 14 },
   brandBlock: { flexDirection: "row", alignItems: "center", gap: 8 },
-  brandTitle: { fontSize: 13, fontFamily: "Helvetica-Bold", color: BRAND_DEEP },
+  brandTitle: { fontSize: 13, fontFamily: "Onest", fontWeight: 700, color: BRAND_DEEP },
   brandSub: { fontSize: 7, color: ACCENT, letterSpacing: 1, marginTop: 2 },
   confidential: { fontSize: 8, color: MUTED, textAlign: "right" },
-  h1: { fontSize: 18, fontFamily: "Helvetica-Bold", color: INK, marginBottom: 2 },
+  h1: { fontSize: 18, fontFamily: "Onest", fontWeight: 700, color: INK, marginBottom: 2 },
   subtitle: { fontSize: 10, color: MUTED, marginBottom: 16 },
   metaRow: { flexDirection: "row", gap: 24, marginBottom: 20 },
   metaLabel: { fontSize: 7, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
-  metaValue: { fontSize: 10, fontFamily: "Helvetica-Bold" },
-  sectionTitle: { fontSize: 12, fontFamily: "Helvetica-Bold", color: INK, marginTop: 18, marginBottom: 10, borderBottom: `1 solid ${LINE}`, paddingBottom: 6 },
+  metaValue: { fontSize: 10, fontFamily: "Inter", fontWeight: 700 },
+  sectionTitle: { fontSize: 12, fontFamily: "Onest", fontWeight: 700, color: INK, marginTop: 18, marginBottom: 10, borderBottom: `1 solid ${LINE}`, paddingBottom: 6 },
   scoreCard: { flexDirection: "row", gap: 16, marginBottom: 8 },
   scoreBig: { width: 110, alignItems: "center", justifyContent: "center", border: `1 solid ${LINE}`, borderRadius: 8, padding: 14 },
-  scoreBigNum: { fontSize: 30, fontFamily: "Helvetica-Bold", color: BRAND },
+  scoreBigNum: { fontSize: 30, fontFamily: "Onest", fontWeight: 700, color: BRAND },
   scoreBigLabel: { fontSize: 8, color: MUTED, marginTop: 2, textAlign: "center" },
   scoreSummary: { flex: 1, border: `1 solid ${LINE}`, borderRadius: 8, padding: 14, justifyContent: "center" },
   competencyRow: { marginBottom: 10 },
   competencyLabelRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 3 },
-  competencyName: { fontSize: 9, fontFamily: "Helvetica-Bold" },
-  competencyScore: { fontSize: 9, fontFamily: "Helvetica-Bold" },
+  competencyName: { fontSize: 9, fontFamily: "Inter", fontWeight: 700 },
+  competencyScore: { fontSize: 9, fontFamily: "Inter", fontWeight: 700 },
   barTrack: { height: 6, backgroundColor: LINE, borderRadius: 3 },
   questionBlock: { marginBottom: 10, padding: 10, border: `1 solid ${LINE}`, borderRadius: 6 },
-  questionPrompt: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+  questionPrompt: { fontSize: 9, fontFamily: "Inter", fontWeight: 700, marginBottom: 4 },
   questionAnswer: { fontSize: 8.5, color: MUTED, marginBottom: 4, lineHeight: 1.4 },
-  rationale: { fontSize: 8, color: ACCENT, fontFamily: "Helvetica-Oblique" },
-  needsReviewBadge: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#92651a", backgroundColor: "#fdf3dd", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
+  rationale: { fontSize: 8, color: ACCENT, fontFamily: "Inter" },
+  needsReviewBadge: { fontSize: 7, fontFamily: "Inter", fontWeight: 700, color: WARN, backgroundColor: PALETTE.warningTint, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
   decisionRow: { flexDirection: "row", gap: 8, marginBottom: 6, alignItems: "flex-start" },
-  decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: "#fff" },
+  decisionBadge: { fontSize: 7.5, fontFamily: "Inter", fontWeight: 700, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: PALETTE.white },
   footer: { position: "absolute", bottom: 24, left: 40, right: 40, borderTop: `1 solid ${LINE}`, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: MUTED },
   execCard: { border: `1 solid ${LINE}`, borderRadius: 8, padding: 14, marginBottom: 14 },
   execHeadlineRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  execRecBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: "#fff" },
+  execRecBadge: { fontSize: 7.5, fontFamily: "Inter", fontWeight: 700, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: PALETTE.white },
   execHeadline: { fontSize: 9, color: INK, lineHeight: 1.5, marginBottom: 8 },
   execCols: { flexDirection: "row", gap: 16, marginBottom: 6 },
-  execColTitle: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+  execColTitle: { fontSize: 7, fontFamily: "Inter", fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
   execLine: { fontSize: 8, color: MUTED, marginBottom: 2 },
   execComparison: { fontSize: 7.5, color: MUTED, borderTop: `1 solid ${LINE}`, paddingTop: 6, marginTop: 4 },
 });
 
 function bandInfo(score: number) {
-  if (score >= 85) return { label: "Exceeds Expectations", color: "#1c400f" };
+  if (score >= 85) return { label: "Exceeds Expectations", color: GOOD };
   if (score >= 70) return { label: "Fully Meets Expectations", color: ACCENT };
-  if (score >= 50) return { label: "Partially Meets Expectations", color: "#b9861a" };
-  return { label: "Does Not Meet Expectations", color: "#d03b3b" };
+  if (score >= 50) return { label: "Partially Meets Expectations", color: WARN };
+  return { label: "Does Not Meet Expectations", color: CRIT };
 }
 
 function recColor(label: string) {
-  if (label === "Strong fit") return "#0e9f6e";
+  if (label === "Strong fit") return GOOD;
   if (label === "Fit with reservations") return ACCENT;
-  if (label === "Borderline") return "#d97706";
-  return "#dc2626";
+  if (label === "Borderline") return WARN;
+  return CRIT;
 }
 
 function decisionColor(d: string) {
-  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return "#0e9f6e";
-  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return "#d97706";
-  if (d === "reject" || d === "not_yet_ready") return "#dc2626";
+  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return GOOD;
+  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return WARN;
+  if (d === "reject" || d === "not_yet_ready") return CRIT;
   return MUTED;
 }
 
@@ -92,21 +111,26 @@ export type ReportData = {
   tabSwitchCount?: number;
   competencies: { name: string; category: string; score: number; level: string }[];
   responses: { prompt: string; answer: string; score: number; rationale: string; needsReview?: boolean }[];
+  // Candidates get their own copy without the AI rationale and review flags (plan v2, section 9).
+  showAiRationale?: boolean;
   decisions: { decision: string; comment: string; reviewer: string; createdAt: string }[];
   generatedAt: string;
 };
 
+// The Vantage "Node V" mark (plan v2, section 4.4), drawn for the PDF.
 function LogoMark() {
   return (
     <Svg width={26} height={26} viewBox="0 0 64 64">
-      <Rect width={64} height={64} rx={14} fill={BRAND_DEEP} />
-      <Path d="M32 12 L48 48 H40.5 L32 27 L23.5 48 H16 Z" fill="#ffffff" />
-      <Path d="M27 42a5 5 0 1 0 10 0 5 5 0 0 0-10 0z" fill={ACCENT} />
+      <Rect width={64} height={64} rx={14} fill={BRAND} />
+      {[16, 32, 48].flatMap((x) => [16, 32, 48].map((y) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} fill={PALETTE.white} opacity={0.22} />))}
+      <Path d="M16 16 L32 48 L48 16" fill="none" stroke={PALETTE.white} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={32} cy={32} r={5.2} fill={PALETTE.green} />
     </Svg>
   );
 }
 
 export function CandidateReportDocument({ data }: { data: ReportData }) {
+  const showRationale = data.showAiRationale !== false;
   const band = data.overallScore !== null ? bandInfo(data.overallScore) : null;
   const byCategory = ["Core", "Leadership", "Functional"]
     .map((cat) => ({ cat, rows: data.competencies.filter((c) => c.category === cat) }))
@@ -167,7 +191,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         {data.executiveSummary && (
           <View style={styles.execCard} wrap={false}>
             <View style={styles.execHeadlineRow}>
-              <Text style={{ fontSize: 8.5, fontFamily: "Helvetica-Bold", color: INK }}>AI-Assisted Synthesis</Text>
+              <Text style={{ fontSize: 8.5, fontFamily: "Inter", fontWeight: 700, color: INK }}>AI-Assisted Synthesis</Text>
               <Text style={{ ...styles.execRecBadge, backgroundColor: recColor(data.executiveSummary.recommendationLabel) }}>
                 {data.executiveSummary.recommendationLabel.toUpperCase()}
               </Text>
@@ -207,7 +231,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
             <Text style={styles.scoreBigLabel}>Overall Role Fit{"\n"}(out of 100)</Text>
           </View>
           <View style={styles.scoreSummary}>
-            <Text style={{ fontSize: 10, fontFamily: "Helvetica-Bold", color: band?.color || MUTED, marginBottom: 4 }}>
+            <Text style={{ fontSize: 10, fontFamily: "Inter", fontWeight: 700, color: band?.color || MUTED, marginBottom: 4 }}>
               {band?.label || "Not yet scored"}
             </Text>
             <Text style={{ fontSize: 8.5, color: MUTED, lineHeight: 1.5 }}>
@@ -229,8 +253,8 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         {byCategory.map((group) => (
           <View key={group.cat} wrap={false}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, marginTop: 6 }}>
-              <Text style={{ fontSize: 9, fontFamily: "Helvetica-Bold", color: BRAND }}>{group.cat.toUpperCase()}</Text>
-              <Text style={{ fontSize: 8, fontFamily: "Helvetica-Bold", color: MUTED }}>
+              <Text style={{ fontSize: 9, fontFamily: "Inter", fontWeight: 700, color: BRAND }}>{group.cat.toUpperCase()}</Text>
+              <Text style={{ fontSize: 8, fontFamily: "Inter", fontWeight: 700, color: MUTED }}>
                 avg {Math.round(group.rows.reduce((a, c) => a + c.score, 0) / group.rows.length)}
               </Text>
             </View>
@@ -259,10 +283,12 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
               {i + 1}. {r.prompt}
             </Text>
             <Text style={styles.questionAnswer}>{r.answer || "(no answer provided)"}</Text>
-            {r.needsReview && <Text style={styles.needsReviewBadge}>NEEDS REVIEW -- low-confidence score, confirm before relying on it</Text>}
-            <Text style={styles.rationale}>
-              AI rationale ({Math.round(r.score)}/100): {r.rationale}
-            </Text>
+            {showRationale && r.needsReview && <Text style={styles.needsReviewBadge}>NEEDS REVIEW -- low-confidence score, confirm before relying on it</Text>}
+            {showRationale && (
+              <Text style={styles.rationale}>
+                AI rationale ({Math.round(r.score)}/100): {r.rationale}
+              </Text>
+            )}
           </View>
         ))}
 
@@ -275,7 +301,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
                   {d.decision.toUpperCase()}
                 </Text>
                 <Text style={{ fontSize: 8.5, color: MUTED, flex: 1 }}>
-                  <Text style={{ fontFamily: "Helvetica-Bold", color: INK }}>{d.reviewer}</Text>
+                  <Text style={{ fontFamily: "Inter", fontWeight: 700, color: INK }}>{d.reviewer}</Text>
                   {d.comment ? ` — "${d.comment}"` : ""} · {new Date(d.createdAt).toLocaleDateString()}
                 </Text>
               </View>

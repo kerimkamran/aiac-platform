@@ -1,6 +1,7 @@
-// Parsers for the Case Library's manual upload feature — lets a superadmin
-// add cases from an existing Excel workbook, Word document, plain text file,
-// or Markdown file instead of (or alongside) AI generation.
+// Parsers for "Import questions from file" (plan v2, Phase 1). Salvaged from
+// the retired Case Library upload: an Excel workbook, Word document, plain text
+// file or Markdown file becomes validated question rows. The case_library table
+// stays as a quality bank; these parsers never write to it on their own.
 //
 // Excel: one row per case, flexible header names (see COLUMN_ALIASES).
 // Word/plain text/Markdown: labeled-field blocks separated by a line of
@@ -22,9 +23,29 @@
 //   Title: Next case...
 
 import ExcelJS from "exceljs";
-import type { CaseLibraryQuestionType, GeneratedCase, MethodologyTag } from "@/lib/case-library";
 import { redactForAi, type RedactionReport } from "@/lib/ai-input";
 import type { EngineKey } from "@/lib/ai-engine";
+
+export type MethodologyTag =
+  | "Hogan-style derailment"
+  | "Mettl-style SJT"
+  | "WTW/Saville-style situation"
+  | "Korn Ferry-style exercise"
+  | "McLean-style behavioral anchor"
+  | "Blended";
+
+export type CaseLibraryQuestionType = "mcq" | "text";
+
+export type GeneratedCase = {
+  title: string;
+  scenarioText: string;
+  questionStem: string;
+  questionType: CaseLibraryQuestionType;
+  options?: { text: string; correct?: boolean }[];
+  difficulty: "mid" | "high";
+  methodologyTag: MethodologyTag;
+  methodologyNotes: string;
+};
 
 export const VALID_METHODOLOGY_TAGS: MethodologyTag[] = [
   "Hogan-style derailment",
@@ -340,7 +361,6 @@ export async function extractCasesWithAI(
   text: string,
   competencies: { code: string; name: string }[]
 ): Promise<{ rows: AiExtractedRow[]; truncated: boolean; dropped: string[]; redaction: RedactionReport }> {
-  const { validateCases } = await import("@/lib/case-library");
   const { callEngine, extractJson } = await import("@/lib/ai-engine");
 
   const MAX_CHARS = 14000;
@@ -366,4 +386,57 @@ export async function extractCasesWithAI(
   }));
 
   return { rows, truncated, dropped, redaction };
+}
+
+// Keeps only usable cases. An mcq case needs 2-4 options with exactly one
+// correct answer; anything else is dropped and reported, never repaired by
+// silently marking option A correct.
+export function validateCases(data: unknown): { cases: GeneratedCase[]; dropped: string[] } {
+  if (!data || typeof data !== "object" || !Array.isArray((data as { cases?: unknown }).cases)) {
+    throw new Error("Generated content did not match the expected shape (missing cases array).");
+  }
+  const cases: GeneratedCase[] = [];
+  const dropped: string[] = [];
+
+  for (const c of (data as { cases: unknown[] }).cases) {
+    const cc = c as Partial<GeneratedCase> & Record<string, unknown>;
+    const label = typeof cc.title === "string" && cc.title.trim() ? cc.title.trim() : "untitled case";
+    if (typeof cc.title !== "string" || typeof cc.scenarioText !== "string" || typeof cc.questionStem !== "string") {
+      dropped.push(`${label}: missing title, scenario, or question`);
+      continue;
+    }
+    if (cc.questionType !== "mcq" && cc.questionType !== "text") {
+      dropped.push(`${label}: invalid question type`);
+      continue;
+    }
+    const result: GeneratedCase = {
+      title: cc.title.trim(),
+      scenarioText: cc.scenarioText.trim(),
+      questionStem: cc.questionStem.trim(),
+      questionType: cc.questionType,
+      difficulty: cc.difficulty === "high" ? "high" : "mid",
+      methodologyTag: (typeof cc.methodologyTag === "string" ? cc.methodologyTag : "Blended") as MethodologyTag,
+      methodologyNotes: typeof cc.methodologyNotes === "string" ? cc.methodologyNotes.trim() : "",
+    };
+    if (result.questionType === "mcq") {
+      const opts = Array.isArray(cc.options) ? cc.options : [];
+      const usable = opts
+        .map((o) => {
+          const oo = o as { text?: unknown; correct?: unknown };
+          return { text: typeof oo.text === "string" ? oo.text.trim() : "", correct: oo.correct === true };
+        })
+        .filter((o) => o.text.length > 0);
+      if (usable.length < 2 || usable.length > 4) {
+        dropped.push(`${label}: mcq needs 2-4 options`);
+        continue;
+      }
+      if (usable.filter((o) => o.correct).length !== 1) {
+        dropped.push(`${label}: mcq needs exactly one correct option`);
+        continue;
+      }
+      result.options = usable;
+    }
+    cases.push(result);
+  }
+  return { cases, dropped };
 }

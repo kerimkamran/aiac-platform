@@ -70,7 +70,7 @@ export type GenerationOptions = {
   purpose: AssessmentPurposeKey;
   questionTotal: number;
   mix: QuestionMix;
-  position?: { title: string; department?: string | null };
+  position?: { title: string };
   context: ContextItem[];
 };
 
@@ -125,7 +125,7 @@ function contextBlocks(context: ContextItem[]): string {
 
 function buildUserPrompt(competencies: CompetencyForPrompt[], options: GenerationOptions): string {
   const positionLine = options.position
-    ? `Position: ${options.position.title}${options.position.department ? ` (${options.position.department})` : ""}\n`
+    ? `Job title: ${options.position.title}\n`
     : "";
   const blocks = competencies
     .map(

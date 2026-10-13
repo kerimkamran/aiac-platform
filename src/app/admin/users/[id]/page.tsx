@@ -94,7 +94,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <form action={setUserStatus.bind(null, id, "deactivated")}>
               <ConfirmSubmitButton
                 confirmMessage={`Deactivate ${user.full_name}? They will be signed out and blocked from logging in.`}
-                className="border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
+                className="border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
               >
                 Deactivate
               </ConfirmSubmitButton>
@@ -215,7 +215,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted">Blacklisted</span>
               <form action={toggleUserFlag.bind(null, id, "blacklisted", !user.blacklisted)}>
-                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.blacklisted ? "bg-red-50 text-critical ring-red-200" : "bg-surface text-muted ring-line"}`}>
+                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.blacklisted ? "bg-critical-soft text-critical ring-critical/30" : "bg-surface text-muted ring-line"}`}>
                   {user.blacklisted ? "Yes — clear" : "No — set"}
                 </button>
               </form>
@@ -223,7 +223,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <div className="flex items-center justify-between text-sm">
               <span className="text-muted">Legal hold</span>
               <form action={toggleUserFlag.bind(null, id, "legal_hold", !user.legal_hold)}>
-                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.legal_hold ? "bg-amber-50 text-warning ring-amber-200" : "bg-surface text-muted ring-line"}`}>
+                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.legal_hold ? "bg-warning-soft text-warning ring-warning/30" : "bg-surface text-muted ring-line"}`}>
                   {user.legal_hold ? "Held — release" : "Off — hold"}
                 </button>
               </form>
@@ -236,7 +236,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <form action={anonymizeUser.bind(null, id)}>
                 <ConfirmSubmitButton
                   confirmMessage={`GDPR-anonymize ${user.full_name}? Personal data is permanently blanked (scores are kept, de-identified). This cannot be undone.`}
-                  className="w-full border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
+                  className="w-full border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
                 >
                   Anonymize (GDPR)
                 </ConfirmSubmitButton>

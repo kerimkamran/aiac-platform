@@ -1,3 +1,4 @@
+import { VantageMark } from "@/components/VantageMark";
 import Link from "next/link";
 
 /* ---------------- Icons ---------------- */
@@ -11,6 +12,7 @@ const ICON_PATHS: Record<string, string> = {
   wand: "M15 4V2m0 20v-2m5-5h2M3 15h2m11.5-8.5L18 5m-9.5 9.5L4 19m12.5-4.5L18 16M8.5 8.5 7 7m4 4 9 9",
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 3",
   check: "M20 6 9 17l-5-5",
+  flag: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
   checkCircle: "M22 11.1V12a10 10 0 1 1-5.93-9.14M22 4 12 14l-3-3",
   arrowRight: "M5 12h14m-6-6 6 6-6 6",
   arrowLeft: "M19 12H5m6 6-6-6 6-6",
@@ -78,38 +80,23 @@ export function Icon({ name, className = "w-5 h-5", label }: { name: string; cla
 
 /* ---------------- Brand ---------------- */
 
-// "Vantage" mark: an ascending peak/chevron inside a rounded square -- reads
-// as both an upward viewpoint (evidence -> clarity) and a growth signal.
-// Design-execution-plan Phase 1 / T1.4: this comment used to describe an
-// "indigo -> emerald brand gradient" that the mark never actually draws --
-// it's a flat near-black square (below) with one flat accent-color dot,
-// matching the rest of the v4 "Field" system (one accent color, used
-// sparingly, never as a gradient or mesh). Corrected to describe what's
-// actually rendered.
+// The Vantage logo (plan v2, section 4.4). The mark is VantageMark; the lockup
+// adds the wordmark and the "AZERCONNECT GROUP" line between two rules.
 export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 64 64" className={className} aria-hidden>
-      <rect width="64" height="64" rx="12" fill="#1a1a1a" />
-      <path d="M14 40 L28 22 L36 32 L50 16" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
-      <circle cx="50" cy="16" r="5.5" fill="var(--accent)" />
-    </svg>
-  );
+  return <VantageMark className={className} tile />;
 }
 
-// Design-execution-plan Phase 1 / T1.4: dropped the `dark` prop -- every
-// call site in the app used the default (false); the true-branch styling
-// (white text, for placing the logo on a dark panel) was dead code no
-// caller ever reached. If a dark-panel placement is needed later, it's a
-// one-line prop to re-add with a real call site attached.
 export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
-      <LogoMark className="w-8 h-8 shrink-0" />
+      <VantageMark className="w-8 h-8 shrink-0" />
       {!compact && (
-        <span className="font-semibold leading-none tracking-tight [font-family:var(--font-display)] text-accent-dark">
-          <span className="block text-base">Vantage</span>
-          <span className="block text-2xs font-medium uppercase tracking-[0.18em] mt-1 font-sans text-accent-dark">
-            by Azerconnect Group
+        <span className="leading-none">
+          <span className="block font-display font-extrabold text-base tracking-tight text-accent-dark">Vantage</span>
+          <span className="flex items-center gap-1.5 mt-1">
+            <span aria-hidden className="h-px w-3 bg-gradient-to-r from-brand to-secondary" />
+            <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted whitespace-nowrap">Azerconnect Group</span>
+            <span aria-hidden className="h-px w-3 bg-gradient-to-r from-brand to-secondary" />
           </span>
         </span>
       )}
@@ -131,12 +118,12 @@ export type Band = { label: string; badge: string; bar: string; hex: string };
 // custom property its own `bar`/`dot` class already resolves to.
 export function bandFor(score: number): Band {
   if (score >= 85)
-    return { label: "Exceeds", badge: "bg-[#eef3ef] text-[#3d7a4d]", bar: "bg-[#3d7a4d]", hex: "var(--good)" };
+    return { label: "Exceeds", badge: "bg-good-soft text-good", bar: "bg-good", hex: "var(--good)" };
   if (score >= 70)
     return { label: "Fully Meets", badge: "bg-line-soft text-foreground", bar: "bg-foreground", hex: "var(--foreground)" };
   if (score >= 50)
     return { label: "Partially Meets", badge: "bg-brand-50 text-accent-dark", bar: "bg-accent", hex: "var(--accent)" };
-  return { label: "Does Not Meet", badge: "bg-[#fbeceb] text-[#b23b3b]", bar: "bg-[#b23b3b]", hex: "var(--critical)" };
+  return { label: "Does Not Meet", badge: "bg-critical-soft text-critical", bar: "bg-critical", hex: "var(--critical)" };
 }
 
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
@@ -160,18 +147,18 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
   in_progress: { label: "In progress", cls: "bg-brand-50 text-accent-dark" },
   submitted: { label: "Submitted", cls: "bg-line-soft text-muted" },
   scored: { label: "Scored — awaiting review", cls: "bg-brand-50 text-accent-dark" },
-  reviewed: { label: "Reviewed", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  reviewed: { label: "Reviewed", cls: "bg-good-soft text-good" },
   draft: { label: "Draft", cls: "bg-line-soft text-muted" },
-  published: { label: "Published", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
-  shortlist: { label: "Shortlisted", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  published: { label: "Published", cls: "bg-good-soft text-good" },
+  shortlist: { label: "Shortlisted", cls: "bg-good-soft text-good" },
   hold: { label: "On hold", cls: "bg-brand-50 text-accent-dark" },
-  reject: { label: "Rejected", cls: "bg-[#fbeceb] text-[#b23b3b]" },
-  recommend: { label: "Recommended", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  reject: { label: "Rejected", cls: "bg-critical-soft text-critical" },
+  recommend: { label: "Recommended", cls: "bg-good-soft text-good" },
   needs_development_plan: { label: "Needs development plan", cls: "bg-brand-50 text-accent-dark" },
-  not_yet_ready: { label: "Not yet ready", cls: "bg-[#fbeceb] text-[#b23b3b]" },
-  strengths_identified: { label: "Strengths identified", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  not_yet_ready: { label: "Not yet ready", cls: "bg-critical-soft text-critical" },
+  strengths_identified: { label: "Strengths identified", cls: "bg-good-soft text-good" },
   growth_areas_identified: { label: "Growth areas identified", cls: "bg-brand-50 text-accent-dark" },
-  active: { label: "Active", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+  active: { label: "Active", cls: "bg-good-soft text-good" },
   deactivated: { label: "Deactivated", cls: "bg-line-soft text-muted" },
 };
 
@@ -210,9 +197,9 @@ export function ScoreBadge({ score }: { score: number }) {
 // for human confirmation.
 export function ScoringDisclosure({ className = "" }: { className?: string }) {
   return (
-    <div className={`flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 ${className}`}>
-      <Icon name="info" className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-      <p className="text-2xs leading-relaxed text-amber-800">
+    <div className={`flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-2.5 ${className}`}>
+      <Icon name="info" className="w-4 h-4 text-warning mt-0.5 shrink-0" />
+      <p className="text-2xs leading-relaxed text-warning">
         <span className="font-bold">How scores are calculated:</span> Multiple-choice questions are scored exactly
         (correct/incorrect). Free-text answers are graded by an AI model against the competency&rsquo;s own behavioural
         indicators, with a written rationale for each score — falling back to a length/structure heuristic only if no
@@ -450,10 +437,10 @@ export function JourneyTracker({ status }: { status: string }) {
 import type { ExecutiveSummary, Benchmark } from "@/lib/reporting";
 
 const RECOMMENDATION_TONE_CLS: Record<ExecutiveSummary["recommendationTone"], string> = {
-  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
-  accent: "bg-green-50 text-green-700 ring-green-600/20",
-  amber: "bg-amber-50 text-amber-700 ring-amber-600/20",
-  red: "bg-red-50 text-red-700 ring-red-600/20",
+  emerald: "bg-good-soft text-good ring-good/30",
+  accent: "bg-good-soft text-good ring-good/30",
+  amber: "bg-warning-soft text-warning ring-warning/30",
+  red: "bg-critical-soft text-critical ring-critical/30",
 };
 
 export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary }) {
@@ -476,7 +463,7 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
             <ul className="space-y-1.5">
               {summary.strengths.map((s, i) => (
                 <li key={i} className="text-xs text-muted flex items-start gap-1.5">
-                  <Icon name="checkCircle" className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
+                  <Icon name="checkCircle" className="w-3.5 h-3.5 text-good shrink-0 mt-0.5" />
                   {s}
                 </li>
               ))}
@@ -491,7 +478,7 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
             <ul className="space-y-1.5">
               {summary.developmentAreas.map((s, i) => (
                 <li key={i} className="text-xs text-muted flex items-start gap-1.5">
-                  <Icon name="target" className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
+                  <Icon name="target" className="w-3.5 h-3.5 text-warning shrink-0 mt-0.5" />
                   {s}
                 </li>
               ))}
@@ -552,7 +539,7 @@ export function BenchmarkCard({
         <div className="text-right shrink-0">
           <p className="text-2xs font-bold uppercase tracking-wider text-muted">Peer avg</p>
           <p className="text-sm font-bold text-foreground tabular-nums">{benchmark.peerAvg}</p>
-          <p className={`text-2xs font-semibold ${deltaPositive ? "text-emerald-600" : "text-critical"}`}>
+          <p className={`text-2xs font-semibold ${deltaPositive ? "text-good" : "text-critical"}`}>
             {deltaPositive ? "+" : ""}
             {benchmark.delta}
           </p>

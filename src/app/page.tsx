@@ -2,8 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { LogoMark } from "@/components/ui";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { ScoutLauncher } from "@/components/ScoutLauncher";
+import { AppearanceMenu } from "@/components/AppearanceMenu";
 
 // Design-execution-plan follow-up ("make it simple like Google"): the
 // marketing homepage used to run six sections deep (hero, stat strip,
@@ -67,7 +66,7 @@ export default async function Home() {
         <span>Azerconnect Group — Internal Use Only</span>
         <span className="hidden md:inline">·</span>
         <span className="flex items-center gap-4">
-          <ThemeToggle className="text-muted hover:text-muted transition-colors" />
+          <AppearanceMenu />
           <a
             href="https://www.linkedin.com/in/thekmrnkrml/"
             target="_blank"
@@ -79,7 +78,6 @@ export default async function Home() {
         </span>
       </footer>
 
-      <ScoutLauncher role="visitor" />
     </div>
   );
 }

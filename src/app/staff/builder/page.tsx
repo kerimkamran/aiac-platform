@@ -32,12 +32,11 @@ const ENGINE_LABEL: Record<string, string> = {
 export default async function BuilderListPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; archived?: string; q?: string; position?: string }>;
+  searchParams: Promise<{ error?: string; archived?: string; q?: string }>;
 }) {
-  const { archived: archivedParam, q: queryParam, position: positionParam } = await searchParams;
+  const { archived: archivedParam, q: queryParam } = await searchParams;
   const showArchived = archivedParam === "1";
   const query = (queryParam || "").trim().toLowerCase();
-  const positionFilter = positionParam || "";
   const supabase = await createClient();
 
   const {
@@ -47,14 +46,13 @@ export default async function BuilderListPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
   const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
 
-  const [{ data: assessments }, { data: positionOptions }, { data: assignableUsers }] = await Promise.all([
+  const [{ data: assessments }, { data: assignableUsers }] = await Promise.all([
     supabase
       .from("assessments")
       .select(
-        "id, title, description, status, time_limit_minutes, created_at, mode, engine, generated_at, purpose, content_language, target_level, vacancy_title, position_id, position:positions(title), assessment_sections(id), questions:assessment_sections(questions(id)), generator:profiles!assessments_generated_by_fkey(full_name)"
+        "id, title, description, status, time_limit_minutes, created_at, mode, engine, generated_at, purpose, content_language, target_level, vacancy_title, assessment_sections(id), questions:assessment_sections(questions(id)), generator:profiles!assessments_generated_by_fkey(full_name)"
       )
       .order("created_at", { ascending: false }),
-    supabase.from("positions").select("id, title").is("archived_at", null).order("title"),
     supabase
       .from("profiles")
       .select("id, full_name, email, role")
@@ -64,8 +62,7 @@ export default async function BuilderListPage({
 
   const listed = (assessments || []).filter((a) => (showArchived ? a.status === "archived" : a.status !== "archived"));
   const visible = listed.filter((a) => {
-    if (positionFilter && a.position_id !== positionFilter) return false;
-    if (query && !`${a.title} ${a.vacancy_title ?? ""} ${(a.position as unknown as { title: string } | null)?.title ?? ""}`.toLowerCase().includes(query)) return false;
+    if (query && !`${a.title} ${a.vacancy_title ?? ""}`.toLowerCase().includes(query)) return false;
     return true;
   });
   const archivedTotal = (assessments || []).filter((x) => x.status === "archived").length;
@@ -79,7 +76,7 @@ export default async function BuilderListPage({
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader
         title="Assessment Builder"
-        subtitle="Each assessment belongs to a position and a level. Draft it, review every question, then publish."
+        subtitle="Each assessment has a job title and a level. Draft it, review every question, then publish."
       />
 
       <ToastFromParams specs={TOAST_SPECS} />
@@ -105,23 +102,10 @@ export default async function BuilderListPage({
             <input
               name="q"
               defaultValue={queryParam || ""}
-              placeholder="Search by title or position"
+              placeholder="Search by title or job title"
               aria-label="Search assessments"
               className="flex-1 min-w-[12rem] bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
-            <select
-              name="position"
-              defaultValue={positionFilter}
-              aria-label="Filter by position"
-              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              <option value="">All positions</option>
-              {(positionOptions || []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.title}
-                </option>
-              ))}
-            </select>
             <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Filter</button>
           </form>
           {visible.map((a) => {
@@ -142,7 +126,7 @@ export default async function BuilderListPage({
                   </div>
                   {a.description && <p className="text-xs text-muted line-clamp-1 mb-2.5">{a.description}</p>}
                   <p className="text-xs text-muted flex items-center gap-x-4 gap-y-1 flex-wrap mb-1.5">
-                    <span className="font-medium text-foreground">{(a.position as unknown as { title: string } | null)?.title ?? a.vacancy_title ?? "No position"}</span>
+                    <span className="font-medium text-foreground">{a.vacancy_title || a.title}</span>
                     {isLevelKey(a.target_level) && <span>{LEVELS[a.target_level].label}</span>}
                     <span className="capitalize">{a.purpose ?? "hiring"}</span>
                     <span>{a.content_language === "az" ? "Azərbaycan dili" : a.content_language === "ru" ? "Русский" : "English"}</span>
@@ -191,7 +175,7 @@ export default async function BuilderListPage({
                       confirmMessage={`Delete "${a.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
                       icon="trash"
                       label={`Delete "${a.title}"`}
-                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
                       compact
                     />
                   </form>
@@ -215,16 +199,13 @@ export default async function BuilderListPage({
               New assessment
             </p>
             <p className="text-xs text-muted">
-              Start from a position and a level. Add the job description or notes if you have them, and the AI drafts questions you review before anything is published.
+              Start from a job title and a level. Add the job description or notes if you have them, and the AI drafts questions you review before anything is published.
             </p>
             <Link
               href="/staff/builder/new"
               className="block text-center bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors"
             >
               Start a new assessment
-            </Link>
-            <Link href="/staff/builder/positions" className="block text-center border border-line rounded-xl py-2.5 text-sm font-semibold hover:border-accent">
-              Manage positions
             </Link>
           </Card>
 

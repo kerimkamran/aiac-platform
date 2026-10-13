@@ -13,17 +13,17 @@ export function scoreBucket(score: number): Bucket {
 
 export const TALENT_BOX_META: Record<Bucket, Record<Bucket, { label: string; tone: string }>> = {
   High: {
-    Low: { label: "Enigma", tone: "bg-amber-50 border-amber-200" },
+    Low: { label: "Enigma", tone: "bg-warning-soft border-warning/40" },
     Medium: { label: "Growth Employee", tone: "bg-accent-soft border-accent/30" },
-    High: { label: "Future Leader", tone: "bg-emerald-50 border-emerald-300" },
+    High: { label: "Future Leader", tone: "bg-good-soft border-good/50" },
   },
   Medium: {
-    Low: { label: "Inconsistent Player", tone: "bg-amber-50 border-amber-200" },
+    Low: { label: "Inconsistent Player", tone: "bg-warning-soft border-warning/40" },
     Medium: { label: "Core Player", tone: "bg-accent-soft border-accent/20" },
-    High: { label: "High Performer", tone: "bg-emerald-50 border-emerald-200" },
+    High: { label: "High Performer", tone: "bg-good-soft border-good/40" },
   },
   Low: {
-    Low: { label: "Risk", tone: "bg-red-50 border-red-200" },
+    Low: { label: "Risk", tone: "bg-critical-soft border-critical/40" },
     Medium: { label: "Trusted Professional", tone: "bg-accent-soft border-line" },
     High: { label: "Solid Performer", tone: "bg-accent-soft border-line" },
   },

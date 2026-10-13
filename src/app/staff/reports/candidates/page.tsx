@@ -77,15 +77,9 @@ export default async function StaffCandidatesPage({
 
   return (
     <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-10">
-      <PageHeader title="Candidates" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
+      <PageHeader title="Reports" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
 
       <div className="flex items-center gap-1 mb-6 border-b border-line">
-        <Link
-          href="/staff/reports"
-          className="px-3.5 py-2.5 text-sm font-semibold text-muted hover:text-foreground transition-colors"
-        >
-          Overview
-        </Link>
         <span className="px-3.5 py-2.5 text-sm font-semibold text-foreground border-b-2 border-brand -mb-px">
           Candidates
         </span>

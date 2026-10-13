@@ -19,9 +19,9 @@ export type DecisionOption = {
   cls: string;
 };
 
-const POSITIVE = "peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700";
-const NEUTRAL = "peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700";
-const NEGATIVE = "peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700";
+const POSITIVE = "peer-checked:border-good peer-checked:bg-good-soft peer-checked:text-good";
+const NEUTRAL = "peer-checked:border-warning peer-checked:bg-warning-soft peer-checked:text-warning";
+const NEGATIVE = "peer-checked:border-critical peer-checked:bg-critical-soft peer-checked:text-critical";
 
 export const DECISION_OPTIONS: Record<AssessmentPurpose, DecisionOption[]> = {
   hiring: [

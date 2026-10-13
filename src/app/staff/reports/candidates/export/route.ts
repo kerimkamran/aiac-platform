@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
+import { HEADER_FILL, HEADER_FONT } from "@/lib/excel-style";
 
 export const runtime = "nodejs";
 
@@ -133,8 +134,8 @@ export async function GET(req: Request) {
     { header: "Decision Comment", key: "comment", width: 40 },
   ];
 
-  sheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } };
-  sheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF4338CA" } };
+  sheet.getRow(1).font = HEADER_FONT;
+  sheet.getRow(1).fill = HEADER_FILL;
   sheet.getRow(1).height = 22;
 
   for (const r of list) {
@@ -172,7 +173,7 @@ export async function GET(req: Request) {
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="aiac-candidates-${stamp}.xlsx"`,
+      "Content-Disposition": `attachment; filename="vantage-candidates-${stamp}.xlsx"`,
     },
   });
 }

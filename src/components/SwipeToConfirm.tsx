@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui";
 export type SwipeTone = "critical" | "brand" | "accent";
 
 const TONE_STYLES: Record<SwipeTone, { fill: string; handle: string; ring: string; text: string }> = {
-  critical: { fill: "bg-red-100", handle: "bg-critical", ring: "ring-red-200", text: "text-critical" },
+  critical: { fill: "bg-critical-soft", handle: "bg-critical", ring: "ring-critical/30", text: "text-critical" },
   brand: { fill: "bg-brand-50", handle: "bg-brand", ring: "ring-brand/20", text: "text-accent-dark" },
   accent: { fill: "bg-accent-soft", handle: "bg-accent-dark", ring: "ring-accent/25", text: "text-accent-dark" },
 };

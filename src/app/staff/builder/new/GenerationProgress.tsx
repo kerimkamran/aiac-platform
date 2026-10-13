@@ -2,20 +2,18 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LEVELS, type LevelKey } from "@/lib/levels";
-import type { Job, PositionSel } from "./types";
-
-type Combo = { key: string; posKey: string; level: LevelKey };
+import { LEVELS } from "@/lib/levels";
+import type { Combo, Job } from "./types";
 
 export function GenerationProgress({
   combos,
-  positions,
+  jobTitle,
   jobs,
   running,
   onRetry,
 }: {
   combos: Combo[];
-  positions: PositionSel[];
+  jobTitle: string;
   jobs: Record<string, Job>;
   running: boolean;
   onRetry: (key: string) => void;
@@ -32,8 +30,6 @@ export function GenerationProgress({
 
   if (combos.length === 0 || Object.keys(jobs).length === 0) return null;
 
-  const titleFor = (posKey: string) => positions.find((p) => p.key === posKey)?.title ?? "Position";
-
   return (
     <section className="rounded-2xl border border-line bg-surface p-5 space-y-4" aria-live="polite">
       <header className="flex items-baseline justify-between gap-3">
@@ -45,7 +41,7 @@ export function GenerationProgress({
         {combos.map((c) => {
           const job = jobs[c.key];
           if (!job) return null;
-          const label = `${titleFor(c.posKey)} — ${LEVELS[c.level].label}`;
+          const label = `${jobTitle || "Draft"} — ${LEVELS[c.level].label}`;
           const elapsed = job.startedAt ? Math.max(0, Math.round((now - job.startedAt) / 1000)) : 0;
 
           return (
@@ -56,7 +52,7 @@ export function GenerationProgress({
                 {job.warnings.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {job.warnings.map((w, i) => (
-                      <li key={i} className="text-2xs text-warning bg-amber-50 rounded-md px-2 py-1">
+                      <li key={i} className="text-2xs text-warning bg-warning-soft rounded-md px-2 py-1">
                         {w}
                       </li>
                     ))}
@@ -100,7 +96,7 @@ function StatusLine({ job, elapsed }: { job: Job; elapsed: number }) {
     );
   }
   if (job.status === "done") {
-    return <p className="text-xs text-emerald-700 mt-0.5">{job.empty ? "Empty draft created" : "Draft ready"} · not visible to candidates until published</p>;
+    return <p className="text-xs text-good mt-0.5">{job.empty ? "Empty draft created" : "Draft ready"} · not visible to candidates until published</p>;
   }
   return <p className="text-xs text-critical mt-0.5">Didn&apos;t finish</p>;
 }
