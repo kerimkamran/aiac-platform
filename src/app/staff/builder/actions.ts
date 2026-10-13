@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireRole, requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { assertCanGenerate, AiPolicyError, type AiPolicy } from "@/lib/ai-policy";
+import { assertCanGenerate, AiPolicyError, loadAiPolicy, type AiPolicy } from "@/lib/ai-policy";
 import type { EngineKey } from "@/lib/ai-engine";
 import {
   generateAssessmentContent,
@@ -41,6 +41,9 @@ export async function createAssessment(formData: FormData) {
   const description = String(formData.get("description") || "");
   const timeLimit = Number(formData.get("time_limit_minutes") || 60);
   const purpose = normalizePurpose(formData.get("purpose"));
+  // Manual and blank assessments get the default AI engine too, so open
+  // answers can be scored (plan v2, section 9, item 5).
+  const policy = await loadAiPolicy(supabase);
 
   const { data, error } = await supabase
     .from("assessments")
@@ -52,6 +55,7 @@ export async function createAssessment(formData: FormData) {
       created_by: user!.id,
       status: "draft",
       purpose,
+      engine: policy.defaultEngine,
     })
     .select("id")
     .single();
@@ -132,78 +136,6 @@ export async function addQuestion(sectionId: string, assessmentId: string, formD
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
 
-// Imports one or more Case Library entries directly as questions in this
-// section -- cases are already validated, methodology-grounded scenario
-// questions (scenario_text + question_stem + options), so this is a direct
-// insert rather than a second AI-generation pass. The case's scenario_text
-// (context) is prepended to its question_stem to form the question prompt,
-// so the scenario reads inline with the question the way the case-library
-// preview shows it. RLS on case_library allows any is_staff() role to read
-// it (see case_library "cases staff" policy), so this only needs
-// requireStaff(), not the case-library page's stricter system_admin gate --
-// that stricter gate is an app-layer choice specific to browsing/managing
-// the raw library, not a data-access restriction.
-export async function addQuestionsFromCases(sectionId: string, assessmentId: string, formData: FormData) {
-  await requireStaff();
-  const supabase = await createClient();
-
-  const caseIds = (formData.getAll("case_id") as string[]).filter(Boolean);
-  if (caseIds.length === 0) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Choose at least one case first."));
-  }
-
-  const { data: cases, error } = await supabase
-    .from("case_library")
-    .select("id, competency_id, scenario_text, question_stem, question_type, options")
-    .in("id", caseIds);
-
-  if (error || !cases || cases.length === 0) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error?.message || "Couldn't load the selected cases."));
-  }
-
-  const { count } = await supabase
-    .from("questions")
-    .select("id", { count: "exact", head: true })
-    .eq("section_id", sectionId);
-
-  let nextSequence = (count || 0) + 1;
-  const rows = (cases || []).map((c) => {
-    const prompt = c.scenario_text ? `${c.scenario_text}\n\n${c.question_stem || ""}`.trim() : c.question_stem || "";
-    const rawOptions = (c.options as { text?: unknown; correct?: unknown }[] | null) || null;
-    // case_library.options is {text, correct} (no letter key) -- questions.options
-    // needs the {key, text, correct} shape the runner/scoring expects, so the
-    // A/B/C/D key is assigned here on import.
-    const options =
-      c.question_type === "mcq" && rawOptions
-        ? rawOptions.map((o, i) => ({
-            key: String.fromCharCode(65 + i),
-            text: typeof o.text === "string" ? o.text : "",
-            correct: !!o.correct,
-          }))
-        : null;
-    return {
-      section_id: sectionId,
-      question_type: c.question_type || "text",
-      prompt,
-      options,
-      competency_id: c.competency_id,
-      weight: 1,
-      sequence: nextSequence++,
-    };
-  });
-
-  const { error: insertError } = await supabase.from("questions").insert(rows);
-  if (insertError) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(insertError.message));
-  }
-
-  revalidatePath(`/staff/builder/${assessmentId}`);
-  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent(`${rows.length} question${rows.length > 1 ? "s" : ""} added from the Case Library.`));
-}
-
-// Publishing goes through publish_assessment() in the database, which checks
-// the questions, enforces the AI-draft rules (HR/org/system admin plus an
-// explicit review confirmation) and is the only route a trigger allows.
 export async function publishAssessment(assessmentId: string, formData?: FormData) {
   await requireStaff();
   const supabase = await createClient();
@@ -249,7 +181,7 @@ function chooseEngine(raw: string | null | undefined, fallback: EngineKey): Engi
   return raw === "claude" || raw === "fugu" || raw === "kimi" ? raw : fallback;
 }
 
-// Records one AI generation attempt with its metadata (position, level, batch,
+// Records one AI generation attempt with its metadata (level, batch,
 // the context that was sent, as counts and names only -- never the text). The
 // quota counts these rows. The idempotency key is unique per user, so a retried
 // draft gets a new key rather than generating twice under the same one.
@@ -258,7 +190,6 @@ async function startGenerationRun(
   run: {
     userId: string;
     engine: EngineKey;
-    positionId: string | null;
     batchId: string | null;
     idempotencyKey: string | null;
     level: LevelKey;
@@ -271,7 +202,6 @@ async function startGenerationRun(
       created_by: run.userId,
       engine: run.engine,
       status: "running",
-      position_id: run.positionId,
       batch_id: run.batchId,
       idempotency_key: run.idempotencyKey,
       target_level: run.level,
@@ -361,7 +291,6 @@ async function insertGeneratedAssessment(
     generated: import("@/lib/generation").GeneratedAssessment;
     purpose: AssessmentPurpose;
     language: GenerationLanguage;
-    positionId: string | null;
     vacancyTitle: string;
     level: LevelKey;
   }
@@ -387,7 +316,6 @@ async function insertGeneratedAssessment(
       generated_at: new Date().toISOString(),
       purpose: params.purpose,
       content_language: params.language,
-      position_id: params.positionId,
       vacancy_title: params.vacancyTitle,
       target_level: params.level,
     })
@@ -454,11 +382,10 @@ async function insertGeneratedAssessment(
 
 export type DraftInput = {
   batchId: string;
-  // Unique per draft and attempt, e.g. "<batch>:<position>:<level>:<attempt>".
+  // Unique per draft and attempt, e.g. "<batch>:<level>:<attempt>".
   idempotencyKey: string;
-  positionId: string | null;
-  positionTitle: string;
-  department: string | null;
+  // Job title / vacancy (plan v2: positions were removed; this is free text).
+  vacancyTitle: string;
   level: LevelKey;
   purpose: AssessmentPurpose;
   language: GenerationLanguage;
@@ -469,11 +396,8 @@ export type DraftInput = {
   instructions: string;
   jobDescription: string;
   notes: string;
-  // Reference files saved on the position (saved again when saveContext is on).
+  // Reference files for this batch. They are sent but never saved.
   files: { name: string; text: string }[];
-  // One-off files for this batch only. They are sent but never saved.
-  oneOffFiles: { name: string; text: string }[];
-  saveContext: boolean;
   // Create a draft with no questions (for staff without AI access).
   emptyDraft: boolean;
   // Optional title for a single draft. Ignored when a batch makes several.
@@ -484,63 +408,7 @@ export type DraftResult =
   | { ok: true; assessmentId: string; warnings: string[] }
   | { ok: false; error: string; emptyDraftAllowed: boolean };
 
-// Finds or creates the position a draft belongs to, and (when asked) saves its
-// job description, notes and reference files for next time.
-async function resolvePosition(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  userId: string,
-  input: DraftInput
-): Promise<string> {
-  const title = input.positionTitle.trim();
-  let positionId = input.positionId;
-  if (!positionId) {
-    const { data: existing } = await supabase
-      .from("positions")
-      .select("id")
-      .ilike("title", title)
-      .is("archived_at", null)
-      .maybeSingle();
-    positionId = existing?.id ?? null;
-  }
-  if (!positionId) {
-    const { data: created, error } = await supabase
-      .from("positions")
-      .insert({ title, department: input.department, default_level: input.level, created_by: userId, updated_by: userId })
-      .select("id")
-      .single();
-    if (error || !created) throw new Error(error?.message || "Couldn't create the position.");
-    positionId = created.id as string;
-  }
-
-  if (input.saveContext) {
-    await supabase
-      .from("positions")
-      .update({
-        department: input.department,
-        job_description: input.jobDescription,
-        notes: input.notes,
-        default_level: input.level,
-        updated_by: userId,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", positionId);
-    await supabase.from("position_files").delete().eq("position_id", positionId);
-    if (input.files.length > 0) {
-      await supabase.from("position_files").insert(
-        input.files.map((f) => ({
-          position_id: positionId,
-          filename: f.name.slice(0, 120),
-          content_text: f.text,
-          size_bytes: new TextEncoder().encode(f.text).length,
-          created_by: userId,
-        }))
-      );
-    }
-  }
-  return positionId as string;
-}
-
-// One draft per call. The client calls this once per (position, level)
+// One draft per call. The client calls this once per level
 // combination, at most two at a time, so each draft shows its own progress and
 // can be retried without redoing the others.
 export async function generateDraft(input: DraftInput): Promise<DraftResult> {
@@ -554,8 +422,8 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
     return { ok: false, error: "Not authorized.", emptyDraftAllowed: false };
   }
 
-  const title = input.positionTitle.trim();
-  if (title.length < 2) return { ok: false, error: "Choose or type a position first.", emptyDraftAllowed: false };
+  const title = input.vacancyTitle.trim();
+  if (title.length < 2) return { ok: false, error: "Type the job title first.", emptyDraftAllowed: false };
   if (!isLevelKey(input.level)) return { ok: false, error: "Choose a level.", emptyDraftAllowed: false };
   if (input.competencyIds.length === 0) return { ok: false, error: "Choose at least one competency.", emptyDraftAllowed: false };
 
@@ -587,13 +455,6 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
     }
   }
 
-  let positionId: string;
-  try {
-    positionId = await resolvePosition(supabase, user.id, input);
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "Couldn't save the position.", emptyDraftAllowed: false };
-  }
-
   const levelLabel = LEVELS[input.level].label;
   const customTitle = (input.customTitle ?? "").trim().slice(0, 120);
   const draftTitle = customTitle || `${title} — ${levelLabel}`;
@@ -612,7 +473,6 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
           status: "draft",
           purpose: input.purpose,
           content_language: input.language,
-          position_id: positionId,
           vacancy_title: title,
           target_level: input.level,
         })
@@ -632,10 +492,10 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
   // level only. The draft still generates, and the brief card says so.
   const { data: engineRows } = await supabase.rpc("engine_policy_for_staff");
   const contextAllowed = ((engineRows || []) as EnginePolicy[]).some((e) => e.key === engineKey && e.allow_context === true);
-  const hadContext = !!(input.instructions || input.jobDescription || input.notes || input.files.length + input.oneOffFiles.length > 0);
+  const hadContext = !!(input.instructions || input.jobDescription || input.notes || input.files.length > 0);
 
   const warnings: string[] = [];
-  const allFiles = [...input.files, ...input.oneOffFiles];
+  const allFiles = input.files;
   if (allFiles.length > MAX_REFERENCE_FILES) {
     return { ok: false, error: `Attach at most ${MAX_REFERENCE_FILES} reference files.`, emptyDraftAllowed: false };
   }
@@ -683,7 +543,6 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
     runId = await startGenerationRun(supabase, {
       userId: user.id,
       engine: engineKey,
-      positionId,
       batchId: input.batchId || null,
       idempotencyKey: input.idempotencyKey || null,
       level: input.level,
@@ -697,7 +556,7 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
       purpose: input.purpose,
       questionTotal: LENGTH_TOTALS[input.length],
       mix: input.mix,
-      position: { title, department: input.department },
+      position: { title },
       context: contextItems,
     });
     if (result.report.droppedQuestions > 0) {
@@ -714,7 +573,6 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
       generated: result.assessment,
       purpose: input.purpose,
       language: input.language,
-      positionId,
       vacancyTitle: title,
       level: input.level,
     });
@@ -763,6 +621,9 @@ export async function updateAssessmentMeta(assessmentId: string, formData: FormD
 export async function deleteSection(sectionId: string, assessmentId: string) {
   await requireStaff();
   const supabase = await createClient();
+  if (await isLockedForEditing(supabase, assessmentId)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  }
   const { error } = await supabase.from("assessment_sections").delete().eq("id", sectionId);
   if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
   revalidatePath(`/staff/builder/${assessmentId}`);
@@ -817,6 +678,9 @@ async function moveRow(
 
 export async function moveSection(sectionId: string, assessmentId: string, direction: "up" | "down") {
   await requireStaff();
+  if (await isLockedForEditing(await createClient(), assessmentId)) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  }
   await moveRow("assessment_sections", "assessment_id", assessmentId, sectionId, direction);
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
@@ -954,9 +818,8 @@ export async function duplicateAssessment(assessmentId: string) {
       mode: source.mode,
       engine: source.engine,
       content_language: source.content_language,
-      // Position, level and vacancy carry over. An AI-generated source stays an
+      // Level and job title carry over. An AI-generated source stays an
       // AI draft, so the copy still needs a reviewer before it can be published.
-      position_id: source.position_id,
       target_level: source.target_level,
       vacancy_title: source.vacancy_title,
       generated_by: source.generated_by,
@@ -1014,10 +877,11 @@ export async function duplicateAssessment(assessmentId: string) {
 export async function setAssessmentArchived(assessmentId: string, archived: boolean) {
   await requireStaff();
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("assessments")
-    .update({ status: archived ? "archived" : "draft" })
-    .eq("id", assessmentId);
+  // Archiving records the previous status (trigger in migration 0016);
+  // restoring goes back to it, so a published assessment comes back published.
+  const { error } = archived
+    ? await supabase.from("assessments").update({ status: "archived" }).eq("id", assessmentId)
+    : await supabase.rpc("restore_archived_assessment", { p_assessment_id: assessmentId });
   if (error) redirect("/staff/builder?error=" + encodeURIComponent(error.message));
   revalidatePath("/staff/builder");
   redirect("/staff/builder?added=" + encodeURIComponent(archived ? "Assessment archived." : "Assessment restored to draft."));
@@ -1092,7 +956,7 @@ export async function regenerateOneQuestion(questionId: string, assessmentId: st
     supabase.from("questions").select("id, question_type, prompt, competency_id").eq("id", questionId).maybeSingle(),
     supabase
       .from("assessments")
-      .select("id, title, description, position_id, target_level, purpose, content_language, vacancy_title, engine")
+      .select("id, title, description, target_level, purpose, content_language, vacancy_title, engine")
       .eq("id", assessmentId)
       .maybeSingle(),
   ]);
@@ -1104,34 +968,8 @@ export async function regenerateOneQuestion(questionId: string, assessmentId: st
   const engineKey = chooseEngine(assessment.engine, policy.defaultEngine);
   const language: GenerationLanguage = assessment.content_language === "az" || assessment.content_language === "ru" ? assessment.content_language : "en";
 
-  // Position context goes only to an engine approved for it, like a draft.
-  const { data: engineRows } = await supabase.rpc("engine_policy_for_staff");
-  const contextAllowed = ((engineRows || []) as EnginePolicy[]).some((e) => e.key === engineKey && e.allow_context === true);
-  let positionTitle = assessment.vacancy_title || assessment.title;
-  let department: string | null = null;
-  let context: ContextItem[] = [];
-  if (assessment.position_id) {
-    const [{ data: pos }, { data: files }] = await Promise.all([
-      supabase.from("positions").select("title, department, job_description, notes").eq("id", assessment.position_id).maybeSingle(),
-      supabase.from("position_files").select("filename, content_text").eq("position_id", assessment.position_id).order("created_at"),
-    ]);
-    if (pos) {
-      positionTitle = pos.title;
-      department = pos.department;
-      if (contextAllowed) {
-        try {
-          context = prepareContext({
-            instructions: "",
-            jobDescription: pos.job_description ?? "",
-            notes: pos.notes ?? "",
-            files: (files || []).map((f) => ({ name: f.filename, text: f.content_text })),
-          }).items;
-        } catch {
-          context = [];
-        }
-      }
-    }
-  }
+  const positionTitle = assessment.vacancy_title || assessment.title;
+  const context: ContextItem[] = [];
 
   const [apiKey, { data: compRows }] = await Promise.all([
     loadEngine(supabase, engineKey).catch((e: Error) => fail(e.message)),
@@ -1144,7 +982,6 @@ export async function regenerateOneQuestion(questionId: string, assessmentId: st
   const runId = await startGenerationRun(supabase, {
     userId: profile.id,
     engine: engineKey,
-    positionId: assessment.position_id,
     batchId: null,
     idempotencyKey: null,
     level,
@@ -1158,7 +995,7 @@ export async function regenerateOneQuestion(questionId: string, assessmentId: st
       purpose: normalizePurposeKey(assessment.purpose),
       questionTotal: 1,
       mix: "balanced",
-      position: { title: positionTitle, department },
+      position: { title: positionTitle },
       context,
     }, {
       type: question!.question_type === "mcq" ? "mcq" : "text",
@@ -1184,7 +1021,7 @@ export async function regenerateOneQuestion(questionId: string, assessmentId: st
   redirect(`${back}?added=` + encodeURIComponent("Question replaced. Check it before publishing."));
 }
 
-// Makes a translated copy of a draft: same position, level, vacancy and
+// Makes a translated copy of a draft: same job title, level and
 // questions, with the candidate-facing text in another language. The correct
 // option stays the same option. The copy is an AI draft and needs its own
 // review before it can be published.
@@ -1248,7 +1085,6 @@ export async function createTranslatedVersion(assessmentId: string, formData: Fo
   const runId = await startGenerationRun(supabase, {
     userId: profile.id,
     engine: engineKey,
-    positionId: src!.position_id,
     batchId: null,
     idempotencyKey: null,
     level,
@@ -1288,7 +1124,6 @@ export async function createTranslatedVersion(assessmentId: string, formData: Fo
       generated_by: profile.id,
       generated_at: new Date().toISOString(),
       content_language: language,
-      position_id: src!.position_id,
       vacancy_title: src!.vacancy_title,
       target_level: src!.target_level,
     })

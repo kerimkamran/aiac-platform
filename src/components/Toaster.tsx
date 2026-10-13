@@ -77,23 +77,6 @@ export function useToast() {
   return ctx;
 }
 
-// Named formatters for messages that need more than "decode this one param" --
-// kept here (inside a client component file) rather than passed in as function
-// props, since Server Component pages can only hand client components plain,
-// serializable data across the boundary.
-const KNOWN_KINDS = {
-  "case-library-upload": (value: string, all: URLSearchParams) => {
-    const ai = all.get("upload_ai") === "1";
-    const errs = all.get("upload_errors");
-    const sample = all.get("upload_error_sample");
-    let msg = `Imported ${value} case${value === "1" ? "" : "s"} from your upload${ai ? " (via AI-assisted extraction)" : ""}`;
-    if (errs && errs !== "0") msg += `, ${errs} row(s) skipped`;
-    msg += ".";
-    if (sample) msg += ` ${decodeURIComponent(sample)}`;
-    return msg;
-  },
-} as const;
-
 export type ToastSpec = {
   /** Query param whose presence (non-empty) triggers this toast. */
   param: string;
@@ -101,7 +84,6 @@ export type ToastSpec = {
   /** Static message text (used verbatim, ignoring the param's value). */
   text?: string;
   /** Named formatter (see KNOWN_KINDS) for messages assembled from several params. */
-  kind?: keyof typeof KNOWN_KINDS;
   /** Extra params to strip from the URL alongside `param` (defaults to [param]). */
   clearParams?: string[];
 };
@@ -130,9 +112,7 @@ function ToastFromParamsInner({ specs }: { specs: ToastSpec[] }) {
       // twice.
       if (spec.param === "error" && searchParams.get("field")) continue;
       fired = true;
-      const message = spec.kind
-        ? KNOWN_KINDS[spec.kind](value, searchParams)
-        : spec.text ?? decodeURIComponent(value);
+      const message = spec.text ?? decodeURIComponent(value);
       push(spec.variant || "info", message);
       (spec.clearParams || [spec.param]).forEach((p) => toClear.add(p));
     }

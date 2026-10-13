@@ -1,7 +1,7 @@
 "use client";
 
 import { isAllowedTextName, extensionOf, checkTextBytes } from "@/lib/upload-text";
-import { extractDocxText } from "../positions/actions";
+import { extractDocxText } from "../docx-actions";
 
 // Reads a .md or .txt file in the browser, with the same limits the server applies.
 export async function readTextFile(file: File): Promise<{ ok: true; name: string; text: string } | { ok: false; error: string }> {

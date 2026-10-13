@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { LogoMark } from "@/components/ui";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { ScoutLauncher } from "@/components/ScoutLauncher";
 
 // Design-execution-plan follow-up ("make it simple like Google"): the
 // marketing homepage used to run six sections deep (hero, stat strip,
@@ -79,7 +78,6 @@ export default async function Home() {
         </span>
       </footer>
 
-      <ScoutLauncher role="visitor" />
     </div>
   );
 }

@@ -1,17 +1,25 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Avatar, Icon, ScoreBadge, StatusBadge, bandFor } from "@/components/ui";
-import { BandDistribution, PipelineFunnel } from "@/components/charts";
+import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
+
+// Home is the review queue (plan v2): candidates the AI has scored and a
+// person still has to confirm, then the most recent submissions. Dashboards
+// and charts were removed. Both lists are paged, so nothing is silently cut
+// at 1,000 rows.
+const QUEUE_PAGE = 50;
+const RECENT_LIMIT = 10;
 
 type Row = {
   id: string;
   status: string;
   overall_score: number | null;
   submitted_at: string | null;
-  invited_at: string;
   candidate: { full_name: string; email: string } | null;
-  assessments: { title: string } | null;
+  assessments: { title: string; vacancy_title: string | null } | null;
 };
+
+const ROW_SELECT =
+  "id, status, overall_score, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title, vacancy_title)";
 
 export default async function StaffHomePage() {
   const supabase = await createClient();
@@ -19,43 +27,27 @@ export default async function StaffHomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: rows }, { count: publishedCount }] = await Promise.all([
+  const [{ data: profile }, { data: queue, count: queueCount }, { data: recent }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
     supabase
       .from("candidate_assessments")
-      .select(
-        "id, status, overall_score, submitted_at, invited_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title)"
-      )
-      .order("invited_at", { ascending: false }),
-    supabase.from("assessments").select("id", { count: "exact", head: true }).eq("status", "published"),
+      .select(ROW_SELECT, { count: "exact" })
+      .eq("status", "scored")
+      .order("submitted_at", { ascending: false, nullsFirst: false })
+      .range(0, QUEUE_PAGE - 1),
+    supabase
+      .from("candidate_assessments")
+      .select(ROW_SELECT)
+      .not("submitted_at", "is", null)
+      .order("submitted_at", { ascending: false })
+      .limit(RECENT_LIMIT),
   ]);
 
-  const list = (rows || []) as unknown as Row[];
-  const scored = list.filter((r) => r.overall_score !== null);
-  const pendingReview = list.filter((r) => r.status === "scored");
-  const avg = scored.length ? Math.round((scored.reduce((s, r) => s + (r.overall_score || 0), 0) / scored.length) * 10) / 10 : null;
   const firstName = (profile?.full_name || "there").split(" ")[0];
-
-  const bands = [
-    { label: "Does Not Meet", test: (s: number) => s < 50 },
-    { label: "Partially Meets", test: (s: number) => s >= 50 && s < 70 },
-    { label: "Fully Meets", test: (s: number) => s >= 70 && s < 85 },
-    { label: "Exceeds", test: (s: number) => s >= 85 },
-  ].map((b) => ({
-    label: b.label,
-    count: scored.filter((r) => b.test(r.overall_score!)).length,
-    hex: bandFor(b.label === "Does Not Meet" ? 0 : b.label === "Partially Meets" ? 50 : b.label === "Fully Meets" ? 70 : 85).hex,
-  }));
-
-  const funnel = [
-    { label: "Invited", count: list.length },
-    { label: "Started", count: list.filter((r) => r.status !== "invited").length },
-    { label: "AI scored", count: list.filter((r) => ["scored", "reviewed"].includes(r.status)).length },
-    { label: "Reviewed", count: list.filter((r) => r.status === "reviewed").length },
-  ];
-
-  const recent = list.filter((r) => r.submitted_at).slice(0, 6);
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const waiting = (queue || []) as unknown as Row[];
+  const total = queueCount ?? waiting.length;
+  const recentRows = (recent || []) as unknown as Row[];
 
   return (
     <div className="max-w-[1180px] mx-auto px-6 lg:px-10">
@@ -64,100 +56,83 @@ export default async function StaffHomePage() {
         <span className="text-xs text-muted">{today}</span>
       </div>
 
-      {pendingReview.length > 0 && (
-        <Link
-          href={`/staff/reports/candidates/${pendingReview[0].id}`}
-          className="flex items-center justify-between gap-4 py-3.5 mb-8 border-t border-b border-line group"
-        >
-          <p className="text-sm text-muted flex items-center gap-2.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent shrink-0" />
-            <span className="text-foreground font-semibold">{pendingReview.length} candidate{pendingReview.length > 1 ? "s" : ""}</span>
-            scored by the AI engine and waiting on your review
-          </p>
-          <span className="text-xs font-semibold text-accent-dark inline-flex items-center gap-1.5 shrink-0 group-hover:underline">
-            Review now
-            <Icon name="arrowRight" className="w-3.5 h-3.5" />
-          </span>
-        </Link>
-      )}
-
-      <div className="grid lg:grid-cols-[1fr_300px]">
-        {/* Wide content column */}
-        <div className="lg:pr-14 lg:border-r border-line pb-14">
+      <div className="grid lg:grid-cols-[1fr_300px] gap-10 pb-14">
+        <section aria-labelledby="review-queue">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-semibold text-foreground">Recent submissions</p>
-            <Link href="/staff/reports/candidates" className="text-xs font-medium text-muted hover:text-muted">
+            <h2 id="review-queue" className="text-sm font-semibold text-foreground">
+              Review queue
+              {total > 0 && <span className="ml-2 text-muted font-normal">{total} waiting</span>}
+            </h2>
+            <Link href="/staff/reports/candidates" className="text-xs font-medium text-muted hover:text-foreground">
               All candidates
             </Link>
           </div>
 
-          {recent.length === 0 ? (
-            <p className="text-sm text-muted py-8 border-t border-line">
-              Nothing submitted yet — publish an assessment and invite candidates from People &amp; Access.
-            </p>
+          {waiting.length === 0 ? (
+            <p className="text-sm text-muted py-8 border-t border-line">Nothing is waiting for review.</p>
           ) : (
             <div className="border-t border-line">
-              {recent.map((r) => (
-                <Link
-                  key={r.id}
-                  href={`/staff/reports/candidates/${r.id}`}
-                  className="flex items-center gap-3.5 py-3.5 border-b border-line-soft hover:bg-line-soft/40 transition-colors -mx-2 px-2"
-                >
-                  <Avatar name={r.candidate?.full_name || "?"} className="w-7 h-7 text-2xs" />
-                  <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium text-foreground truncate">{r.candidate?.full_name}</p>
-                    <p className="text-2xs text-muted truncate">{r.assessments?.title}</p>
-                  </div>
-                  <StatusBadge status={r.status} />
-                  {r.overall_score !== null && <ScoreBadge score={Math.round(r.overall_score)} />}
-                </Link>
+              {waiting.map((r) => (
+                <QueueRow key={r.id} row={r} />
               ))}
+              {total > waiting.length && (
+                <p className="text-xs text-muted pt-3">
+                  Showing the first {waiting.length} of {total}.{" "}
+                  <Link href="/staff/reports/candidates?status=scored" className="font-semibold text-accent-dark hover:underline">
+                    See all
+                  </Link>
+                </p>
+              )}
             </div>
           )}
 
-          <p className="text-sm font-semibold text-foreground mt-10 mb-4">Role fit distribution</p>
-          {scored.length > 0 ? (
-            <BandDistribution buckets={bands} />
+          <div className="flex items-center justify-between mt-12 mb-4">
+            <h2 className="text-sm font-semibold text-foreground">Recent submissions</h2>
+          </div>
+          {recentRows.length === 0 ? (
+            <p className="text-sm text-muted py-8 border-t border-line">Nothing submitted yet. Publish an assessment and invite candidates from People &amp; Access.</p>
           ) : (
-            <p className="text-xs text-muted py-8 border-t border-line">No scored candidates yet.</p>
+            <div className="border-t border-line">
+              {recentRows.map((r) => (
+                <QueueRow key={r.id} row={r} />
+              ))}
+            </div>
           )}
-        </div>
+        </section>
 
-        {/* Narrow stats rail */}
-        <div className="lg:pl-14 pt-10 lg:pt-0 pb-14">
-          <p className="text-2xs font-semibold text-muted uppercase tracking-wide mb-5">This week</p>
-
-          <div className="mb-6">
-            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-none">{list.length}</p>
-            <p className="text-xs text-muted mt-1.5">in the pipeline</p>
-          </div>
-          <div className="mb-6">
-            <p className="text-2xl font-semibold tracking-tight text-accent tabular-nums leading-none">{pendingReview.length}</p>
-            <p className="text-xs text-muted mt-1.5">waiting on you</p>
-          </div>
-          <div className="mb-6">
-            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-none">{avg ?? "—"}</p>
-            <p className="text-xs text-muted mt-1.5">average role fit</p>
-          </div>
-          <div>
-            <p className="text-2xl font-semibold tracking-tight text-foreground tabular-nums leading-none">{publishedCount ?? 0}</p>
-            <p className="text-xs text-muted mt-1.5">published assessments</p>
-          </div>
-
-          <div className="mt-10 pt-6 border-t border-line">
-            <p className="text-2xs font-semibold text-muted uppercase tracking-wide mb-3.5">Pipeline funnel</p>
-            <PipelineFunnel stages={funnel} />
-          </div>
-
+        <aside className="pt-2 space-y-4">
           <Link
             href="/staff/builder/new"
-            className="mt-10 flex items-center justify-center gap-2 bg-foreground text-background text-xs font-semibold py-2.5 rounded-md hover:opacity-90 transition-opacity"
+            className="flex items-center justify-center gap-2 bg-brand-deep text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-brand transition-colors"
           >
             <Icon name="plus" className="w-4 h-4" />
             New assessment
           </Link>
-        </div>
+          <Link
+            href="/staff/builder"
+            className="flex items-center justify-center gap-2 border border-line text-sm font-semibold py-2.5 rounded-xl hover:border-accent"
+          >
+            Assessment Builder
+          </Link>
+        </aside>
       </div>
     </div>
+  );
+}
+
+function QueueRow({ row }: { row: Row }) {
+  return (
+    <Link
+      href={`/staff/reports/candidates/${row.id}`}
+      className="flex items-center gap-3.5 py-3.5 border-b border-line hover:bg-line-soft/40 transition-colors -mx-2 px-2"
+    >
+      <Avatar name={row.candidate?.full_name || "?"} className="w-7 h-7 text-2xs" />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-medium text-foreground truncate">{row.candidate?.full_name}</p>
+        <p className="text-2xs text-muted truncate">{row.assessments?.vacancy_title || row.assessments?.title}</p>
+      </div>
+      <StatusBadge status={row.status} />
+      {row.overall_score !== null && <ScoreBadge score={Math.round(row.overall_score)} />}
+    </Link>
   );
 }

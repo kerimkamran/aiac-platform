@@ -4,32 +4,31 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { generateDraft, type AssessmentPurpose, type DraftInput, type DraftResult } from "../actions";
-import { loadPositionContext } from "../positions/actions";
-import { LEVELS, LEVEL_KEYS, type LevelKey } from "@/lib/levels";
+import { LEVELS, LEVEL_KEYS, includesLeadership, type LevelKey } from "@/lib/levels";
 import { CONTEXT_BUDGET_CHARS, INSTRUCTIONS_MAX_CHARS, JD_MAX_CHARS, NOTES_MAX_CHARS } from "@/lib/ai-context";
-import { PositionLevelPicker } from "./PositionLevelPicker";
-import { includesLeadership } from "@/lib/levels";
+import { RoleLevelPicker } from "./RoleLevelPicker";
 import { ContextCard } from "./ContextCard";
 import { MeasureCard } from "./MeasureCard";
 import { GenerationProgress } from "./GenerationProgress";
 import type { AssessmentLength, GenerationLanguage, QuestionMix } from "@/lib/generation";
 import type { EngineKey } from "@/lib/ai-engine";
-import { MAX_COMPETENCIES, type CatalogCompetency, type CatalogEngine, type CatalogPosition, type Job, type OneOff, type PositionContext, type PositionSel } from "./types";
+import { EMPTY_ROLE_CONTEXT, MAX_COMPETENCIES, type CatalogCompetency, type CatalogEngine, type Combo, type Job, type OneOff, type RoleContext } from "./types";
 
-export type { CatalogCompetency, CatalogEngine, CatalogPosition } from "./types";
+export type { CatalogCompetency, CatalogEngine } from "./types";
 
-const STORAGE_KEY = "aiac-new-assessment-v1";
-const MAX_COMBINATIONS = 6;
+// Version 2: the form no longer stores positions (plan v2). Older saved state
+// under the v1 key is ignored, so nobody restores a half-removed selection.
+const STORAGE_KEY = "aiac-new-assessment-v2";
+const MAX_COMBINATIONS = LEVEL_KEYS.length;
 const CONCURRENCY = 2;
 // Core competencies pre-selected; two places are kept free for Leadership.
 const CORE_DEFAULT = 6;
 const LEADERSHIP_SEED = 2;
 
 type Saved = {
-  positions: PositionSel[];
+  jobTitle: string;
   levels: LevelKey[];
-  excluded: string[];
-  ctx: Record<string, PositionContext>;
+  ctx: RoleContext;
   instructions: string;
   oneOffs: OneOff[];
   competencyIds: string[];
@@ -40,10 +39,6 @@ type Saved = {
   engine: EngineKey | "";
   customTitle?: string;
 };
-
-export function comboKey(posKey: string, level: LevelKey) {
-  return `${posKey}|${level}`;
-}
 
 function leadershipSeedIds(comps: CatalogCompetency[], alreadySelected: number): string[] {
   return comps
@@ -58,44 +53,34 @@ function initialCompetencies(comps: CatalogCompetency[], levels: LevelKey[]): st
   return [...core, ...leadershipSeedIds(comps, core.length)];
 }
 
-// Orders levels the same way as the level table, so the grid reads top to bottom.
+// Orders levels the same way as the level table, so the chips read in order.
 function sortLevels(levels: LevelKey[]): LevelKey[] {
   return LEVEL_KEYS.filter((l) => levels.includes(l));
 }
 
 export function NewAssessmentForm({
-  positions,
   competencies,
   engines,
   defaultEngine,
   canUseAi,
   aiDisabledReason,
   quota,
-  preselectPositionId,
 }: {
-  positions: CatalogPosition[];
   competencies: CatalogCompetency[];
   engines: CatalogEngine[];
   defaultEngine: EngineKey;
   canUseAi: boolean;
   aiDisabledReason: string | null;
   quota: { used: number; total: number };
-  preselectPositionId: string | null;
 }) {
   const router = useRouter();
-  const preselect = positions.find((p) => p.id === preselectPositionId);
 
-  const [positionsSel, setPositionsSel] = useState<PositionSel[]>(
-    preselect ? [{ key: preselect.id, positionId: preselect.id, title: preselect.title, department: preselect.department, defaultLevel: preselect.defaultLevel }] : []
-  );
-  const [levels, setLevels] = useState<LevelKey[]>(preselect ? [preselect.defaultLevel] : []);
-  const [excluded, setExcluded] = useState<string[]>([]);
-  const [ctx, setCtx] = useState<Record<string, PositionContext>>({});
+  const [jobTitle, setJobTitle] = useState("");
+  const [levels, setLevels] = useState<LevelKey[]>([]);
+  const [ctx, setCtx] = useState<RoleContext>(EMPTY_ROLE_CONTEXT);
   const [instructions, setInstructions] = useState("");
   const [oneOffs, setOneOffs] = useState<OneOff[]>([]);
-  const [competencyIds, setCompetencyIds] = useState<string[]>(() =>
-    initialCompetencies(competencies, preselect ? [preselect.defaultLevel] : [])
-  );
+  const [competencyIds, setCompetencyIds] = useState<string[]>(() => initialCompetencies(competencies, []));
   const [length, setLength] = useState<AssessmentLength>("standard");
   const [mix, setMix] = useState<QuestionMix>("balanced");
   const [purpose, setPurpose] = useState<AssessmentPurpose>("hiring");
@@ -105,7 +90,7 @@ export function NewAssessmentForm({
   // Leadership competencies are added once, when a manager-or-above level is
   // first chosen, so the form starts with room for them. After that the
   // reviewer's own choices are never changed.
-  const leadershipSeeded = useRef(!!preselect && includesLeadership(preselect.defaultLevel));
+  const leadershipSeeded = useRef(false);
   const [jobs, setJobs] = useState<Record<string, Job>>({});
   const [running, setRunning] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -122,11 +107,8 @@ export function NewAssessmentForm({
       const raw = window.sessionStorage.getItem(STORAGE_KEY);
       if (raw) {
         const saved = JSON.parse(raw) as Partial<Saved>;
-        if (!preselect) {
-          if (saved.positions) setPositionsSel(saved.positions);
-          if (saved.levels) setLevels(saved.levels);
-        }
-        if (saved.excluded) setExcluded(saved.excluded);
+        if (saved.jobTitle !== undefined) setJobTitle(saved.jobTitle);
+        if (saved.levels) setLevels(saved.levels);
         if (saved.ctx) setCtx(saved.ctx);
         if (saved.instructions) setInstructions(saved.instructions);
         if (saved.oneOffs) setOneOffs(saved.oneOffs);
@@ -145,29 +127,18 @@ export function NewAssessmentForm({
       // Storage can be blocked or full; the form still works without it.
     }
     setRestored(true);
-  }, [preselect]);
+  }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!restored) return;
     try {
-      const saved: Saved = { positions: positionsSel, levels, excluded, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine, customTitle };
+      const saved: Saved = { jobTitle, levels, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine, customTitle };
       window.sessionStorage.setItem(STORAGE_KEY, JSON.stringify(saved));
     } catch {
       // ignore
     }
-  }, [restored, positionsSel, levels, excluded, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine, customTitle]);
-
-
-  // Any position on the form whose saved context is not loaded yet (the
-  // preselected one, or one restored from this session) is loaded here.
-  useEffect(() => {
-    if (!restored) return;
-    for (const p of positionsSel) {
-      if (!ctx[p.key]?.loaded) void loadContextFor(p);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [restored, positionsSel]);
+  }, [restored, jobTitle, levels, ctx, instructions, oneOffs, competencyIds, length, mix, purpose, language, engine, customTitle]);
 
   // Choosing a manager-or-above level seeds Leadership competencies once.
   function changeLevels(next: LevelKey[]) {
@@ -180,68 +151,31 @@ export function NewAssessmentForm({
     });
   }
 
-  const combos = useMemo(() => {
-    const out: { key: string; posKey: string; level: LevelKey; included: boolean }[] = [];
-    for (const p of positionsSel) {
-      for (const l of sortLevels(levels)) {
-        const key = comboKey(p.key, l);
-        out.push({ key, posKey: p.key, level: l, included: !excluded.includes(key) });
-      }
-    }
-    return out;
-  }, [positionsSel, levels, excluded]);
+  const combos: Combo[] = useMemo(
+    () => sortLevels(levels).map((l) => ({ key: l, level: l, included: true })),
+    [levels]
+  );
 
   const includedCombos = combos.filter((c) => c.included);
   const remainingQuota = Math.max(0, quota.total - quota.used);
   const aiPossible = canUseAi && engines.some((e) => e.enabled && e.configured);
 
-  // Takes the selection itself, not a key looked up in state: a position that
-  // was just added is not in the state the caller's closure can see yet.
-  async function loadContextFor(sel: PositionSel) {
-    if (!sel.positionId) {
-      setCtx((c) => ({ ...c, [sel.key]: { loaded: true, jobDescription: "", notes: "", files: [], saveContext: true } }));
-      return;
-    }
-    try {
-      const data = await loadPositionContext(sel.positionId);
-      setCtx((c) => ({
-        ...c,
-        [sel.key]: { loaded: true, jobDescription: data.jobDescription, notes: data.notes, files: data.files, saveContext: true },
-      }));
-    } catch {
-      setCtx((c) => ({ ...c, [sel.key]: { loaded: true, jobDescription: "", notes: "", files: [], saveContext: true } }));
-      setFormError("Couldn't load that position's saved context. You can still type it in.");
-    }
-  }
-
-  function toggleCombo(key: string) {
-    setExcluded((ex) => (ex.includes(key) ? ex.filter((k) => k !== key) : [...ex, key]));
-  }
-
   function validate(): string | null {
-    if (positionsSel.length === 0) return "Choose at least one position.";
+    if (jobTitle.trim().length < 2) return "Type the job title first.";
     if (levels.length === 0) return "Choose at least one level.";
-    if (includedCombos.length === 0) return "Tick at least one position and level combination.";
     if (includedCombos.length > MAX_COMBINATIONS) return `Generate at most ${MAX_COMBINATIONS} drafts at a time.`;
     if (competencyIds.length === 0) return "Choose at least one competency.";
     if (instructions.length > INSTRUCTIONS_MAX_CHARS) return `The shared instructions are longer than ${INSTRUCTIONS_MAX_CHARS.toLocaleString()} characters.`;
-    for (const p of positionsSel) {
-      const c = ctx[p.key];
-      if (c && c.jobDescription.length > JD_MAX_CHARS) return `The job description for ${p.title} is too long.`;
-      if (c && c.notes.length > NOTES_MAX_CHARS) return `The notes for ${p.title} are too long.`;
-    }
+    if (ctx.jobDescription.length > JD_MAX_CHARS) return "The job description is too long.";
+    if (ctx.notes.length > NOTES_MAX_CHARS) return "The notes are too long.";
     return null;
   }
 
-  function buildInput(combo: { key: string; posKey: string; level: LevelKey }, attempt: number, empty: boolean): DraftInput {
-    const sel = positionsSel.find((p) => p.key === combo.posKey)!;
-    const c = ctx[combo.posKey];
+  function buildInput(combo: Combo, attempt: number, empty: boolean): DraftInput {
     return {
       batchId: batchId.current,
       idempotencyKey: `${batchId.current}:${combo.key}:${attempt}`,
-      positionId: sel.positionId,
-      positionTitle: sel.title,
-      department: sel.department,
+      vacancyTitle: jobTitle.trim(),
       level: combo.level,
       purpose,
       language,
@@ -250,12 +184,10 @@ export function NewAssessmentForm({
       mix,
       engine: engine || null,
       instructions,
-      jobDescription: c?.jobDescription ?? "",
-      notes: c?.notes ?? "",
-      files: c?.files ?? [],
-      oneOffFiles: oneOffs,
+      jobDescription: ctx.jobDescription,
+      notes: ctx.notes,
+      files: ctx.files,
       customTitle: includedCombos.length === 1 ? customTitle : undefined,
-      saveContext: c?.saveContext ?? false,
       emptyDraft: empty,
     };
   }
@@ -264,7 +196,7 @@ export function NewAssessmentForm({
     setJobs((j) => ({ ...j, [key]: { ...(j[key] ?? { status: "queued", attempt: 1, empty: false, warnings: [], emptyDraftAllowed: true }), ...patch } as Job }));
   }
 
-  async function runCombos(targets: { key: string; posKey: string; level: LevelKey }[], empty: boolean) {
+  async function runCombos(targets: Combo[], empty: boolean) {
     setRunning(true);
     const queue = [...targets];
     const worker = async () => {
@@ -301,7 +233,7 @@ export function NewAssessmentForm({
       return;
     }
     if (includedCombos.length > remainingQuota) {
-      setFormError(`${includedCombos.length} drafts would exceed this month's AI quota (${remainingQuota} left). Untick some, or create empty drafts.`);
+      setFormError(`${includedCombos.length} drafts would exceed this month's AI quota (${remainingQuota} left). Remove a level, or create empty drafts.`);
       return;
     }
     batchId.current = crypto.randomUUID();
@@ -323,7 +255,7 @@ export function NewAssessmentForm({
   async function retry(key: string) {
     const combo = combos.find((c) => c.key === key);
     if (!combo) return;
-    await runCombos([{ key: combo.key, posKey: combo.posKey, level: combo.level }], jobs[key]?.empty === true);
+    await runCombos([combo], jobs[key]?.empty === true);
   }
 
   const doneJobs = Object.entries(jobs).filter(([, j]) => j.status === "done" && j.assessmentId);
@@ -346,19 +278,9 @@ export function NewAssessmentForm({
         </div>
       )}
 
-      <PositionLevelPicker
-        catalog={positions}
-        positionsSel={positionsSel}
-        setPositionsSel={setPositionsSel}
-        levels={levels}
-        setLevels={changeLevels}
-        combos={combos}
-        onToggleCombo={toggleCombo}
-              onNeedContext={loadContextFor}
-      />
+      <RoleLevelPicker jobTitle={jobTitle} setJobTitle={setJobTitle} levels={levels} setLevels={changeLevels} />
 
       <ContextCard
-        positionsSel={positionsSel}
         ctx={ctx}
         setCtx={setCtx}
         instructions={instructions}
@@ -366,7 +288,6 @@ export function NewAssessmentForm({
         oneOffs={oneOffs}
         setOneOffs={setOneOffs}
         contextEngine={contextEngine}
-        onNeedContext={loadContextFor}
       />
 
       <MeasureCard
@@ -427,13 +348,7 @@ export function NewAssessmentForm({
 
       {!aiPossible && aiDisabledReason && <p className="text-xs text-muted">{aiDisabledReason}</p>}
 
-      <GenerationProgress
-        combos={includedCombos}
-        positions={positionsSel}
-        jobs={jobs}
-        running={running}
-        onRetry={retry}
-      />
+      <GenerationProgress combos={includedCombos} jobTitle={jobTitle.trim()} jobs={jobs} running={running} onRetry={retry} />
 
       {allFinished && doneJobs.length > 1 && (
         <section className="rounded-2xl border border-line bg-surface p-5">
@@ -442,8 +357,7 @@ export function NewAssessmentForm({
             {doneJobs.map(([key, j]) => (
               <li key={key}>
                 <Link href={`/staff/builder/${j.assessmentId}`} className="text-sm text-accent-dark hover:underline">
-                  {positionsSel.find((p) => p.key === combos.find((c) => c.key === key)?.posKey)?.title} —{" "}
-                  {LEVELS[combos.find((c) => c.key === key)!.level].label}
+                  {jobTitle.trim()} — {LEVELS[combos.find((c) => c.key === key)!.level].label}
                 </Link>
               </li>
             ))}
@@ -453,4 +367,3 @@ export function NewAssessmentForm({
     </div>
   );
 }
-

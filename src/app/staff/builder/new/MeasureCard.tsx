@@ -213,12 +213,12 @@ export function MeasureCard({
               value={customTitle}
               maxLength={120}
               onChange={(e) => setCustomTitle(e.target.value)}
-              placeholder="Leave blank to use the position and level"
+              placeholder="Leave blank to use the job title and level"
               className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <p className="text-2xs text-muted">
               {draftCount > 1
-                ? "Applies only when one draft is created. A batch keeps the position and level as titles."
+                ? "Applies only when one draft is created. A batch keeps the job title and level as titles."
                 : "Used as the draft's title."}
             </p>
           </div>

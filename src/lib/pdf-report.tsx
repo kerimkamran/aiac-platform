@@ -92,6 +92,8 @@ export type ReportData = {
   tabSwitchCount?: number;
   competencies: { name: string; category: string; score: number; level: string }[];
   responses: { prompt: string; answer: string; score: number; rationale: string; needsReview?: boolean }[];
+  // Candidates get their own copy without the AI rationale and review flags (plan v2, section 9).
+  showAiRationale?: boolean;
   decisions: { decision: string; comment: string; reviewer: string; createdAt: string }[];
   generatedAt: string;
 };
@@ -107,6 +109,7 @@ function LogoMark() {
 }
 
 export function CandidateReportDocument({ data }: { data: ReportData }) {
+  const showRationale = data.showAiRationale !== false;
   const band = data.overallScore !== null ? bandInfo(data.overallScore) : null;
   const byCategory = ["Core", "Leadership", "Functional"]
     .map((cat) => ({ cat, rows: data.competencies.filter((c) => c.category === cat) }))
@@ -259,10 +262,12 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
               {i + 1}. {r.prompt}
             </Text>
             <Text style={styles.questionAnswer}>{r.answer || "(no answer provided)"}</Text>
-            {r.needsReview && <Text style={styles.needsReviewBadge}>NEEDS REVIEW -- low-confidence score, confirm before relying on it</Text>}
-            <Text style={styles.rationale}>
-              AI rationale ({Math.round(r.score)}/100): {r.rationale}
-            </Text>
+            {showRationale && r.needsReview && <Text style={styles.needsReviewBadge}>NEEDS REVIEW -- low-confidence score, confirm before relying on it</Text>}
+            {showRationale && (
+              <Text style={styles.rationale}>
+                AI rationale ({Math.round(r.score)}/100): {r.rationale}
+              </Text>
+            )}
           </View>
         ))}
 

@@ -1,19 +1,18 @@
 import type { LevelKey } from "@/lib/levels";
 import type { EngineKey } from "@/lib/ai-engine";
 
-export type CatalogPosition = { id: string; title: string; department: string | null; defaultLevel: LevelKey; fileCount: number };
 export type CatalogEngine = { key: EngineKey; displayName: string; enabled: boolean; configured: boolean; allowContext: boolean };
 export type CatalogCompetency = { id: string; code: string; name: string; category: string; description: string | null };
 
-export type PositionSel = { key: string; positionId: string | null; title: string; department: string | null; defaultLevel: LevelKey };
-
-export type PositionContext = {
-  loaded: boolean;
+// The job title is free text (positions were removed in plan v2). It is saved
+// on the assessment as vacancy_title, and the batch context is sent with it.
+export type RoleContext = {
   jobDescription: string;
   notes: string;
   files: { name: string; text: string }[];
-  saveContext: boolean;
 };
+
+export const EMPTY_ROLE_CONTEXT: RoleContext = { jobDescription: "", notes: "", files: [] };
 
 export type OneOff = { name: string; text: string };
 
@@ -32,4 +31,5 @@ export type Job = {
   emptyDraftAllowed: boolean;
 };
 
-export type Combo = { key: string; posKey: string; level: LevelKey; included: boolean };
+// One draft per level. The key is the level itself.
+export type Combo = { key: string; level: LevelKey; included: boolean };

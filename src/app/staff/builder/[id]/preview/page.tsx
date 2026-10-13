@@ -17,7 +17,7 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
 
   const { data: assessment } = await supabase
     .from("assessments")
-    .select("id, title, description, time_limit_minutes, status, generated_by, position_id")
+    .select("id, title, description, time_limit_minutes, status, generated_by")
     .eq("id", id)
     .single();
   if (!assessment) notFound();
@@ -35,7 +35,6 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
       target_score: s.target_score,
       questions: (s.questions || []) as unknown as CheckQuestion[],
     })),
-    hasPosition: !!assessment.position_id,
   });
 
   return (
