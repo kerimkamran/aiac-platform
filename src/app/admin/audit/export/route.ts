@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
+import { HEADER_FILL, HEADER_FONT } from "@/lib/excel-style";
 import { requirePermission, logAudit } from "@/lib/authz";
 
 export const runtime = "nodejs";
@@ -40,7 +41,8 @@ export async function GET(request: NextRequest) {
     { header: "Result", key: "result", width: 10 },
     { header: "Details", key: "details", width: 50 },
   ];
-  ws.getRow(1).font = { bold: true };
+  ws.getRow(1).font = HEADER_FONT;
+  ws.getRow(1).fill = HEADER_FILL;
   for (const e of events || []) {
     const actor = e.actor as unknown as { full_name: string; email: string } | null;
     ws.addRow({
@@ -57,7 +59,7 @@ export async function GET(request: NextRequest) {
   return new NextResponse(buffer as ArrayBuffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "Content-Disposition": `attachment; filename="aiac-audit-${new Date().toISOString().slice(0, 10)}.xlsx"`,
+      "Content-Disposition": `attachment; filename="vantage-audit-${new Date().toISOString().slice(0, 10)}.xlsx"`,
     },
   });
 }

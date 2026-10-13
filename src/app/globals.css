@@ -83,6 +83,12 @@
   --background: #f3f5f8;
   --surface-sunken: #e8edf3;
 }
+/* The focused exam is cream in light mode whatever the person's canvas
+   choice, so the question page reads as a paper, not an app screen. */
+:root:not(.dark) .exam-canvas {
+  --background: #fbf9f4;
+  --surface-sunken: #f2eee3;
+}
 
 .dark {
   --background: #0b1220;
@@ -193,7 +199,7 @@
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-manrope), var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-onest), var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Design-execution-plan Phase 1 / T1.2 -- the type scale. Replaces the
      322 one-off `text-[Npx]` arbitrary values scattered across the app

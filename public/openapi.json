@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "AIAC Admin API",
+    "title": "Vantage Admin API",
     "version": "1.0.0",
     "description": "REST API for the AI Assessment Center admin platform. Authentication uses the same Supabase session cookies as the web app; every endpoint enforces the RBAC permission noted in its description and is rate-limited to 60 requests/minute per IP. List endpoints support `page`, `per_page` (max 100), `sort`, and `order` query parameters and return `{ data, meta: { page, per_page, total, total_pages } }`."
   },

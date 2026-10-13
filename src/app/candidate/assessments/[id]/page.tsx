@@ -15,6 +15,16 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+
+  // This route sits outside the candidate workspace layout (no navigation,
+  // so the exam can have focus), so it repeats the account-status check the
+  // layout used to make.
+  const { data: me } = await supabase.from("profiles").select("status").eq("id", user.id).single();
+  if (me?.status === "deactivated") {
+    await supabase.auth.signOut();
+    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+  }
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
@@ -22,7 +32,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
     .eq("id", id)
     .single();
 
-  if (!ca || ca.candidate_id !== user!.id) redirect("/candidate");
+  if (!ca || ca.candidate_id !== user.id) redirect("/candidate");
   if (["submitted", "scored", "reviewed"].includes(ca.status)) redirect("/candidate/assessments");
 
   const metaEarly = ca.assessments as unknown as { title: string; description: string; time_limit_minutes: number };
@@ -87,8 +97,13 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
               Start the timed assessment
             </button>
           </form>
-          <p className="text-2xs text-muted text-center mt-3">
+          <p className="text-xs text-muted text-center mt-3">
             The {metaEarly?.time_limit_minutes}-minute timer begins the moment you press start.
+          </p>
+          <p className="text-center mt-5">
+            <Link href="/candidate/assessments" className="text-sm font-semibold text-accent-dark hover:underline">
+              Back to my assessments
+            </Link>
           </p>
         </Card>
       </div>
@@ -156,7 +171,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
         totalQuestions={totalQuestions}
         sections={runnerSections}
         submitAction={submitWithId}
-        watermarkLabel={user?.email || "confidential"}
+        watermarkLabel={user.email || "confidential"}
         storageBackend={(proctoring.storage_backend as "supabase" | "local") || "supabase"}
         contentLanguage={meta?.content_language}
       />
@@ -172,7 +187,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
       totalQuestions={totalQuestions}
       sections={runnerSections}
       submitAction={submitWithId}
-      watermarkLabel={user?.email || "confidential"}
+      watermarkLabel={user.email || "confidential"}
       contentLanguage={meta?.content_language}
     />
   );

@@ -1,20 +1,21 @@
 import type { Metadata } from "next";
-import { Inter, Manrope } from "next/font/google";
+import { Inter, Onest } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
 
-// Node Grid type system (plan v2, section 4.2). Manrope carries headings and
-// large numbers; Inter carries everything else. Both load the Latin-extended
-// and Cyrillic subsets so Azerbaijani (ə ğ ı ş) and Russian render correctly;
-// the old setup loaded basic Latin only, which broke those letters.
+// Node Grid type system (plan v2, section 4.2). Onest carries headings and
+// large numbers; Inter carries everything else. Manrope was the first choice
+// but has no capital Ə (U+018F), which Azerbaijani names need, so the plan's
+// fallback applies. Both load the Latin-extended and Cyrillic subsets so
+// Azerbaijani (ə ğ ı ş) and Russian render correctly.
 const inter = Inter({
   subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-inter",
   weight: ["400", "500", "600", "700"],
 });
-const manrope = Manrope({
+const onest = Onest({
   subsets: ["latin", "latin-ext", "cyrillic"],
-  variable: "--font-manrope",
+  variable: "--font-onest",
   weight: ["600", "700", "800"],
 });
 
@@ -43,7 +44,7 @@ export default async function RootLayout({
   const nonce = (await headers()).get("x-nonce") || undefined;
 
   return (
-    <html lang="en" className={`h-full antialiased ${inter.variable} ${manrope.variable}`}>
+    <html lang="en" className={`h-full antialiased ${inter.variable} ${onest.variable}`}>
       <head>
         <script
           nonce={nonce}

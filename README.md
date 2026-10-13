@@ -1,9 +1,9 @@
-# AIAC — AI Assessment Center by AG
+# Vantage — AI-powered Assessment Center by Azerconnect Group
 
 Azerconnect Group's competency-based hiring platform. Candidates take structured, competency-mapped
 assessments; an AI-assisted engine scores every answer with a written rationale; recruiters review the
 evidence and record shortlist / hold / reject decisions — with a human confirming every score
-(human-in-the-loop, per AIAC-SRS Part 4).
+(human-in-the-loop, per the Assessment Center requirements, Part 4).
 
 ## Product tour
 
@@ -63,4 +63,4 @@ Supabase (Auth + Postgres with RLS). Charts are hand-rolled SVG — no chart dep
   indicators, with a written rationale for every score. If no engine is configured/enabled, or the AI call
   fails, scoring falls back to a deterministic word-count/keyword heuristic so a candidate's submission is
   never blocked — the rationale always says which path produced the score, and low-confidence scores are
-  still flagged for human reviewer confirmation (human-in-the-loop, per AIAC-SRS Part 4).
+  still flagged for human reviewer confirmation (human-in-the-loop, per the Assessment Center requirements, Part 4).

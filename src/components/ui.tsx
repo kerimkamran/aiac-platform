@@ -12,6 +12,7 @@ const ICON_PATHS: Record<string, string> = {
   wand: "M15 4V2m0 20v-2m5-5h2M3 15h2m11.5-8.5L18 5m-9.5 9.5L4 19m12.5-4.5L18 16M8.5 8.5 7 7m4 4 9 9",
   clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 3",
   check: "M20 6 9 17l-5-5",
+  flag: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
   checkCircle: "M22 11.1V12a10 10 0 1 1-5.93-9.14M22 4 12 14l-3-3",
   arrowRight: "M5 12h14m-6-6 6 6-6 6",
   arrowLeft: "M19 12H5m6 6-6-6 6-6",
