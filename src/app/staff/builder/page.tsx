@@ -175,7 +175,7 @@ export default async function BuilderListPage({
                       confirmMessage={`Delete "${a.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
                       icon="trash"
                       label={`Delete "${a.title}"`}
-                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
+                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
                       compact
                     />
                   </form>

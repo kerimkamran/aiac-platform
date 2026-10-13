@@ -4,7 +4,6 @@ import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Icon } from "@/components/ui";
 import { AssessmentRunner, type RunnerSection } from "./runner";
-import { AssessmentTimer } from "@/components/AssessmentTimer";
 
 export function ProctoredAssessmentRunner({
   caId,
@@ -136,7 +135,7 @@ export function ProctoredAssessmentRunner({
             We record video only — this is not analyzed automatically for gestures, expressions, or emotion. You can
             decline, but the assessment can&apos;t start without camera access.
           </p>
-          {errorMsg && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">{errorMsg}</p>}
+          {errorMsg && <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-4 py-3 mb-4">{errorMsg}</p>}
           <button
             onClick={requestAccess}
             disabled={stage === "requesting"}

@@ -173,7 +173,7 @@ export default async function BuilderDetailPage({
             <ConfirmSubmitButton
               confirmMessage={`Delete "${assessment.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
               icon="trash"
-              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
+              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
             >
               Delete
             </ConfirmSubmitButton>
@@ -220,7 +220,7 @@ export default async function BuilderDetailPage({
       <ToastFromParams specs={TOAST_SPECS} />
 
       {locked && (
-        <p role="status" className="mb-6 text-sm text-warning bg-amber-50 rounded-xl px-4 py-3">
+        <p role="status" className="mb-6 text-sm text-warning bg-warning-soft rounded-xl px-4 py-3">
           Candidates have started this assessment, so its questions are locked. Make a copy to change them.
         </p>
       )}
@@ -372,7 +372,7 @@ export default async function BuilderDetailPage({
                         confirmMessage={`Delete section "${section.title}" and all its questions?`}
                         icon="trash"
                         label={`Delete section "${section.title}"`}
-                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
+                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
                         compact
                       />
                     </form>
@@ -420,7 +420,7 @@ export default async function BuilderDetailPage({
                               confirmMessage="Delete this question?"
                               icon="trash"
                               label={`Delete question ${qi + 1}`}
-                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
+                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
                               compact
                             />
                           </form>
@@ -429,7 +429,7 @@ export default async function BuilderDetailPage({
                       {q.options && q.options.length > 0 && (
                         <ul className="text-xs text-muted mt-2 grid sm:grid-cols-2 gap-1">
                           {q.options.map((o) => (
-                            <li key={o.key} className={o.correct ? "text-emerald-700 font-medium" : ""}>
+                            <li key={o.key} className={o.correct ? "text-good font-medium" : ""}>
                               {o.key}. {o.text} {o.correct ? "✓" : ""}
                             </li>
                           ))}

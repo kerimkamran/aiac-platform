@@ -147,8 +147,8 @@ export default async function SettingsPage({
                 <span
                   className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                     e.enabled && e.api_key_secret_id
-                      ? "bg-green-50 text-green-700 ring-green-600/20"
-                      : "bg-gray-100 text-gray-600 ring-gray-500/20"
+                      ? "bg-good-soft text-good ring-good/30"
+                      : "bg-line-soft text-muted ring-line"
                   }`}
                 >
                   {e.enabled && e.api_key_secret_id ? "Active" : "Not configured"}

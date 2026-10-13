@@ -52,7 +52,7 @@ export function GenerationProgress({
                 {job.warnings.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {job.warnings.map((w, i) => (
-                      <li key={i} className="text-2xs text-warning bg-amber-50 rounded-md px-2 py-1">
+                      <li key={i} className="text-2xs text-warning bg-warning-soft rounded-md px-2 py-1">
                         {w}
                       </li>
                     ))}
@@ -96,7 +96,7 @@ function StatusLine({ job, elapsed }: { job: Job; elapsed: number }) {
     );
   }
   if (job.status === "done") {
-    return <p className="text-xs text-emerald-700 mt-0.5">{job.empty ? "Empty draft created" : "Draft ready"} · not visible to candidates until published</p>;
+    return <p className="text-xs text-good mt-0.5">{job.empty ? "Empty draft created" : "Draft ready"} · not visible to candidates until published</p>;
   }
   return <p className="text-xs text-critical mt-0.5">Didn&apos;t finish</p>;
 }

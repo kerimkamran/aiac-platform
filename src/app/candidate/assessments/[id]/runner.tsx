@@ -268,7 +268,7 @@ export function AssessmentRunner({
       </div>
 
       {tabSwitches > 0 && (
-        <div className="mb-4 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
+        <div className="mb-4 text-xs font-medium text-warning bg-warning-soft border border-warning/40 rounded-xl px-4 py-2.5 flex items-center gap-2">
           <Icon name="eye" className="w-3.5 h-3.5 shrink-0" />
           This tab was left {tabSwitches} time{tabSwitches > 1 ? "s" : ""} during the assessment. This is logged for
           the reviewing admin.
@@ -329,14 +329,14 @@ export function AssessmentRunner({
                         <Icon name="check" className="w-3 h-3" />
                       </span>
                     ) : (
-                      <span className="w-5 h-5 rounded-full ring-2 ring-inset ring-amber-400 shrink-0" />
+                      <span className="w-5 h-5 rounded-full ring-2 ring-inset ring-warning/40 shrink-0" />
                     )}
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-medium text-foreground truncate" {...contentLangAttr}>
                         {i + 1}. {s.q.prompt}
                       </p>
                       <p
-                        className={`text-xs truncate ${val ? "text-muted" : "text-amber-600 font-medium"}`}
+                        className={`text-xs truncate ${val ? "text-muted" : "text-warning font-medium"}`}
                         {...(val && s.q.type === "mcq" ? contentLangAttr : {})}
                       >
                         {val ? (s.q.type === "mcq" ? optText : val) : "Not answered yet"}

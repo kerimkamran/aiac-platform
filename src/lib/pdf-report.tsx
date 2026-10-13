@@ -1,11 +1,17 @@
-import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect } from "@react-pdf/renderer";
+import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect, Circle } from "@react-pdf/renderer";
+import { BRAND as PALETTE } from "@/lib/brand";
 
-const BRAND = "#4338CA";
-const BRAND_DEEP = "#241E6B";
-const ACCENT = "#0F8A5F";
-const INK = "#111318";
-const MUTED = "#5D6674";
-const LINE = "#E3E8ED";
+// Node Grid palette for the PDF (plan v2, section 4.1). The primary is navy and
+// the secondary is green; the old indigo palette is gone.
+const BRAND = PALETTE.navy;
+const BRAND_DEEP = PALETTE.navyDeep;
+const ACCENT = PALETTE.green;
+const INK = PALETTE.ink;
+const MUTED = PALETTE.muted;
+const LINE = PALETTE.line;
+const GOOD = PALETTE.green;
+const WARN = PALETTE.warning;
+const CRIT = PALETTE.critical;
 
 const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, color: INK, fontFamily: "Helvetica" },
@@ -34,14 +40,14 @@ const styles = StyleSheet.create({
   questionPrompt: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
   questionAnswer: { fontSize: 8.5, color: MUTED, marginBottom: 4, lineHeight: 1.4 },
   rationale: { fontSize: 8, color: ACCENT, fontFamily: "Helvetica-Oblique" },
-  needsReviewBadge: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#92651a", backgroundColor: "#fdf3dd", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
+  needsReviewBadge: { fontSize: 7, fontFamily: "Helvetica-Bold", color: WARN, backgroundColor: PALETTE.warningTint, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
   decisionRow: { flexDirection: "row", gap: 8, marginBottom: 6, alignItems: "flex-start" },
-  decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: "#fff" },
+  decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: PALETTE.white },
   footer: { position: "absolute", bottom: 24, left: 40, right: 40, borderTop: `1 solid ${LINE}`, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
   footerText: { fontSize: 7, color: MUTED },
   execCard: { border: `1 solid ${LINE}`, borderRadius: 8, padding: 14, marginBottom: 14 },
   execHeadlineRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
-  execRecBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: "#fff" },
+  execRecBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: PALETTE.white },
   execHeadline: { fontSize: 9, color: INK, lineHeight: 1.5, marginBottom: 8 },
   execCols: { flexDirection: "row", gap: 16, marginBottom: 6 },
   execColTitle: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
@@ -50,23 +56,23 @@ const styles = StyleSheet.create({
 });
 
 function bandInfo(score: number) {
-  if (score >= 85) return { label: "Exceeds Expectations", color: "#1c400f" };
+  if (score >= 85) return { label: "Exceeds Expectations", color: GOOD };
   if (score >= 70) return { label: "Fully Meets Expectations", color: ACCENT };
-  if (score >= 50) return { label: "Partially Meets Expectations", color: "#b9861a" };
-  return { label: "Does Not Meet Expectations", color: "#d03b3b" };
+  if (score >= 50) return { label: "Partially Meets Expectations", color: WARN };
+  return { label: "Does Not Meet Expectations", color: CRIT };
 }
 
 function recColor(label: string) {
-  if (label === "Strong fit") return "#0e9f6e";
+  if (label === "Strong fit") return GOOD;
   if (label === "Fit with reservations") return ACCENT;
-  if (label === "Borderline") return "#d97706";
-  return "#dc2626";
+  if (label === "Borderline") return WARN;
+  return CRIT;
 }
 
 function decisionColor(d: string) {
-  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return "#0e9f6e";
-  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return "#d97706";
-  if (d === "reject" || d === "not_yet_ready") return "#dc2626";
+  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return GOOD;
+  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return WARN;
+  if (d === "reject" || d === "not_yet_ready") return CRIT;
   return MUTED;
 }
 
@@ -98,12 +104,14 @@ export type ReportData = {
   generatedAt: string;
 };
 
+// The Vantage "Node V" mark (plan v2, section 4.4), drawn for the PDF.
 function LogoMark() {
   return (
     <Svg width={26} height={26} viewBox="0 0 64 64">
-      <Rect width={64} height={64} rx={14} fill={BRAND_DEEP} />
-      <Path d="M32 12 L48 48 H40.5 L32 27 L23.5 48 H16 Z" fill="#ffffff" />
-      <Path d="M27 42a5 5 0 1 0 10 0 5 5 0 0 0-10 0z" fill={ACCENT} />
+      <Rect width={64} height={64} rx={14} fill={BRAND} />
+      {[16, 32, 48].flatMap((x) => [16, 32, 48].map((y) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} fill={PALETTE.white} opacity={0.22} />))}
+      <Path d="M16 16 L32 48 L48 16" fill="none" stroke={PALETTE.white} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={32} cy={32} r={5.2} fill={PALETTE.green} />
     </Svg>
   );
 }

@@ -16,7 +16,7 @@ export default async function LoginPage({
     >
       <form action={login} className="space-y-4">
         {error && (
-          <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">{error}</p>
+          <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-3.5 py-2.5">{error}</p>
         )}
         <Field label="Email" name="email" type="email" placeholder="you@company.com" />
         <Field label="Password" name="password" type="password" placeholder="••••••••" />

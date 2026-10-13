@@ -46,7 +46,7 @@ export function PublishChecklist({
                 <span
                   aria-hidden
                   className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-2xs font-bold ${
-                    c.ok ? "bg-emerald-600 text-white" : c.blocking ? "bg-critical text-white" : "bg-amber-500 text-white"
+                    c.ok ? "bg-good text-white" : c.blocking ? "bg-critical text-white" : "bg-warning text-white"
                   }`}
                 >
                   {c.ok ? "✓" : c.blocking ? "!" : "·"}

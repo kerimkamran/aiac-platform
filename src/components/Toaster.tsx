@@ -11,7 +11,7 @@ const ToastContext = createContext<{ push: (variant: ToastVariant, message: stri
 
 const VARIANT_META: Record<ToastVariant, { icon: string; ring: string; iconWrap: string }> = {
   success: { icon: "checkCircle", ring: "ring-accent/25", iconWrap: "bg-accent-soft text-accent-dark" },
-  error: { icon: "alertTriangle", ring: "ring-red-200", iconWrap: "bg-red-50 text-critical" },
+  error: { icon: "alertTriangle", ring: "ring-critical/30", iconWrap: "bg-critical-soft text-critical" },
   info: { icon: "info", ring: "ring-line", iconWrap: "bg-surface text-accent-dark" },
 };
 

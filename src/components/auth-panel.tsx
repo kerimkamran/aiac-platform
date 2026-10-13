@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { LogoMark } from "@/components/ui";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { AppearanceMenu } from "@/components/AppearanceMenu";
 
 // Design-execution-plan follow-up ("make it simple like Google"): this used
 // to be a split-screen layout (a wide brand panel with a headline, a
@@ -33,7 +33,7 @@ export function AuthPanel({
 
       <footer className="flex items-center justify-center gap-4 px-6 py-6 text-2xs text-muted">
         <span>Azerconnect Group — Internal Use Only</span>
-        <ThemeToggle className="text-muted hover:text-muted transition-colors" />
+        <AppearanceMenu />
       </footer>
 
     </div>

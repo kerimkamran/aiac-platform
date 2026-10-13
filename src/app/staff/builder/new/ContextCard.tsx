@@ -104,7 +104,7 @@ export function ContextCard({
       </header>
 
       {notice && (
-        <p role="alert" className="text-xs text-critical bg-red-50 rounded-lg px-3 py-2">
+        <p role="alert" className="text-xs text-critical bg-critical-soft rounded-lg px-3 py-2">
           {notice}
         </p>
       )}
@@ -242,7 +242,7 @@ export function ContextCard({
       </p>
 
       {contextEngine && !contextEngine.allowContext && (
-        <p className="text-xs text-warning bg-amber-50 rounded-lg px-3 py-2">
+        <p className="text-xs text-warning bg-warning-soft rounded-lg px-3 py-2">
           {contextEngine.displayName} isn&apos;t approved to receive job descriptions or files. Drafts will be generated from the competencies and level only, unless you switch to an approved engine in Advanced.
         </p>
       )}

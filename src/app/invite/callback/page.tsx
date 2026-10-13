@@ -90,7 +90,7 @@ export default function InviteCallbackPage() {
             </p>
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
-                <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">{error}</p>
+                <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-3.5 py-2.5">{error}</p>
               )}
               <div>
                 <label className="block text-xs font-semibold text-foreground mb-1.5">New password</label>

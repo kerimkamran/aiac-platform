@@ -256,13 +256,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           reviewer skims. Surfaced here as its own summary so it's seen
           before anything else. */}
       {needsReviewCount > 0 && (
-        <Card className="p-5 mb-6 flex items-start gap-3 bg-amber-50 border-amber-200 no-print">
-          <Icon name="alertTriangle" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
+        <Card className="p-5 mb-6 flex items-start gap-3 bg-warning-soft border-warning/40 no-print">
+          <Icon name="alertTriangle" className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-amber-900">
+            <p className="text-sm font-semibold text-warning">
               {needsReviewCount} response{needsReviewCount === 1 ? "" : "s"} flagged for review
             </p>
-            <p className="text-xs text-amber-800 mt-0.5">
+            <p className="text-xs text-warning mt-0.5">
               The scoring engine wasn&apos;t confident in {needsReviewCount === 1 ? "this score" : "these scores"} — check
               the flagged answer{needsReviewCount === 1 ? "" : "s"} in Response evidence below before relying on{" "}
               {needsReviewCount === 1 ? "it" : "them"}.
@@ -298,7 +298,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <span className="flex items-center gap-2 shrink-0">
                       {r.needs_review && (
                         <span
-                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200"
+                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
                           title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
                         >
                           <Icon name="alertTriangle" className="w-3 h-3" />
@@ -442,7 +442,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             <Card className="p-5 mb-5 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-foreground">
                 Role-profile bar: meets or exceeds the target on{" "}
-                <span className={meetingBar.length === targeted.length ? "text-[#3d7a4d]" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
+                <span className={meetingBar.length === targeted.length ? "text-good" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
                   {meetingBar.length} of {targeted.length}
                 </span>{" "}
                 targeted competenc{targeted.length === 1 ? "y" : "ies"}.
@@ -476,9 +476,9 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                               <span
                                 className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                                   barState === "Below bar"
-                                    ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
+                                    ? "bg-critical-soft text-critical ring-critical/30"
                                     : barState === "Exceeds bar"
-                                      ? "bg-[#eef3ef] text-[#3d7a4d] ring-emerald-200"
+                                      ? "bg-good-soft text-good ring-good/30"
                                       : "bg-line-soft text-foreground ring-line"
                                 }`}
                                 title={`Target for this role: ${target}`}
@@ -530,7 +530,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           )}
         </>
       ) : (
-        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-amber-800 bg-amber-50 border-amber-200">
+        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-warning bg-warning-soft border-warning/40">
           <Icon name="clock" className="w-5 h-5 shrink-0" />
           Candidate has not yet submitted this assessment — scores will appear here once they do.
         </Card>
@@ -684,7 +684,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 {reviewRows.length >= 2 ? "Reviewer calibration" : "Decision history"}
               </p>
               {diverges && (
-                <div className="flex items-start gap-2.5 bg-[#fbeceb] text-[#b23b3b] rounded-xl px-4 py-3 text-sm">
+                <div className="flex items-start gap-2.5 bg-critical-soft text-critical rounded-xl px-4 py-3 text-sm">
                   <Icon name="alertTriangle" className="w-4 h-4 mt-0.5 shrink-0" />
                   <p>
                     <span className="font-semibold">Reviewers disagree</span> — {distinctDecisions.join(" vs. ")}. Worth a

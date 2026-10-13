@@ -91,7 +91,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
             <span
               className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                 new Date(r.due_at).getTime() < nowMs()
-                  ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
+                  ? "bg-critical-soft text-critical ring-critical/30"
                   : "bg-line-soft text-muted ring-line"
               }`}
             >

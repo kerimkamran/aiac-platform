@@ -864,7 +864,9 @@ export async function duplicateAssessment(assessmentId: string) {
   }
 
   if (proctoring) {
-    const { id: _omit, assessment_id: _omit2, ...rest } = proctoring as Record<string, unknown>;
+    const rest: Record<string, unknown> = { ...(proctoring as Record<string, unknown>) };
+    delete rest.id;
+    delete rest.assessment_id;
     await supabase.from("proctoring_settings").insert({ ...rest, assessment_id: created.id });
   }
 

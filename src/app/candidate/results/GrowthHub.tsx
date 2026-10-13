@@ -26,11 +26,11 @@ function Sparkline({ values, className = "" }: { values: number[]; className?: s
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none">
-      <path d={path} fill="none" stroke={up ? "#0f8a5f" : "#d97706"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={path} fill="none" stroke={up ? "var(--good)" : "var(--warning)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
       {points.map(([x, y], i) => (
-        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 2.5} fill={up ? "#0f8a5f" : "#d97706"} />
+        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 2.5} fill={up ? "var(--good)" : "var(--warning)"} />
       ))}
-      {last && <circle cx={last[0]} cy={last[1]} r="6" fill={up ? "#0f8a5f" : "#d97706"} opacity="0.15" />}
+      {last && <circle cx={last[0]} cy={last[1]} r="6" fill={up ? "var(--good)" : "var(--warning)"} opacity="0.15" />}
     </svg>
   );
 }
@@ -77,7 +77,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
             {last}
             <span className="text-sm font-medium text-muted"> / 100</span>
           </p>
-          <p className={`text-xs font-semibold ${delta > 0 ? "text-emerald-700" : delta < 0 ? "text-amber-700" : "text-muted"}`}>
+          <p className={`text-xs font-semibold ${delta > 0 ? "text-good" : delta < 0 ? "text-warning" : "text-muted"}`}>
             {delta > 0 ? `+${delta}` : delta} since your first tracked assessment
           </p>
         </div>
@@ -89,9 +89,9 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
             <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Most improved</p>
             <div className="space-y-1.5">
               {improved.map((m) => (
-                <div key={m.name} className="flex items-center justify-between text-xs bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
+                <div key={m.name} className="flex items-center justify-between text-xs bg-good-soft border border-good/40 rounded-lg px-3 py-2">
                   <span className="text-foreground font-medium">{m.name}</span>
-                  <span className="font-bold text-emerald-700 tabular-nums">+{m.delta}</span>
+                  <span className="font-bold text-good tabular-nums">+{m.delta}</span>
                 </div>
               ))}
             </div>
@@ -102,9 +102,9 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
             <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Keep developing</p>
             <div className="space-y-1.5">
               {growthAreas.map((m) => (
-                <div key={m.name} className="flex items-center justify-between text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+                <div key={m.name} className="flex items-center justify-between text-xs bg-warning-soft border border-warning/40 rounded-lg px-3 py-2">
                   <span className="text-foreground font-medium">{m.name}</span>
-                  <span className="font-bold text-amber-700 tabular-nums">{m.delta > 0 ? "+" : ""}{m.delta}</span>
+                  <span className="font-bold text-warning tabular-nums">{m.delta > 0 ? "+" : ""}{m.delta}</span>
                 </div>
               ))}
             </div>

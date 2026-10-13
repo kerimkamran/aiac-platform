@@ -126,7 +126,7 @@ export function MeasureCard({
           </fieldset>
         ))}
         {selectedLeadership && !leadershipApplies && (
-          <p className="text-xs text-warning bg-amber-50 rounded-lg px-3 py-2">
+          <p className="text-xs text-warning bg-warning-soft rounded-lg px-3 py-2">
             Leadership competencies are only used for Manager, Director and C-level drafts. They will be left out of the Entry and Senior drafts.
           </p>
         )}

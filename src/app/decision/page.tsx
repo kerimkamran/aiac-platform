@@ -86,7 +86,7 @@ export default async function DecisionHomePage() {
                         Submitted
                       </span>
                     ) : (
-                      <span className="text-xs text-amber-600 font-medium">Awaiting your input</span>
+                      <span className="text-xs text-warning font-medium">Awaiting your input</span>
                     )}
                   </td>
                   <td className="px-5 py-3.5 text-right">

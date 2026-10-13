@@ -3,7 +3,6 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { startAssessment, submitAssessment } from "./actions";
 import { AssessmentRunner, type RunnerSection } from "./runner";
-import { AssessmentTimer } from "@/components/AssessmentTimer";
 import { ProctoredAssessmentRunner } from "./proctoring-gate";
 import { PracticeQuestion } from "@/components/PracticeQuestion";
 import { Card, Icon } from "@/components/ui";

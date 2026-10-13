@@ -273,7 +273,7 @@ export function NewAssessmentForm({
   return (
     <div className="space-y-6">
       {formError && (
-        <div role="alert" className="rounded-xl border border-critical/30 bg-red-50 text-critical text-sm px-4 py-3">
+        <div role="alert" className="rounded-xl border border-critical/30 bg-critical-soft text-critical text-sm px-4 py-3">
           {formError}
         </div>
       )}
