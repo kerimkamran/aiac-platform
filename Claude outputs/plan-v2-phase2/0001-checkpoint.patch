@@ -1,0 +1,2135 @@
+From c093ddf5776342d7b283b3f9c69d0d527a9130f0 Mon Sep 17 00:00:00 2001
+From: Kamran Karimli <kamranka@azerconnect.az>
+Date: Tue, 13 Oct 2026 15:00:24 +0400
+Subject: [PATCH 1/2] Plan v2 Phase 2 (checkpoint): Node Grid tokens,
+ appearance, Node V mark
+
+- Node Grid colour tokens on :root with .dark and cream/grey canvases
+- brand.ts is the only place hex colours live (PDF, Excel, email)
+- Appearance menu (theme + background) saved per profile (migration 0017)
+- Node V mark, Azerconnect Group lockup, icon.svg
+- ui primitives: Button, Field, SegmentedControl, Callout, Chip
+- Tests: no raw colours outside brand.ts; WCAG contrast on light canvases
+- Lint: remove unused imports and variables
+
+Co-Authored-By: Claude Haiku 5.5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01VwbNAvHSSauSWXKNV6DNV9
+---
+ src/app/admin/api-docs/page.tsx               |   4 +-
+ src/app/admin/data-governance/page.tsx        |   2 +-
+ src/app/admin/users/[id]/page.tsx             |   8 +-
+ src/app/appearance-actions.ts                 |  29 +++
+ src/app/candidate/assessments/[id]/page.tsx   |   1 -
+ .../assessments/[id]/proctoring-gate.tsx      |   3 +-
+ src/app/candidate/assessments/[id]/runner.tsx |   6 +-
+ src/app/candidate/results/GrowthHub.tsx       |  16 +-
+ src/app/candidate/signoffs/page.tsx           |   2 +-
+ src/app/decision/candidates/[id]/page.tsx     |  12 +-
+ src/app/decision/page.tsx                     |   2 +-
+ src/app/globals.css                           | 231 +++++++++++-------
+ src/app/icon.svg                              |  18 +-
+ src/app/invite/callback/page.tsx              |   2 +-
+ src/app/layout.tsx                            |  66 +++--
+ src/app/login/page.tsx                        |   2 +-
+ src/app/page.tsx                              |   4 +-
+ .../staff/builder/[id]/PublishChecklist.tsx   |   2 +-
+ src/app/staff/builder/[id]/page.tsx           |  10 +-
+ src/app/staff/builder/actions.ts              |   4 +-
+ src/app/staff/builder/new/ContextCard.tsx     |   4 +-
+ .../staff/builder/new/GenerationProgress.tsx  |   4 +-
+ src/app/staff/builder/new/MeasureCard.tsx     |   2 +-
+ .../staff/builder/new/NewAssessmentForm.tsx   |   2 +-
+ src/app/staff/builder/page.tsx                |   2 +-
+ .../staff/reports/candidates/[id]/page.tsx    |  20 +-
+ src/app/staff/settings/page.tsx               |   4 +-
+ src/components/AppearanceMenu.tsx             | 118 +++++++++
+ src/components/CandidateExportTable.tsx       |   2 +-
+ src/components/NavShell.tsx                   |   6 +-
+ src/components/SwipeToConfirm.tsx             |   2 +-
+ src/components/ThemeToggle.tsx                |  29 ---
+ src/components/Toaster.tsx                    |   2 +-
+ src/components/VantageMark.tsx                |  50 ++++
+ src/components/auth-panel.tsx                 |   4 +-
+ src/components/ui.tsx                         |  76 +++---
+ src/components/ui/Button.tsx                  |  43 ++++
+ src/components/ui/Callout.tsx                 |  20 ++
+ src/components/ui/Chip.tsx                    |  14 ++
+ src/components/ui/Field.tsx                   |  30 +++
+ src/components/ui/SegmentedControl.tsx        |  40 +++
+ src/lib/appearance.ts                         |  65 +++++
+ src/lib/brand.ts                              |  20 ++
+ src/lib/contrast.node-grid.test.ts            |  84 +++++++
+ src/lib/no-raw-colours.test.ts                |  50 ++++
+ src/lib/pdf-report.tsx                        |  52 ++--
+ src/lib/purpose.ts                            |   6 +-
+ src/lib/reporting.ts                          |  10 +-
+ .../0017_appearance_preferences.sql           |  39 +++
+ 49 files changed, 919 insertions(+), 305 deletions(-)
+ create mode 100644 src/app/appearance-actions.ts
+ create mode 100644 src/components/AppearanceMenu.tsx
+ delete mode 100644 src/components/ThemeToggle.tsx
+ create mode 100644 src/components/VantageMark.tsx
+ create mode 100644 src/components/ui/Button.tsx
+ create mode 100644 src/components/ui/Callout.tsx
+ create mode 100644 src/components/ui/Chip.tsx
+ create mode 100644 src/components/ui/Field.tsx
+ create mode 100644 src/components/ui/SegmentedControl.tsx
+ create mode 100644 src/lib/appearance.ts
+ create mode 100644 src/lib/brand.ts
+ create mode 100644 src/lib/contrast.node-grid.test.ts
+ create mode 100644 src/lib/no-raw-colours.test.ts
+ create mode 100644 supabase/migrations/0017_appearance_preferences.sql
+
+diff --git a/src/app/admin/api-docs/page.tsx b/src/app/admin/api-docs/page.tsx
+index ae5ee6f..4f887aa 100644
+--- a/src/app/admin/api-docs/page.tsx
++++ b/src/app/admin/api-docs/page.tsx
+@@ -8,8 +8,8 @@ type Spec = { info: { title: string; version: string; description: string }; pat
+ const METHOD_TONE: Record<string, string> = {
+   get: "bg-brand-50 text-accent-dark",
+   post: "bg-accent-soft text-accent-dark",
+-  patch: "bg-amber-50 text-warning",
+-  delete: "bg-red-50 text-critical",
++  patch: "bg-warning-soft text-warning",
++  delete: "bg-critical-soft text-critical",
+ };
+ 
+ export default async function ApiDocsPage() {
+diff --git a/src/app/admin/data-governance/page.tsx b/src/app/admin/data-governance/page.tsx
+index bd3c23b..064c163 100644
+--- a/src/app/admin/data-governance/page.tsx
++++ b/src/app/admin/data-governance/page.tsx
+@@ -56,7 +56,7 @@ export default async function AdminDataGovernancePage() {
+                 {(held || []).map((h) => (
+                   <Link key={h.id} href={`/admin/users/${h.id}`} className="flex items-center justify-between text-sm border border-line rounded-xl px-3.5 py-2.5 hover:border-accent transition-colors">
+                     <span className="font-semibold text-foreground">{h.full_name}</span>
+-                    <span className="text-2xs font-bold text-warning bg-amber-50 px-2 py-0.5 rounded-full ring-1 ring-inset ring-amber-200">HELD</span>
++                    <span className="text-2xs font-bold text-warning bg-warning-soft px-2 py-0.5 rounded-full ring-1 ring-inset ring-warning/30">HELD</span>
+                   </Link>
+                 ))}
+               </div>
+diff --git a/src/app/admin/users/[id]/page.tsx b/src/app/admin/users/[id]/page.tsx
+index 91906ec..f3f26fa 100644
+--- a/src/app/admin/users/[id]/page.tsx
++++ b/src/app/admin/users/[id]/page.tsx
+@@ -94,7 +94,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
+             <form action={setUserStatus.bind(null, id, "deactivated")}>
+               <ConfirmSubmitButton
+                 confirmMessage={`Deactivate ${user.full_name}? They will be signed out and blocked from logging in.`}
+-                className="border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
++                className="border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
+               >
+                 Deactivate
+               </ConfirmSubmitButton>
+@@ -215,7 +215,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
+             <div className="flex items-center justify-between text-sm">
+               <span className="text-muted">Blacklisted</span>
+               <form action={toggleUserFlag.bind(null, id, "blacklisted", !user.blacklisted)}>
+-                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.blacklisted ? "bg-red-50 text-critical ring-red-200" : "bg-surface text-muted ring-line"}`}>
++                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.blacklisted ? "bg-critical-soft text-critical ring-critical/30" : "bg-surface text-muted ring-line"}`}>
+                   {user.blacklisted ? "Yes — clear" : "No — set"}
+                 </button>
+               </form>
+@@ -223,7 +223,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
+             <div className="flex items-center justify-between text-sm">
+               <span className="text-muted">Legal hold</span>
+               <form action={toggleUserFlag.bind(null, id, "legal_hold", !user.legal_hold)}>
+-                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.legal_hold ? "bg-amber-50 text-warning ring-amber-200" : "bg-surface text-muted ring-line"}`}>
++                <button className={`text-2xs font-bold px-3 py-1.5 rounded-full ring-1 ring-inset ${user.legal_hold ? "bg-warning-soft text-warning ring-warning/30" : "bg-surface text-muted ring-line"}`}>
+                   {user.legal_hold ? "Held — release" : "Off — hold"}
+                 </button>
+               </form>
+@@ -236,7 +236,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
+               <form action={anonymizeUser.bind(null, id)}>
+                 <ConfirmSubmitButton
+                   confirmMessage={`GDPR-anonymize ${user.full_name}? Personal data is permanently blanked (scores are kept, de-identified). This cannot be undone.`}
+-                  className="w-full border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
++                  className="w-full border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
+                 >
+                   Anonymize (GDPR)
+                 </ConfirmSubmitButton>
+diff --git a/src/app/appearance-actions.ts b/src/app/appearance-actions.ts
+new file mode 100644
+index 0000000..ff22f14
+--- /dev/null
++++ b/src/app/appearance-actions.ts
+@@ -0,0 +1,29 @@
++"use server";
++
++import { createClient } from "@/lib/supabase/server";
++import { normalizeAppearance, type Appearance } from "@/lib/appearance";
++
++// Reads the signed-in user's saved appearance (null when signed out or unset).
++export async function loadMyAppearance(): Promise<Appearance | null> {
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) return null;
++  const { data } = await supabase.from("profiles").select("appearance").eq("id", user.id).maybeSingle();
++  const raw = (data as { appearance?: unknown } | null)?.appearance;
++  if (!raw || typeof raw !== "object" || Object.keys(raw as object).length === 0) return null;
++  return normalizeAppearance(raw);
++}
++
++// Saves the choice to the profile. Failures are ignored on purpose: the
++// browser copy already applies, and the next visit tries again.
++export async function saveMyAppearance(next: Appearance): Promise<void> {
++  const supabase = await createClient();
++  const {
++    data: { user },
++  } = await supabase.auth.getUser();
++  if (!user) return;
++  const clean = normalizeAppearance(next);
++  await supabase.rpc("set_my_appearance", { p_appearance: clean });
++}
+diff --git a/src/app/candidate/assessments/[id]/page.tsx b/src/app/candidate/assessments/[id]/page.tsx
+index ff3cbf2..13564f4 100644
+--- a/src/app/candidate/assessments/[id]/page.tsx
++++ b/src/app/candidate/assessments/[id]/page.tsx
+@@ -3,7 +3,6 @@ import Link from "next/link";
+ import { redirect } from "next/navigation";
+ import { startAssessment, submitAssessment } from "./actions";
+ import { AssessmentRunner, type RunnerSection } from "./runner";
+-import { AssessmentTimer } from "@/components/AssessmentTimer";
+ import { ProctoredAssessmentRunner } from "./proctoring-gate";
+ import { PracticeQuestion } from "@/components/PracticeQuestion";
+ import { Card, Icon } from "@/components/ui";
+diff --git a/src/app/candidate/assessments/[id]/proctoring-gate.tsx b/src/app/candidate/assessments/[id]/proctoring-gate.tsx
+index b927de4..084b4cb 100644
+--- a/src/app/candidate/assessments/[id]/proctoring-gate.tsx
++++ b/src/app/candidate/assessments/[id]/proctoring-gate.tsx
+@@ -4,7 +4,6 @@ import { useCallback, useRef, useState } from "react";
+ import { createClient } from "@/lib/supabase/client";
+ import { Card, Icon } from "@/components/ui";
+ import { AssessmentRunner, type RunnerSection } from "./runner";
+-import { AssessmentTimer } from "@/components/AssessmentTimer";
+ 
+ export function ProctoredAssessmentRunner({
+   caId,
+@@ -136,7 +135,7 @@ export function ProctoredAssessmentRunner({
+             We record video only — this is not analyzed automatically for gestures, expressions, or emotion. You can
+             decline, but the assessment can&apos;t start without camera access.
+           </p>
+-          {errorMsg && <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">{errorMsg}</p>}
++          {errorMsg && <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-4 py-3 mb-4">{errorMsg}</p>}
+           <button
+             onClick={requestAccess}
+             disabled={stage === "requesting"}
+diff --git a/src/app/candidate/assessments/[id]/runner.tsx b/src/app/candidate/assessments/[id]/runner.tsx
+index 0a92ba7..197da81 100644
+--- a/src/app/candidate/assessments/[id]/runner.tsx
++++ b/src/app/candidate/assessments/[id]/runner.tsx
+@@ -268,7 +268,7 @@ export function AssessmentRunner({
+       </div>
+ 
+       {tabSwitches > 0 && (
+-        <div className="mb-4 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-2.5 flex items-center gap-2">
++        <div className="mb-4 text-xs font-medium text-warning bg-warning-soft border border-warning/40 rounded-xl px-4 py-2.5 flex items-center gap-2">
+           <Icon name="eye" className="w-3.5 h-3.5 shrink-0" />
+           This tab was left {tabSwitches} time{tabSwitches > 1 ? "s" : ""} during the assessment. This is logged for
+           the reviewing admin.
+@@ -329,14 +329,14 @@ export function AssessmentRunner({
+                         <Icon name="check" className="w-3 h-3" />
+                       </span>
+                     ) : (
+-                      <span className="w-5 h-5 rounded-full ring-2 ring-inset ring-amber-400 shrink-0" />
++                      <span className="w-5 h-5 rounded-full ring-2 ring-inset ring-warning/40 shrink-0" />
+                     )}
+                     <div className="min-w-0 flex-1">
+                       <p className="text-xs font-medium text-foreground truncate" {...contentLangAttr}>
+                         {i + 1}. {s.q.prompt}
+                       </p>
+                       <p
+-                        className={`text-xs truncate ${val ? "text-muted" : "text-amber-600 font-medium"}`}
++                        className={`text-xs truncate ${val ? "text-muted" : "text-warning font-medium"}`}
+                         {...(val && s.q.type === "mcq" ? contentLangAttr : {})}
+                       >
+                         {val ? (s.q.type === "mcq" ? optText : val) : "Not answered yet"}
+diff --git a/src/app/candidate/results/GrowthHub.tsx b/src/app/candidate/results/GrowthHub.tsx
+index f33871c..9b3793c 100644
+--- a/src/app/candidate/results/GrowthHub.tsx
++++ b/src/app/candidate/results/GrowthHub.tsx
+@@ -26,11 +26,11 @@ function Sparkline({ values, className = "" }: { values: number[]; className?: s
+ 
+   return (
+     <svg viewBox={`0 0 ${w} ${h}`} className={className} preserveAspectRatio="none">
+-      <path d={path} fill="none" stroke={up ? "#0f8a5f" : "#d97706"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
++      <path d={path} fill="none" stroke={up ? "var(--good)" : "var(--warning)"} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+       {points.map(([x, y], i) => (
+-        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 2.5} fill={up ? "#0f8a5f" : "#d97706"} />
++        <circle key={i} cx={x} cy={y} r={i === points.length - 1 ? 3.5 : 2.5} fill={up ? "var(--good)" : "var(--warning)"} />
+       ))}
+-      {last && <circle cx={last[0]} cy={last[1]} r="6" fill={up ? "#0f8a5f" : "#d97706"} opacity="0.15" />}
++      {last && <circle cx={last[0]} cy={last[1]} r="6" fill={up ? "var(--good)" : "var(--warning)"} opacity="0.15" />}
+     </svg>
+   );
+ }
+@@ -77,7 +77,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] })
+             {last}
+             <span className="text-sm font-medium text-muted"> / 100</span>
+           </p>
+-          <p className={`text-xs font-semibold ${delta > 0 ? "text-emerald-700" : delta < 0 ? "text-amber-700" : "text-muted"}`}>
++          <p className={`text-xs font-semibold ${delta > 0 ? "text-good" : delta < 0 ? "text-warning" : "text-muted"}`}>
+             {delta > 0 ? `+${delta}` : delta} since your first tracked assessment
+           </p>
+         </div>
+@@ -89,9 +89,9 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] })
+             <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Most improved</p>
+             <div className="space-y-1.5">
+               {improved.map((m) => (
+-                <div key={m.name} className="flex items-center justify-between text-xs bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
++                <div key={m.name} className="flex items-center justify-between text-xs bg-good-soft border border-good/40 rounded-lg px-3 py-2">
+                   <span className="text-foreground font-medium">{m.name}</span>
+-                  <span className="font-bold text-emerald-700 tabular-nums">+{m.delta}</span>
++                  <span className="font-bold text-good tabular-nums">+{m.delta}</span>
+                 </div>
+               ))}
+             </div>
+@@ -102,9 +102,9 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] })
+             <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Keep developing</p>
+             <div className="space-y-1.5">
+               {growthAreas.map((m) => (
+-                <div key={m.name} className="flex items-center justify-between text-xs bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
++                <div key={m.name} className="flex items-center justify-between text-xs bg-warning-soft border border-warning/40 rounded-lg px-3 py-2">
+                   <span className="text-foreground font-medium">{m.name}</span>
+-                  <span className="font-bold text-amber-700 tabular-nums">{m.delta > 0 ? "+" : ""}{m.delta}</span>
++                  <span className="font-bold text-warning tabular-nums">{m.delta > 0 ? "+" : ""}{m.delta}</span>
+                 </div>
+               ))}
+             </div>
+diff --git a/src/app/candidate/signoffs/page.tsx b/src/app/candidate/signoffs/page.tsx
+index 8b22adf..cefb148 100644
+--- a/src/app/candidate/signoffs/page.tsx
++++ b/src/app/candidate/signoffs/page.tsx
+@@ -98,7 +98,7 @@ export default async function SignoffsPage() {
+                             "use server";
+                             await decideWithId("declined", formData);
+                           }}
+-                          className="inline-flex items-center gap-2 border border-line text-sm font-semibold px-4 py-2.5 rounded-xl text-foreground hover:border-red-400 hover:text-red-600 transition-colors"
++                          className="inline-flex items-center gap-2 border border-line text-sm font-semibold px-4 py-2.5 rounded-xl text-foreground hover:border-critical hover:text-critical transition-colors"
+                         >
+                           <Icon name="x" className="w-4 h-4" />
+                           Decline
+diff --git a/src/app/decision/candidates/[id]/page.tsx b/src/app/decision/candidates/[id]/page.tsx
+index 49b1f1a..3d680b7 100644
+--- a/src/app/decision/candidates/[id]/page.tsx
++++ b/src/app/decision/candidates/[id]/page.tsx
+@@ -162,13 +162,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+       {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" />}
+ 
+       {needsReviewCount > 0 && (
+-        <Card className="p-5 mb-6 flex items-start gap-3 bg-amber-50 border-amber-200 no-print">
+-          <Icon name="alertTriangle" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
++        <Card className="p-5 mb-6 flex items-start gap-3 bg-warning-soft border-warning/40 no-print">
++          <Icon name="alertTriangle" className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+           <div>
+-            <p className="text-sm font-semibold text-amber-900">
++            <p className="text-sm font-semibold text-warning">
+               {needsReviewCount} response{needsReviewCount === 1 ? "" : "s"} flagged for review
+             </p>
+-            <p className="text-xs text-amber-800 mt-0.5">
++            <p className="text-xs text-warning mt-0.5">
+               The scoring engine wasn&apos;t confident in {needsReviewCount === 1 ? "this score" : "these scores"} — check
+               the flagged answer{needsReviewCount === 1 ? "" : "s"} in Response evidence below before relying on{" "}
+               {needsReviewCount === 1 ? "it" : "them"}.
+@@ -204,7 +204,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+                     <span className="flex items-center gap-2 shrink-0">
+                       {r.needs_review && (
+                         <span
+-                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200"
++                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
+                           title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
+                         >
+                           <Icon name="alertTriangle" className="w-3 h-3" />
+@@ -336,7 +336,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+           )}
+         </>
+       ) : (
+-        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-amber-800 bg-amber-50 border-amber-200">
++        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-warning bg-warning-soft border-warning/40">
+           <Icon name="clock" className="w-5 h-5 shrink-0" />
+           Candidate has not yet submitted this assessment — scores will appear here once they do.
+         </Card>
+diff --git a/src/app/decision/page.tsx b/src/app/decision/page.tsx
+index d6a8f8b..e62a5f5 100644
+--- a/src/app/decision/page.tsx
++++ b/src/app/decision/page.tsx
+@@ -86,7 +86,7 @@ export default async function DecisionHomePage() {
+                         Submitted
+                       </span>
+                     ) : (
+-                      <span className="text-xs text-amber-600 font-medium">Awaiting your input</span>
++                      <span className="text-xs text-warning font-medium">Awaiting your input</span>
+                     )}
+                   </td>
+                   <td className="px-5 py-3.5 text-right">
+diff --git a/src/app/globals.css b/src/app/globals.css
+index b496f45..36ce229 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -1,112 +1,143 @@
+ @import "tailwindcss";
+ 
++/* Vantage "Node Grid" design system (plan v2, section 4).
++   Colours come from Azerconnect Group's own assets: navy #133E72 and green
++   #356D1B. Every colour in the app comes from one of the tokens below; a
++   test (src/lib/no-raw-colours.test.ts) fails the build on hard-coded
++   Tailwind palette classes or hex values outside this file.
++
++   Themes: light is the default and the `.dark` class switches to dark
++   (set before first paint by src/app/layout.tsx). Canvases (white, cream,
++   grey) change only the page background in light mode; dark mode has one
++   canvas. The contrast tests in src/lib/contrast.test.ts read these blocks
++   directly, so the values here are the source of truth. */
++
+ :root {
+-  /* v4 "Field" design system -- deliberately plain, editorial, light-first.
+-     Reaction to v3's "generic AI app" tells (purple gradients, squircles,
+-     glassmorphism, wall-to-wall cards): near-white surfaces, hairline
+-     dividers instead of boxed shadows, sharp minimal corners, and exactly
+-     one accent color (clay/terracotta) used sparingly for the single most
+-     important thing on a screen -- never as decoration, never repeated
+-     across a whole page. Structure carries hierarchy, not color or shadow. */
++  /* Surfaces and text */
+   --background: #ffffff;
+   --surface: #ffffff;
+-  --surface-sunken: #fafafa;
+-  --foreground: #1a1a1a;
+-  --muted: #6b6b6b;
+-  --line: #ececec;
+-  --line-soft: #f2f2f2;
+-  /* Design-execution-plan Phase 1 / T1.1: this used to be `--faint`, a
+-     third, lighter grey (#8a8a8a) offered alongside --foreground/--muted
+-     for body text. It only ever reached ~3.45:1 against white -- well
+-     under the 4.5:1 WCAG AA floor for text -- so every "faint" paragraph,
+-     caption and label in the app was a real accessibility failure, not a
+-     stylistic choice. Body text now has exactly two tiers (--foreground,
+-     --muted; --muted alone clears 5.33:1 light / 7.22:1 dark -- see
+-     src/lib/contrast.test.ts), and this token survives only for its
+-     legitimate non-text uses (a slightly-more-visible border/dot than
+-     --line on hover-or-decoration), renamed so it can't be reached for as
+-     a text color by habit. */
+-  --line-strong: #8a8a8a;
++  --surface-sunken: #f3f5f8;
++  --foreground: #0d1b2e;
++  --muted: #526070;
++  --line: #d5dce6;
++  --line-soft: #e8edf3;
++  /* Control borders (inputs, checkboxes) need 3:1 against the surface. */
++  --line-strong: #727e8e;
++  --line-control: #727e8e;
+ 
+   --shadow-xs: none;
+   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.10);
+-
+-  /* Brand -- single accent. Clay/terracotta reads as considered and
+-     distinct rather than "another purple SaaS app." Used for the one
+-     primary action or the one number that matters per screen, nothing
+-     else. brand and accent point at the same family on purpose -- this
+-     system does not use two competing brand colors. */
+-  --brand: #c96f42;
+-  --brand-light: #d68a63;
+-  --brand-deep: #8b4423;
+-  --brand-50: #fbf1ea;
+-  --accent: #c96f42;
+-  --accent-dark: #a35a2f;
+-  --accent-soft: #fbf1ea;
+-  --gold: #a35a2f;
+-  --gold-soft: #fbf1ea;
+-
+-  --good: #3d7a4d;
+-  --warning: #a35a2f;
+-  --serious: #b23b3b;
+-  --critical: #b23b3b;
+-  --info: #6b6b6b;
+-
+-  --chart-1: #1a1a1a;
+-  --chart-2: #c4c4c4;
+-  --chart-3: #c96f42;
+-  /* Design-execution-plan Phase 3 / T3.2: a 4th series token for the radar's
+-     up-to-4-candidate comparison view. chart-2 is a graphical fill meant to
+-     sit on a track (PipelineFunnel's inactive-stage bar) -- on its own
+-     against the card surface it clears only ~1.7:1, well under the 3:1
+-     WCAG 1.4.11 floor a radar stroke/dot needs. This is a cool slate,
+-     distinct in hue from the warm neutral/accent already in use (keeping
+-     the one-accent rule -- it's a neutral, not a second accent), and
+-     clears 3:1 in both themes. */
+-  --chart-4: #4a5568;
+-  --chart-grid: #f2f2f2;
+-  --chart-axis: #d8d8d8;
++  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
++
++  /* Primary: Azerconnect navy. Buttons, selected states, links. */
++  --brand: #133e72;
++  --brand-light: #2d5f97;
++  --brand-deep: #133e72;
++  --brand-hover: #0e2f57;
++  --brand-pressed: #0a2444;
++  --brand-50: #d9e5f5;
++  --on-primary: #ffffff;
++  --primary-container: #d9e5f5;
++  --on-primary-container: #0a2547;
++
++  /* Accent is the text and focus colour for the primary family. */
++  --accent: #133e72;
++  --accent-dark: #133e72;
++  --accent-soft: #d9e5f5;
++  --focus: #133e72;
++
++  /* Secondary: Azerconnect green. Success, progress, small accent rules. */
++  --secondary: #356d1b;
++  --secondary-container: #e3f0d9;
++  --on-secondary-container: #1f4a0f;
++  --gold: #356d1b;
++  --gold-soft: #e3f0d9;
++
++  --good: #356d1b;
++  --good-soft: #e3f0d9;
++  --warning: #8a5a00;
++  --warning-soft: #fcf1d9;
++  --serious: #b42318;
++  --critical: #b42318;
++  --critical-soft: #fde7e4;
++  --info: #526070;
++
++  /* Charts: always labelled, because navy and green are only 1.7:1 apart. */
++  --chart-1: #133e72;
++  --chart-2: #356d1b;
++  --chart-3: #a86400;
++  --chart-4: #4f7fc3;
++  --chart-grid: #e8edf3;
++  --chart-axis: #c9d1dc;
++}
++
++/* Backgrounds. White is the default for staff and admin; cream is the
++   candidate's canvas, the exam and the report; grey is optional. The
++   selectors are light-only so they never override dark mode. */
++:root:not(.dark)[data-canvas="cream"] {
++  --background: #fbf9f4;
++  --surface-sunken: #f2eee3;
++}
++:root:not(.dark)[data-canvas="grey"] {
++  --background: #f3f5f8;
++  --surface-sunken: #e8edf3;
+ }
+ 
+ .dark {
+-  --background: #111111;
+-  --surface: #171717;
+-  --surface-sunken: #0d0d0d;
+-  --foreground: #f0f0f0;
+-  --muted: #a0a0a0;
+-  --line: #2a2a2a;
+-  --line-soft: #212121;
+-  --line-strong: #757575;
++  --background: #0b1220;
++  --surface: #131c2e;
++  --surface-sunken: #0e1728;
++  --foreground: #e6ecf5;
++  --muted: #94a1b5;
++  --line: #26344d;
++  --line-soft: #1c2840;
++  --line-strong: #66758f;
++  --line-control: #66758f;
+ 
+   --shadow-xs: none;
+   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
+   --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+ 
+-  --brand: #d68a63;
+-  --brand-light: #e0a482;
+-  --brand-deep: #8b4423;
+-  --brand-50: #2a1d15;
+-  --accent: #d68a63;
+-  --accent-dark: #e0a482;
+-  --accent-soft: #2a1d15;
+-  --gold: #d68a63;
+-  --gold-soft: #2a1d15;
+-
+-  --good: #6fae7f;
+-  --warning: #d68a63;
+-  --serious: #d4726f;
+-  --critical: #d4726f;
+-  --info: #a0a0a0;
+-
+-  --chart-1: #f0f0f0;
+-  --chart-2: #4a4a4a;
+-  --chart-3: #d68a63;
+-  --chart-4: #94a3b8;
+-  --chart-grid: #232323;
+-  --chart-axis: #333333;
++  /* Filled buttons keep white text, so their fill stays dark navy in dark
++     mode. Text and focus use the lighter tint. */
++  --brand: #24508f;
++  --brand-light: #3a68a8;
++  --brand-deep: #1c4274;
++  --brand-hover: #24508f;
++  --brand-pressed: #2a5c9e;
++  --brand-50: #1c4274;
++  --on-primary: #ffffff;
++  --primary-container: #1c4274;
++  --on-primary-container: #d8e5ff;
++
++  --accent: #a8c8ff;
++  --accent-dark: #c0d7ff;
++  --accent-soft: #1c4274;
++  --focus: #a8c8ff;
++
++  --secondary: #8fd16e;
++  --secondary-container: #1f3a17;
++  --on-secondary-container: #c6eaa9;
++  --gold: #8fd16e;
++  --gold-soft: #1f3a17;
++
++  --good: #8fd16e;
++  --good-soft: #1f3a17;
++  --warning: #f2c25b;
++  --warning-soft: #3a2b0c;
++  --serious: #ffb0a8;
++  --critical: #ffb0a8;
++  --critical-soft: #451a17;
++  --info: #94a1b5;
++
++  --chart-1: #a8c8ff;
++  --chart-2: #8fd16e;
++  --chart-3: #f2c25b;
++  --chart-4: #ff9fa3;
++  --chart-grid: #1c2840;
++  --chart-axis: #33415c;
+ }
+ 
+ @theme inline {
+@@ -122,6 +153,18 @@
+   --color-brand-light: var(--brand-light);
+   --color-brand-deep: var(--brand-deep);
+   --color-brand-50: var(--brand-50);
++  --color-brand-hover: var(--brand-hover);
++  --color-brand-pressed: var(--brand-pressed);
++  --color-on-primary: var(--on-primary);
++  --color-primary-container: var(--primary-container);
++  --color-on-primary-container: var(--on-primary-container);
++  --color-secondary: var(--secondary);
++  --color-secondary-container: var(--secondary-container);
++  --color-good-soft: var(--good-soft);
++  --color-warning-soft: var(--warning-soft);
++  --color-critical-soft: var(--critical-soft);
++  --color-line-control: var(--line-control);
++  --color-focus: var(--focus);
+   --color-accent: var(--accent);
+   --color-accent-dark: var(--accent-dark);
+   --color-accent-soft: var(--accent-soft);
+@@ -150,7 +193,7 @@
+   --shadow-md: var(--shadow-md);
+   --shadow-lg: var(--shadow-lg);
+   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+-  --font-display: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
++  --font-display: var(--font-manrope), var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+ 
+   /* Design-execution-plan Phase 1 / T1.2 -- the type scale. Replaces the
+      322 one-off `text-[Npx]` arbitrary values scattered across the app
+@@ -266,7 +309,7 @@ body {
+ .anim-grow-y { transform-origin: bottom; animation: grow-bar-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+ 
+ .skeleton {
+-  background: linear-gradient(90deg, #ecebe3 25%, #f7f6f0 50%, #ecebe3 75%);
++  background: linear-gradient(90deg, var(--line-soft) 25%, var(--surface-sunken) 50%, var(--line-soft) 75%);
+   background-size: 200% 100%;
+   animation: shimmer 1.4s linear infinite;
+ }
+@@ -329,7 +372,7 @@ body {
+ /* ---------- Brand panels -- flat, no gradients. A solid dark panel with a
+    thin rule is the "confident moment" now, not a mesh gradient. ---------- */
+ .hero-mesh {
+-  background: #1a1a1a;
++  background: var(--brand-deep);
+ }
+ 
+ /* Design-execution-plan Phase 1 / T1.4: three vestigial rules removed from
+diff --git a/src/app/icon.svg b/src/app/icon.svg
+index 9cb868e..5019190 100644
+--- a/src/app/icon.svg
++++ b/src/app/icon.svg
+@@ -1,11 +1,17 @@
+ <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
++  <!-- Vantage "Node V" mark on the navy tile (plan v2, section 4.4). -->
+   <defs>
+-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+-      <stop offset="0" stop-color="#0a2553"/>
+-      <stop offset="1" stop-color="#235213"/>
++    <linearGradient id="v" x1="0" y1="0" x2="1" y2="1">
++      <stop offset="0" stop-color="#2d5f97"/>
++      <stop offset="1" stop-color="#8fd16e"/>
+     </linearGradient>
+   </defs>
+-  <rect width="64" height="64" rx="14" fill="url(#g)"/>
+-  <path d="M32 12 L48 48 H40.5 L32 27 L23.5 48 H16 Z" fill="#ffffff"/>
+-  <circle cx="32" cy="42" r="5" fill="#2d6b16"/>
++  <rect width="64" height="64" rx="14" fill="#133e72"/>
++  <g fill="#ffffff" opacity="0.22">
++    <circle cx="16" cy="16" r="2.6"/><circle cx="32" cy="16" r="2.6"/><circle cx="48" cy="16" r="2.6"/>
++    <circle cx="16" cy="32" r="2.6"/><circle cx="48" cy="32" r="2.6"/>
++    <circle cx="16" cy="48" r="2.6"/><circle cx="48" cy="48" r="2.6"/>
++  </g>
++  <polyline points="16,16 32,48 48,16" fill="none" stroke="url(#v)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
++  <circle cx="32" cy="32" r="5.2" fill="#8fd16e"/>
+ </svg>
+diff --git a/src/app/invite/callback/page.tsx b/src/app/invite/callback/page.tsx
+index ed82994..2b5655e 100644
+--- a/src/app/invite/callback/page.tsx
++++ b/src/app/invite/callback/page.tsx
+@@ -90,7 +90,7 @@ export default function InviteCallbackPage() {
+             </p>
+             <form onSubmit={handleSubmit} className="space-y-4">
+               {error && (
+-                <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">{error}</p>
++                <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-3.5 py-2.5">{error}</p>
+               )}
+               <div>
+                 <label className="block text-xs font-semibold text-foreground mb-1.5">New password</label>
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index be0e1e0..c52fa80 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -1,27 +1,22 @@
+ import type { Metadata } from "next";
+-import { Inter, JetBrains_Mono } from "next/font/google";
++import { Inter, Manrope } from "next/font/google";
+ import { headers } from "next/headers";
+ import "./globals.css";
+ 
+-// v4 type system: a single neutral workhorse face (Inter) for everything,
+-// body and headlines alike. The previous two-font pairing (a "geometric,
+-// warm" body face plus a separate "confident" display face) was itself
+-// part of what read as a templated AI-generated product -- hierarchy here
+-// comes from size, weight, and spacing, not from switching typefaces.
+-//
+-// Design-execution-plan Phase 1 / T1.3: this used to be TWO separate
+-// `Inter({...})` calls -- each is its own font resource with its own
+-// network requests -- assigned to variables misleadingly still named
+-// --font-nunito and --font-serif, leftovers from the pre-"v4 Field"
+-// pairing where those names were accurate. Loading the same family twice
+-// bought nothing (both instances covered overlapping weights) and the
+-// variable names actively lied about what they held. Now loaded once,
+-// with every weight either use needs, under a name that describes it;
+-// globals.css's `@theme inline` block still exposes both a `--font-sans`
+-// and a `--font-display` Tailwind alias pointing at this one resource, so
+-// no component needing that body/display utility distinction has to change.
+-const inter = Inter({ subsets: ["latin"], variable: "--font-inter", weight: ["400", "500", "600", "700", "800"] });
+-const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-mono", weight: ["400", "500"] });
++// Node Grid type system (plan v2, section 4.2). Manrope carries headings and
++// large numbers; Inter carries everything else. Both load the Latin-extended
++// and Cyrillic subsets so Azerbaijani (ə ğ ı ş) and Russian render correctly;
++// the old setup loaded basic Latin only, which broke those letters.
++const inter = Inter({
++  subsets: ["latin", "latin-ext", "cyrillic"],
++  variable: "--font-inter",
++  weight: ["400", "500", "600", "700"],
++});
++const manrope = Manrope({
++  subsets: ["latin", "latin-ext", "cyrillic"],
++  variable: "--font-manrope",
++  weight: ["600", "700", "800"],
++});
+ 
+ export const metadata: Metadata = {
+   title: {
+@@ -42,27 +37,30 @@ export default async function RootLayout({
+ }: Readonly<{
+   children: React.ReactNode;
+ }>) {
+-  // Design-execution-plan Phase 6 / T6.5: this is the app's one legitimate
+-  // inline script (it has to run before first paint to avoid a light-mode
+-  // flash on a dark-mode visit) -- previously allowed by a blanket
+-  // `script-src 'self' 'unsafe-inline'` in the CSP, which permits any inline
+-  // script, attacker-injected ones included. middleware.ts now mints a
+-  // per-request nonce and only allows a script carrying it; this reads that
+-  // nonce back off the request headers it was threaded through.
++  // This inline script is the only one the app needs. It runs before first
++  // paint so the saved theme and canvas are applied with no flash. middleware.ts
++  // mints a per-request nonce and only allows a script carrying it.
+   const nonce = (await headers()).get("x-nonce") || undefined;
+ 
+   return (
+-    <html lang="en" className={`h-full antialiased ${inter.variable} ${mono.variable}`}>
++    <html lang="en" className={`h-full antialiased ${inter.variable} ${manrope.variable}`}>
+       <head>
+         <script
+           nonce={nonce}
+           dangerouslySetInnerHTML={{
+-            __html: `try {
+-              var t = localStorage.getItem("aiac-theme");
+-              if (t === "dark" || (!t && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+-                document.documentElement.classList.add("dark");
+-              }
+-            } catch (e) {}`,
++            __html: `(function () {
++  try {
++    var saved = null;
++    try { saved = JSON.parse(localStorage.getItem("vantage-appearance") || "null"); } catch (e) {}
++    var theme = saved && saved.theme ? saved.theme : localStorage.getItem("aiac-theme");
++    if (theme !== "light" && theme !== "dark") theme = "system";
++    var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
++    if (dark) document.documentElement.classList.add("dark");
++    var canvas = saved && saved.canvas ? saved.canvas : "white";
++    if (canvas !== "cream" && canvas !== "grey") canvas = "white";
++    if (canvas !== "white") document.documentElement.setAttribute("data-canvas", canvas);
++  } catch (e) {}
++})();`,
+           }}
+         />
+       </head>
+diff --git a/src/app/login/page.tsx b/src/app/login/page.tsx
+index 9659f4d..35d2a82 100644
+--- a/src/app/login/page.tsx
++++ b/src/app/login/page.tsx
+@@ -16,7 +16,7 @@ export default async function LoginPage({
+     >
+       <form action={login} className="space-y-4">
+         {error && (
+-          <p className="text-sm text-critical bg-red-50 border border-red-200 rounded-xl px-3.5 py-2.5">{error}</p>
++          <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-3.5 py-2.5">{error}</p>
+         )}
+         <Field label="Email" name="email" type="email" placeholder="you@company.com" />
+         <Field label="Password" name="password" type="password" placeholder="••••••••" />
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index 5559b3d..a1e7665 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -2,7 +2,7 @@ import Link from "next/link";
+ import { createClient } from "@/lib/supabase/server";
+ import { redirect } from "next/navigation";
+ import { LogoMark } from "@/components/ui";
+-import { ThemeToggle } from "@/components/ThemeToggle";
++import { AppearanceMenu } from "@/components/AppearanceMenu";
+ 
+ // Design-execution-plan follow-up ("make it simple like Google"): the
+ // marketing homepage used to run six sections deep (hero, stat strip,
+@@ -66,7 +66,7 @@ export default async function Home() {
+         <span>Azerconnect Group — Internal Use Only</span>
+         <span className="hidden md:inline">·</span>
+         <span className="flex items-center gap-4">
+-          <ThemeToggle className="text-muted hover:text-muted transition-colors" />
++          <AppearanceMenu />
+           <a
+             href="https://www.linkedin.com/in/thekmrnkrml/"
+             target="_blank"
+diff --git a/src/app/staff/builder/[id]/PublishChecklist.tsx b/src/app/staff/builder/[id]/PublishChecklist.tsx
+index e5f92cf..03aa2dc 100644
+--- a/src/app/staff/builder/[id]/PublishChecklist.tsx
++++ b/src/app/staff/builder/[id]/PublishChecklist.tsx
+@@ -46,7 +46,7 @@ export function PublishChecklist({
+                 <span
+                   aria-hidden
+                   className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-2xs font-bold ${
+-                    c.ok ? "bg-emerald-600 text-white" : c.blocking ? "bg-critical text-white" : "bg-amber-500 text-white"
++                    c.ok ? "bg-good text-white" : c.blocking ? "bg-critical text-white" : "bg-warning text-white"
+                   }`}
+                 >
+                   {c.ok ? "✓" : c.blocking ? "!" : "·"}
+diff --git a/src/app/staff/builder/[id]/page.tsx b/src/app/staff/builder/[id]/page.tsx
+index 4de1769..e865893 100644
+--- a/src/app/staff/builder/[id]/page.tsx
++++ b/src/app/staff/builder/[id]/page.tsx
+@@ -173,7 +173,7 @@ export default async function BuilderDetailPage({
+             <ConfirmSubmitButton
+               confirmMessage={`Delete "${assessment.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
+               icon="trash"
+-              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-red-50 transition-colors"
++              className="inline-flex items-center gap-2 border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
+             >
+               Delete
+             </ConfirmSubmitButton>
+@@ -220,7 +220,7 @@ export default async function BuilderDetailPage({
+       <ToastFromParams specs={TOAST_SPECS} />
+ 
+       {locked && (
+-        <p role="status" className="mb-6 text-sm text-warning bg-amber-50 rounded-xl px-4 py-3">
++        <p role="status" className="mb-6 text-sm text-warning bg-warning-soft rounded-xl px-4 py-3">
+           Candidates have started this assessment, so its questions are locked. Make a copy to change them.
+         </p>
+       )}
+@@ -372,7 +372,7 @@ export default async function BuilderDetailPage({
+                         confirmMessage={`Delete section "${section.title}" and all its questions?`}
+                         icon="trash"
+                         label={`Delete section "${section.title}"`}
+-                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
++                        className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
+                         compact
+                       />
+                     </form>
+@@ -420,7 +420,7 @@ export default async function BuilderDetailPage({
+                               confirmMessage="Delete this question?"
+                               icon="trash"
+                               label={`Delete question ${qi + 1}`}
+-                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
++                              className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
+                               compact
+                             />
+                           </form>
+@@ -429,7 +429,7 @@ export default async function BuilderDetailPage({
+                       {q.options && q.options.length > 0 && (
+                         <ul className="text-xs text-muted mt-2 grid sm:grid-cols-2 gap-1">
+                           {q.options.map((o) => (
+-                            <li key={o.key} className={o.correct ? "text-emerald-700 font-medium" : ""}>
++                            <li key={o.key} className={o.correct ? "text-good font-medium" : ""}>
+                               {o.key}. {o.text} {o.correct ? "✓" : ""}
+                             </li>
+                           ))}
+diff --git a/src/app/staff/builder/actions.ts b/src/app/staff/builder/actions.ts
+index d2b2a0b..2181afe 100644
+--- a/src/app/staff/builder/actions.ts
++++ b/src/app/staff/builder/actions.ts
+@@ -864,7 +864,9 @@ export async function duplicateAssessment(assessmentId: string) {
+   }
+ 
+   if (proctoring) {
+-    const { id: _omit, assessment_id: _omit2, ...rest } = proctoring as Record<string, unknown>;
++    const rest: Record<string, unknown> = { ...(proctoring as Record<string, unknown>) };
++    delete rest.id;
++    delete rest.assessment_id;
+     await supabase.from("proctoring_settings").insert({ ...rest, assessment_id: created.id });
+   }
+ 
+diff --git a/src/app/staff/builder/new/ContextCard.tsx b/src/app/staff/builder/new/ContextCard.tsx
+index ee9abf9..dac14d5 100644
+--- a/src/app/staff/builder/new/ContextCard.tsx
++++ b/src/app/staff/builder/new/ContextCard.tsx
+@@ -104,7 +104,7 @@ export function ContextCard({
+       </header>
+ 
+       {notice && (
+-        <p role="alert" className="text-xs text-critical bg-red-50 rounded-lg px-3 py-2">
++        <p role="alert" className="text-xs text-critical bg-critical-soft rounded-lg px-3 py-2">
+           {notice}
+         </p>
+       )}
+@@ -242,7 +242,7 @@ export function ContextCard({
+       </p>
+ 
+       {contextEngine && !contextEngine.allowContext && (
+-        <p className="text-xs text-warning bg-amber-50 rounded-lg px-3 py-2">
++        <p className="text-xs text-warning bg-warning-soft rounded-lg px-3 py-2">
+           {contextEngine.displayName} isn&apos;t approved to receive job descriptions or files. Drafts will be generated from the competencies and level only, unless you switch to an approved engine in Advanced.
+         </p>
+       )}
+diff --git a/src/app/staff/builder/new/GenerationProgress.tsx b/src/app/staff/builder/new/GenerationProgress.tsx
+index a41db0d..e200b66 100644
+--- a/src/app/staff/builder/new/GenerationProgress.tsx
++++ b/src/app/staff/builder/new/GenerationProgress.tsx
+@@ -52,7 +52,7 @@ export function GenerationProgress({
+                 {job.warnings.length > 0 && (
+                   <ul className="mt-2 space-y-1">
+                     {job.warnings.map((w, i) => (
+-                      <li key={i} className="text-2xs text-warning bg-amber-50 rounded-md px-2 py-1">
++                      <li key={i} className="text-2xs text-warning bg-warning-soft rounded-md px-2 py-1">
+                         {w}
+                       </li>
+                     ))}
+@@ -96,7 +96,7 @@ function StatusLine({ job, elapsed }: { job: Job; elapsed: number }) {
+     );
+   }
+   if (job.status === "done") {
+-    return <p className="text-xs text-emerald-700 mt-0.5">{job.empty ? "Empty draft created" : "Draft ready"} · not visible to candidates until published</p>;
++    return <p className="text-xs text-good mt-0.5">{job.empty ? "Empty draft created" : "Draft ready"} · not visible to candidates until published</p>;
+   }
+   return <p className="text-xs text-critical mt-0.5">Didn&apos;t finish</p>;
+ }
+diff --git a/src/app/staff/builder/new/MeasureCard.tsx b/src/app/staff/builder/new/MeasureCard.tsx
+index 05d8294..8efd55a 100644
+--- a/src/app/staff/builder/new/MeasureCard.tsx
++++ b/src/app/staff/builder/new/MeasureCard.tsx
+@@ -126,7 +126,7 @@ export function MeasureCard({
+           </fieldset>
+         ))}
+         {selectedLeadership && !leadershipApplies && (
+-          <p className="text-xs text-warning bg-amber-50 rounded-lg px-3 py-2">
++          <p className="text-xs text-warning bg-warning-soft rounded-lg px-3 py-2">
+             Leadership competencies are only used for Manager, Director and C-level drafts. They will be left out of the Entry and Senior drafts.
+           </p>
+         )}
+diff --git a/src/app/staff/builder/new/NewAssessmentForm.tsx b/src/app/staff/builder/new/NewAssessmentForm.tsx
+index b9dff0c..0284227 100644
+--- a/src/app/staff/builder/new/NewAssessmentForm.tsx
++++ b/src/app/staff/builder/new/NewAssessmentForm.tsx
+@@ -273,7 +273,7 @@ export function NewAssessmentForm({
+   return (
+     <div className="space-y-6">
+       {formError && (
+-        <div role="alert" className="rounded-xl border border-critical/30 bg-red-50 text-critical text-sm px-4 py-3">
++        <div role="alert" className="rounded-xl border border-critical/30 bg-critical-soft text-critical text-sm px-4 py-3">
+           {formError}
+         </div>
+       )}
+diff --git a/src/app/staff/builder/page.tsx b/src/app/staff/builder/page.tsx
+index b829b67..8016003 100644
+--- a/src/app/staff/builder/page.tsx
++++ b/src/app/staff/builder/page.tsx
+@@ -175,7 +175,7 @@ export default async function BuilderListPage({
+                       confirmMessage={`Delete "${a.title}"? This removes all its sections, questions, invitations, and candidate results. This can't be undone.`}
+                       icon="trash"
+                       label={`Delete "${a.title}"`}
+-                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-red-50 transition-colors"
++                      className="p-1.5 rounded-lg text-muted hover:text-critical hover:bg-critical-soft transition-colors"
+                       compact
+                     />
+                   </form>
+diff --git a/src/app/staff/reports/candidates/[id]/page.tsx b/src/app/staff/reports/candidates/[id]/page.tsx
+index f27e682..958401c 100644
+--- a/src/app/staff/reports/candidates/[id]/page.tsx
++++ b/src/app/staff/reports/candidates/[id]/page.tsx
+@@ -256,13 +256,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+           reviewer skims. Surfaced here as its own summary so it's seen
+           before anything else. */}
+       {needsReviewCount > 0 && (
+-        <Card className="p-5 mb-6 flex items-start gap-3 bg-amber-50 border-amber-200 no-print">
+-          <Icon name="alertTriangle" className="w-5 h-5 text-amber-700 shrink-0 mt-0.5" />
++        <Card className="p-5 mb-6 flex items-start gap-3 bg-warning-soft border-warning/40 no-print">
++          <Icon name="alertTriangle" className="w-5 h-5 text-warning shrink-0 mt-0.5" />
+           <div>
+-            <p className="text-sm font-semibold text-amber-900">
++            <p className="text-sm font-semibold text-warning">
+               {needsReviewCount} response{needsReviewCount === 1 ? "" : "s"} flagged for review
+             </p>
+-            <p className="text-xs text-amber-800 mt-0.5">
++            <p className="text-xs text-warning mt-0.5">
+               The scoring engine wasn&apos;t confident in {needsReviewCount === 1 ? "this score" : "these scores"} — check
+               the flagged answer{needsReviewCount === 1 ? "" : "s"} in Response evidence below before relying on{" "}
+               {needsReviewCount === 1 ? "it" : "them"}.
+@@ -298,7 +298,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+                     <span className="flex items-center gap-2 shrink-0">
+                       {r.needs_review && (
+                         <span
+-                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 ring-1 ring-inset ring-amber-200"
++                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
+                           title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
+                         >
+                           <Icon name="alertTriangle" className="w-3 h-3" />
+@@ -442,7 +442,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+             <Card className="p-5 mb-5 flex flex-wrap items-center justify-between gap-3">
+               <p className="text-sm font-semibold text-foreground">
+                 Role-profile bar: meets or exceeds the target on{" "}
+-                <span className={meetingBar.length === targeted.length ? "text-[#3d7a4d]" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
++                <span className={meetingBar.length === targeted.length ? "text-good" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
+                   {meetingBar.length} of {targeted.length}
+                 </span>{" "}
+                 targeted competenc{targeted.length === 1 ? "y" : "ies"}.
+@@ -476,9 +476,9 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+                               <span
+                                 className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                                   barState === "Below bar"
+-                                    ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
++                                    ? "bg-critical-soft text-critical ring-critical/30"
+                                     : barState === "Exceeds bar"
+-                                      ? "bg-[#eef3ef] text-[#3d7a4d] ring-emerald-200"
++                                      ? "bg-good-soft text-good ring-good/30"
+                                       : "bg-line-soft text-foreground ring-line"
+                                 }`}
+                                 title={`Target for this role: ${target}`}
+@@ -530,7 +530,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+           )}
+         </>
+       ) : (
+-        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-amber-800 bg-amber-50 border-amber-200">
++        <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-warning bg-warning-soft border-warning/40">
+           <Icon name="clock" className="w-5 h-5 shrink-0" />
+           Candidate has not yet submitted this assessment — scores will appear here once they do.
+         </Card>
+@@ -684,7 +684,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
+                 {reviewRows.length >= 2 ? "Reviewer calibration" : "Decision history"}
+               </p>
+               {diverges && (
+-                <div className="flex items-start gap-2.5 bg-[#fbeceb] text-[#b23b3b] rounded-xl px-4 py-3 text-sm">
++                <div className="flex items-start gap-2.5 bg-critical-soft text-critical rounded-xl px-4 py-3 text-sm">
+                   <Icon name="alertTriangle" className="w-4 h-4 mt-0.5 shrink-0" />
+                   <p>
+                     <span className="font-semibold">Reviewers disagree</span> — {distinctDecisions.join(" vs. ")}. Worth a
+diff --git a/src/app/staff/settings/page.tsx b/src/app/staff/settings/page.tsx
+index 820063a..ce9fd89 100644
+--- a/src/app/staff/settings/page.tsx
++++ b/src/app/staff/settings/page.tsx
+@@ -147,8 +147,8 @@ export default async function SettingsPage({
+                 <span
+                   className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                     e.enabled && e.api_key_secret_id
+-                      ? "bg-green-50 text-green-700 ring-green-600/20"
+-                      : "bg-gray-100 text-gray-600 ring-gray-500/20"
++                      ? "bg-good-soft text-good ring-good/30"
++                      : "bg-line-soft text-muted ring-line"
+                   }`}
+                 >
+                   {e.enabled && e.api_key_secret_id ? "Active" : "Not configured"}
+diff --git a/src/components/AppearanceMenu.tsx b/src/components/AppearanceMenu.tsx
+new file mode 100644
+index 0000000..0bdae24
+--- /dev/null
++++ b/src/components/AppearanceMenu.tsx
+@@ -0,0 +1,118 @@
++"use client";
++
++import { useEffect, useRef, useState } from "react";
++import { Icon } from "@/components/ui";
++import { SegmentedControl } from "@/components/ui/SegmentedControl";
++import {
++  applyAppearance,
++  readStoredAppearance,
++  storeAppearance,
++  type Appearance,
++  type CanvasChoice,
++  type ThemeChoice,
++} from "@/lib/appearance";
++import { loadMyAppearance, saveMyAppearance } from "@/app/appearance-actions";
++
++// Appearance menu (plan v2, section 4.5). It replaces the old "Dark mode"
++// text toggle. Theme is light, dark or system; background is white, cream or
++// grey and only applies in light mode. The choice is saved in the browser and
++// on the profile.
++const THEMES: { value: ThemeChoice; label: string }[] = [
++  { value: "light", label: "Light" },
++  { value: "dark", label: "Dark" },
++  { value: "system", label: "System" },
++];
++const CANVASES: { value: CanvasChoice; label: string }[] = [
++  { value: "white", label: "White" },
++  { value: "cream", label: "Cream" },
++  { value: "grey", label: "Grey" },
++];
++
++export function AppearanceMenu({ className = "" }: { className?: string }) {
++  const [open, setOpen] = useState(false);
++  const [appearance, setAppearance] = useState<Appearance>({ theme: "system", canvas: "white" });
++  const ref = useRef<HTMLDivElement>(null);
++
++  // On mount: take the browser's choice, then reconcile with the profile so
++  // a change made on another device is picked up.
++  /* eslint-disable react-hooks/set-state-in-effect */
++  useEffect(() => {
++    const local = readStoredAppearance();
++    setAppearance(local);
++    let cancelled = false;
++    loadMyAppearance()
++      .then((remote) => {
++        if (cancelled || !remote) return;
++        if (remote.theme !== local.theme || remote.canvas !== local.canvas) {
++          storeAppearance(remote);
++          applyAppearance(remote);
++          setAppearance(remote);
++        }
++      })
++      .catch(() => {});
++    return () => {
++      cancelled = true;
++    };
++  }, []);
++  /* eslint-enable react-hooks/set-state-in-effect */
++
++  useEffect(() => {
++    if (!open) return;
++    function onDown(e: MouseEvent) {
++      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
++    }
++    function onKey(e: KeyboardEvent) {
++      if (e.key === "Escape") setOpen(false);
++    }
++    document.addEventListener("mousedown", onDown);
++    document.addEventListener("keydown", onKey);
++    return () => {
++      document.removeEventListener("mousedown", onDown);
++      document.removeEventListener("keydown", onKey);
++    };
++  }, [open]);
++
++  function update(patch: Partial<Appearance>) {
++    const next = { ...appearance, ...patch };
++    setAppearance(next);
++    storeAppearance(next);
++    applyAppearance(next);
++    void saveMyAppearance(next).catch(() => {});
++  }
++
++  const dark = appearance.theme === "dark";
++
++  return (
++    <div ref={ref} className={`relative ${className}`}>
++      <button
++        type="button"
++        onClick={() => setOpen((o) => !o)}
++        aria-haspopup="true"
++        aria-expanded={open}
++        aria-label="Appearance"
++        className="inline-flex items-center justify-center w-10 h-10 rounded-full text-muted hover:text-foreground hover:bg-line-soft focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-focus"
++      >
++        <Icon name={dark ? "moon" : "sun"} className="w-5 h-5" />
++      </button>
++      {open && (
++        <div role="dialog" aria-label="Appearance settings" className="absolute right-0 top-12 z-50 w-72 rounded-[16px] bg-surface ring-1 ring-line shadow-lg p-4 space-y-4">
++          <div className="space-y-2">
++            <p className="text-sm font-semibold text-foreground">Theme</p>
++            <SegmentedControl label="Theme" options={THEMES} value={appearance.theme} onChange={(theme) => update({ theme })} />
++          </div>
++          <div className="space-y-2">
++            <p className="text-sm font-semibold text-foreground">Background</p>
++            <SegmentedControl
++              label="Background"
++              options={CANVASES}
++              value={appearance.canvas}
++              onChange={(canvas) => update({ canvas })}
++              disabled={dark}
++            />
++            <p className="text-xs text-muted">{dark ? "Dark mode uses its own background." : "Applies in light mode."}</p>
++          </div>
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/src/components/CandidateExportTable.tsx b/src/components/CandidateExportTable.tsx
+index 79f8a4c..e4925ca 100644
+--- a/src/components/CandidateExportTable.tsx
++++ b/src/components/CandidateExportTable.tsx
+@@ -91,7 +91,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
+             <span
+               className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                 new Date(r.due_at).getTime() < nowMs()
+-                  ? "bg-[#fbeceb] text-[#b23b3b] ring-red-200"
++                  ? "bg-critical-soft text-critical ring-critical/30"
+                   : "bg-line-soft text-muted ring-line"
+               }`}
+             >
+diff --git a/src/components/NavShell.tsx b/src/components/NavShell.tsx
+index d6f273d..299538c 100644
+--- a/src/components/NavShell.tsx
++++ b/src/components/NavShell.tsx
+@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
+ import { usePathname } from "next/navigation";
+ import { Avatar, Icon, LogoMark } from "@/components/ui";
+ import { CommandPalette } from "@/components/CommandPalette";
+-import { ThemeToggle } from "@/components/ThemeToggle";
++import { AppearanceMenu } from "@/components/AppearanceMenu";
+ import { ToastProvider } from "@/components/Toaster";
+ export type NavLink = { href: string; label: string; icon: string; exact?: boolean };
+ 
+@@ -119,7 +119,7 @@ export function NavShell({
+               <div className="hidden lg:block">
+                 <CommandPalette links={links} actions={actions} />
+               </div>
+-              <ThemeToggle className="p-1.5 rounded-md text-muted hover:text-muted hover:bg-line-soft transition-colors hidden sm:inline-flex" />
++              <AppearanceMenu className="hidden sm:block" />
+               <div className="hidden lg:flex items-center gap-2.5 pl-3 border-l border-line">
+                 <Avatar name={name} className="w-7 h-7 text-2xs" />
+                 <div className="leading-tight">
+@@ -194,7 +194,7 @@ export function NavShell({
+                     in this drawer at all, so it was simply unreachable below
+                     that breakpoint -- the one place a phone user could always
+                     get to. */}
+-                <ThemeToggle className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted" />
++                <AppearanceMenu className="w-full" />
+                 <form action="/logout" method="post">
+                   <button className="w-full flex items-center gap-3 px-3 py-2 rounded-md text-xs font-medium text-muted">
+                     <Icon name="logout" className="w-[17px] h-[17px] text-muted" />
+diff --git a/src/components/SwipeToConfirm.tsx b/src/components/SwipeToConfirm.tsx
+index 30d8373..d941b29 100644
+--- a/src/components/SwipeToConfirm.tsx
++++ b/src/components/SwipeToConfirm.tsx
+@@ -6,7 +6,7 @@ import { Icon } from "@/components/ui";
+ export type SwipeTone = "critical" | "brand" | "accent";
+ 
+ const TONE_STYLES: Record<SwipeTone, { fill: string; handle: string; ring: string; text: string }> = {
+-  critical: { fill: "bg-red-100", handle: "bg-critical", ring: "ring-red-200", text: "text-critical" },
++  critical: { fill: "bg-critical-soft", handle: "bg-critical", ring: "ring-critical/30", text: "text-critical" },
+   brand: { fill: "bg-brand-50", handle: "bg-brand", ring: "ring-brand/20", text: "text-accent-dark" },
+   accent: { fill: "bg-accent-soft", handle: "bg-accent-dark", ring: "ring-accent/25", text: "text-accent-dark" },
+ };
+diff --git a/src/components/ThemeToggle.tsx b/src/components/ThemeToggle.tsx
+deleted file mode 100644
+index b53f21f..0000000
+--- a/src/components/ThemeToggle.tsx
++++ /dev/null
+@@ -1,29 +0,0 @@
+-"use client";
+-
+-import { useState } from "react";
+-import { Icon } from "@/components/ui";
+-
+-function readInitialTheme(): boolean {
+-  if (typeof document === "undefined") return false;
+-  return document.documentElement.classList.contains("dark");
+-}
+-
+-export function ThemeToggle({ className = "" }: { className?: string }) {
+-  const [isDark, setIsDark] = useState(readInitialTheme);
+-
+-  const toggle = () => {
+-    const next = !isDark;
+-    setIsDark(next);
+-    document.documentElement.classList.toggle("dark", next);
+-    try {
+-      localStorage.setItem("aiac-theme", next ? "dark" : "light");
+-    } catch {}
+-  };
+-
+-  return (
+-    <button onClick={toggle} aria-label="Toggle dark mode" className={`inline-flex items-center gap-2 ${className}`}>
+-      <Icon name={isDark ? "sun" : "moon"} className="w-4 h-4" />
+-      <span suppressHydrationWarning>{isDark ? "Light mode" : "Dark mode"}</span>
+-    </button>
+-  );
+-}
+diff --git a/src/components/Toaster.tsx b/src/components/Toaster.tsx
+index 93da5b6..d798071 100644
+--- a/src/components/Toaster.tsx
++++ b/src/components/Toaster.tsx
+@@ -11,7 +11,7 @@ const ToastContext = createContext<{ push: (variant: ToastVariant, message: stri
+ 
+ const VARIANT_META: Record<ToastVariant, { icon: string; ring: string; iconWrap: string }> = {
+   success: { icon: "checkCircle", ring: "ring-accent/25", iconWrap: "bg-accent-soft text-accent-dark" },
+-  error: { icon: "alertTriangle", ring: "ring-red-200", iconWrap: "bg-red-50 text-critical" },
++  error: { icon: "alertTriangle", ring: "ring-critical/30", iconWrap: "bg-critical-soft text-critical" },
+   info: { icon: "info", ring: "ring-line", iconWrap: "bg-surface text-accent-dark" },
+ };
+ 
+diff --git a/src/components/VantageMark.tsx b/src/components/VantageMark.tsx
+new file mode 100644
+index 0000000..094913f
+--- /dev/null
++++ b/src/components/VantageMark.tsx
+@@ -0,0 +1,50 @@
++// The Vantage mark, "Node V" (plan v2, section 4.4): a V drawn through nodes
++// of a 3x3 grid, with the centre node in green as the vantage point and the
++// other nodes faint, "the field you see". Built from the node geometry of the
++// Azerconnect Group logo without copying it. Colours come from the Node Grid
++// tokens, so the mark follows the theme.
++//
++// The mark is the single source for the app, favicon, PDF, Excel and email
++// logos. src/app/icon.svg carries the same geometry as a static file for
++// browsers that need one.
++const NODES: [number, number][] = [
++  [16, 16], [32, 16], [48, 16],
++  [16, 32], [32, 32], [48, 32],
++  [16, 48], [32, 48], [48, 48],
++];
++const V: [number, number][] = [[16, 16], [32, 48], [48, 16]];
++
++export function VantageMark({
++  className = "w-9 h-9",
++  tile = false,
++}: {
++  className?: string;
++  // Dark tile behind the mark, for places where the mark has no background
++  // (a favicon, an app icon).
++  tile?: boolean;
++}) {
++  const gid = "vantage-mark-gradient";
++  return (
++    <svg viewBox="0 0 64 64" className={className} aria-hidden>
++      <defs>
++        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
++          <stop offset="0" style={{ stopColor: "var(--brand)" }} />
++          <stop offset="1" style={{ stopColor: "var(--secondary)" }} />
++        </linearGradient>
++      </defs>
++      {tile && <rect width="64" height="64" rx="14" style={{ fill: "var(--brand-deep)" }} />}
++      {NODES.map(([x, y]) => (
++        <circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} style={{ fill: tile ? "var(--on-primary)" : "var(--brand)" }} opacity={0.22} />
++      ))}
++      <polyline
++        points={V.map((p) => p.join(",")).join(" ")}
++        fill="none"
++        stroke={`url(#${gid})`}
++        strokeWidth={5.5}
++        strokeLinecap="round"
++        strokeLinejoin="round"
++      />
++      <circle cx={32} cy={32} r={5.2} style={{ fill: "var(--secondary)" }} />
++    </svg>
++  );
++}
+diff --git a/src/components/auth-panel.tsx b/src/components/auth-panel.tsx
+index 5b723de..504c546 100644
+--- a/src/components/auth-panel.tsx
++++ b/src/components/auth-panel.tsx
+@@ -1,6 +1,6 @@
+ import Link from "next/link";
+ import { LogoMark } from "@/components/ui";
+-import { ThemeToggle } from "@/components/ThemeToggle";
++import { AppearanceMenu } from "@/components/AppearanceMenu";
+ 
+ // Design-execution-plan follow-up ("make it simple like Google"): this used
+ // to be a split-screen layout (a wide brand panel with a headline, a
+@@ -33,7 +33,7 @@ export function AuthPanel({
+ 
+       <footer className="flex items-center justify-center gap-4 px-6 py-6 text-2xs text-muted">
+         <span>Azerconnect Group — Internal Use Only</span>
+-        <ThemeToggle className="text-muted hover:text-muted transition-colors" />
++        <AppearanceMenu />
+       </footer>
+ 
+     </div>
+diff --git a/src/components/ui.tsx b/src/components/ui.tsx
+index 9d462d1..06856fd 100644
+--- a/src/components/ui.tsx
++++ b/src/components/ui.tsx
+@@ -1,3 +1,4 @@
++import { VantageMark } from "@/components/VantageMark";
+ import Link from "next/link";
+ 
+ /* ---------------- Icons ---------------- */
+@@ -78,38 +79,23 @@ export function Icon({ name, className = "w-5 h-5", label }: { name: string; cla
+ 
+ /* ---------------- Brand ---------------- */
+ 
+-// "Vantage" mark: an ascending peak/chevron inside a rounded square -- reads
+-// as both an upward viewpoint (evidence -> clarity) and a growth signal.
+-// Design-execution-plan Phase 1 / T1.4: this comment used to describe an
+-// "indigo -> emerald brand gradient" that the mark never actually draws --
+-// it's a flat near-black square (below) with one flat accent-color dot,
+-// matching the rest of the v4 "Field" system (one accent color, used
+-// sparingly, never as a gradient or mesh). Corrected to describe what's
+-// actually rendered.
++// The Vantage logo (plan v2, section 4.4). The mark is VantageMark; the lockup
++// adds the wordmark and the "AZERCONNECT GROUP" line between two rules.
+ export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
+-  return (
+-    <svg viewBox="0 0 64 64" className={className} aria-hidden>
+-      <rect width="64" height="64" rx="12" fill="#1a1a1a" />
+-      <path d="M14 40 L28 22 L36 32 L50 16" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+-      <circle cx="50" cy="16" r="5.5" fill="var(--accent)" />
+-    </svg>
+-  );
++  return <VantageMark className={className} tile />;
+ }
+ 
+-// Design-execution-plan Phase 1 / T1.4: dropped the `dark` prop -- every
+-// call site in the app used the default (false); the true-branch styling
+-// (white text, for placing the logo on a dark panel) was dead code no
+-// caller ever reached. If a dark-panel placement is needed later, it's a
+-// one-line prop to re-add with a real call site attached.
+ export function Logo({ compact = false }: { compact?: boolean }) {
+   return (
+     <span className="inline-flex items-center gap-2.5">
+-      <LogoMark className="w-8 h-8 shrink-0" />
++      <VantageMark className="w-8 h-8 shrink-0" />
+       {!compact && (
+-        <span className="font-semibold leading-none tracking-tight [font-family:var(--font-display)] text-accent-dark">
+-          <span className="block text-base">Vantage</span>
+-          <span className="block text-2xs font-medium uppercase tracking-[0.18em] mt-1 font-sans text-accent-dark">
+-            by Azerconnect Group
++        <span className="leading-none">
++          <span className="block font-display font-extrabold text-base tracking-tight text-accent-dark">Vantage</span>
++          <span className="flex items-center gap-1.5 mt-1">
++            <span aria-hidden className="h-px w-3 bg-gradient-to-r from-brand to-secondary" />
++            <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted whitespace-nowrap">Azerconnect Group</span>
++            <span aria-hidden className="h-px w-3 bg-gradient-to-r from-brand to-secondary" />
+           </span>
+         </span>
+       )}
+@@ -131,12 +117,12 @@ export type Band = { label: string; badge: string; bar: string; hex: string };
+ // custom property its own `bar`/`dot` class already resolves to.
+ export function bandFor(score: number): Band {
+   if (score >= 85)
+-    return { label: "Exceeds", badge: "bg-[#eef3ef] text-[#3d7a4d]", bar: "bg-[#3d7a4d]", hex: "var(--good)" };
++    return { label: "Exceeds", badge: "bg-good-soft text-good", bar: "bg-good", hex: "var(--good)" };
+   if (score >= 70)
+     return { label: "Fully Meets", badge: "bg-line-soft text-foreground", bar: "bg-foreground", hex: "var(--foreground)" };
+   if (score >= 50)
+     return { label: "Partially Meets", badge: "bg-brand-50 text-accent-dark", bar: "bg-accent", hex: "var(--accent)" };
+-  return { label: "Does Not Meet", badge: "bg-[#fbeceb] text-[#b23b3b]", bar: "bg-[#b23b3b]", hex: "var(--critical)" };
++  return { label: "Does Not Meet", badge: "bg-critical-soft text-critical", bar: "bg-critical", hex: "var(--critical)" };
+ }
+ 
+ export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
+@@ -160,18 +146,18 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
+   in_progress: { label: "In progress", cls: "bg-brand-50 text-accent-dark" },
+   submitted: { label: "Submitted", cls: "bg-line-soft text-muted" },
+   scored: { label: "Scored — awaiting review", cls: "bg-brand-50 text-accent-dark" },
+-  reviewed: { label: "Reviewed", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
++  reviewed: { label: "Reviewed", cls: "bg-good-soft text-good" },
+   draft: { label: "Draft", cls: "bg-line-soft text-muted" },
+-  published: { label: "Published", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
+-  shortlist: { label: "Shortlisted", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
++  published: { label: "Published", cls: "bg-good-soft text-good" },
++  shortlist: { label: "Shortlisted", cls: "bg-good-soft text-good" },
+   hold: { label: "On hold", cls: "bg-brand-50 text-accent-dark" },
+-  reject: { label: "Rejected", cls: "bg-[#fbeceb] text-[#b23b3b]" },
+-  recommend: { label: "Recommended", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
++  reject: { label: "Rejected", cls: "bg-critical-soft text-critical" },
++  recommend: { label: "Recommended", cls: "bg-good-soft text-good" },
+   needs_development_plan: { label: "Needs development plan", cls: "bg-brand-50 text-accent-dark" },
+-  not_yet_ready: { label: "Not yet ready", cls: "bg-[#fbeceb] text-[#b23b3b]" },
+-  strengths_identified: { label: "Strengths identified", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
++  not_yet_ready: { label: "Not yet ready", cls: "bg-critical-soft text-critical" },
++  strengths_identified: { label: "Strengths identified", cls: "bg-good-soft text-good" },
+   growth_areas_identified: { label: "Growth areas identified", cls: "bg-brand-50 text-accent-dark" },
+-  active: { label: "Active", cls: "bg-[#eef3ef] text-[#3d7a4d]" },
++  active: { label: "Active", cls: "bg-good-soft text-good" },
+   deactivated: { label: "Deactivated", cls: "bg-line-soft text-muted" },
+ };
+ 
+@@ -210,9 +196,9 @@ export function ScoreBadge({ score }: { score: number }) {
+ // for human confirmation.
+ export function ScoringDisclosure({ className = "" }: { className?: string }) {
+   return (
+-    <div className={`flex items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 px-3.5 py-2.5 ${className}`}>
+-      <Icon name="info" className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+-      <p className="text-2xs leading-relaxed text-amber-800">
++    <div className={`flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-2.5 ${className}`}>
++      <Icon name="info" className="w-4 h-4 text-warning mt-0.5 shrink-0" />
++      <p className="text-2xs leading-relaxed text-warning">
+         <span className="font-bold">How scores are calculated:</span> Multiple-choice questions are scored exactly
+         (correct/incorrect). Free-text answers are graded by an AI model against the competency&rsquo;s own behavioural
+         indicators, with a written rationale for each score — falling back to a length/structure heuristic only if no
+@@ -450,10 +436,10 @@ export function JourneyTracker({ status }: { status: string }) {
+ import type { ExecutiveSummary, Benchmark } from "@/lib/reporting";
+ 
+ const RECOMMENDATION_TONE_CLS: Record<ExecutiveSummary["recommendationTone"], string> = {
+-  emerald: "bg-emerald-50 text-emerald-700 ring-emerald-600/20",
+-  accent: "bg-green-50 text-green-700 ring-green-600/20",
+-  amber: "bg-amber-50 text-amber-700 ring-amber-600/20",
+-  red: "bg-red-50 text-red-700 ring-red-600/20",
++  emerald: "bg-good-soft text-good ring-good/30",
++  accent: "bg-good-soft text-good ring-good/30",
++  amber: "bg-warning-soft text-warning ring-warning/30",
++  red: "bg-critical-soft text-critical ring-critical/30",
+ };
+ 
+ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary }) {
+@@ -476,7 +462,7 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
+             <ul className="space-y-1.5">
+               {summary.strengths.map((s, i) => (
+                 <li key={i} className="text-xs text-muted flex items-start gap-1.5">
+-                  <Icon name="checkCircle" className="w-3.5 h-3.5 text-emerald-600 shrink-0 mt-0.5" />
++                  <Icon name="checkCircle" className="w-3.5 h-3.5 text-good shrink-0 mt-0.5" />
+                   {s}
+                 </li>
+               ))}
+@@ -491,7 +477,7 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
+             <ul className="space-y-1.5">
+               {summary.developmentAreas.map((s, i) => (
+                 <li key={i} className="text-xs text-muted flex items-start gap-1.5">
+-                  <Icon name="target" className="w-3.5 h-3.5 text-amber-600 shrink-0 mt-0.5" />
++                  <Icon name="target" className="w-3.5 h-3.5 text-warning shrink-0 mt-0.5" />
+                   {s}
+                 </li>
+               ))}
+@@ -552,7 +538,7 @@ export function BenchmarkCard({
+         <div className="text-right shrink-0">
+           <p className="text-2xs font-bold uppercase tracking-wider text-muted">Peer avg</p>
+           <p className="text-sm font-bold text-foreground tabular-nums">{benchmark.peerAvg}</p>
+-          <p className={`text-2xs font-semibold ${deltaPositive ? "text-emerald-600" : "text-critical"}`}>
++          <p className={`text-2xs font-semibold ${deltaPositive ? "text-good" : "text-critical"}`}>
+             {deltaPositive ? "+" : ""}
+             {benchmark.delta}
+           </p>
+diff --git a/src/components/ui/Button.tsx b/src/components/ui/Button.tsx
+new file mode 100644
+index 0000000..9e001b8
+--- /dev/null
++++ b/src/components/ui/Button.tsx
+@@ -0,0 +1,43 @@
++import type { ButtonHTMLAttributes, ReactNode } from "react";
++
++// Button primitive (plan v2, section 4.3): pill-shaped, 40px by default and
++// 48px for primary actions. Every variant has a visible focus ring.
++export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
++export type ButtonSize = "md" | "lg";
++
++const VARIANT: Record<ButtonVariant, string> = {
++  primary: "bg-brand-deep text-on-primary hover:bg-brand-hover active:bg-brand-pressed",
++  secondary: "bg-surface text-foreground ring-1 ring-inset ring-line-control hover:bg-line-soft",
++  ghost: "text-accent-dark hover:bg-accent-soft",
++  danger: "bg-critical text-surface hover:opacity-90",
++};
++
++const SIZE: Record<ButtonSize, string> = {
++  md: "min-h-10 px-5 text-sm",
++  lg: "min-h-12 px-6 text-base",
++};
++
++export function buttonClass({ variant = "primary", size = "md", className = "" }: { variant?: ButtonVariant; size?: ButtonSize; className?: string } = {}) {
++  return [
++    "inline-flex items-center justify-center gap-2 rounded-full font-semibold transition-colors",
++    "focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-focus focus-visible:ring-offset-2 focus-visible:ring-offset-background",
++    "disabled:opacity-50 disabled:pointer-events-none",
++    VARIANT[variant],
++    SIZE[size],
++    className,
++  ].join(" ");
++}
++
++export function Button({
++  variant = "primary",
++  size = "md",
++  className = "",
++  children,
++  ...rest
++}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: ButtonVariant; size?: ButtonSize; children: ReactNode }) {
++  return (
++    <button type="button" {...rest} className={buttonClass({ variant, size, className })}>
++      {children}
++    </button>
++  );
++}
+diff --git a/src/components/ui/Callout.tsx b/src/components/ui/Callout.tsx
+new file mode 100644
+index 0000000..5e3971f
+--- /dev/null
++++ b/src/components/ui/Callout.tsx
+@@ -0,0 +1,20 @@
++import type { ReactNode } from "react";
++
++// Status callout (plan v2, section 4.1): every status colour has a soft
++// container and a text colour, and the text is always readable on it.
++export type CalloutTone = "info" | "good" | "warning" | "critical";
++
++const TONE: Record<CalloutTone, string> = {
++  info: "bg-accent-soft text-on-primary-container",
++  good: "bg-good-soft text-good",
++  warning: "bg-warning-soft text-warning",
++  critical: "bg-critical-soft text-critical",
++};
++
++export function Callout({ tone = "info", children, role }: { tone?: CalloutTone; children: ReactNode; role?: "alert" | "status" }) {
++  return (
++    <div role={role} className={`rounded-card px-4 py-3 text-sm ${TONE[tone]}`}>
++      {children}
++    </div>
++  );
++}
+diff --git a/src/components/ui/Chip.tsx b/src/components/ui/Chip.tsx
+new file mode 100644
+index 0000000..67e0f5b
+--- /dev/null
++++ b/src/components/ui/Chip.tsx
+@@ -0,0 +1,14 @@
++import type { ReactNode } from "react";
++
++// Pill chip for selectable tags (plan v2, section 4.3).
++export function Chip({ selected = false, children, onClick }: { selected?: boolean; children: ReactNode; onClick?: () => void }) {
++  const base = "inline-flex items-center gap-1.5 min-h-8 px-3 rounded-full text-sm font-medium ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-focus";
++  const cls = selected ? "bg-primary-container text-on-primary-container ring-accent" : "bg-surface text-foreground ring-line-control hover:bg-line-soft";
++  return onClick ? (
++    <button type="button" aria-pressed={selected} onClick={onClick} className={`${base} ${cls}`}>
++      {children}
++    </button>
++  ) : (
++    <span className={`${base} ${cls}`}>{children}</span>
++  );
++}
+diff --git a/src/components/ui/Field.tsx b/src/components/ui/Field.tsx
+new file mode 100644
+index 0000000..e02af70
+--- /dev/null
++++ b/src/components/ui/Field.tsx
+@@ -0,0 +1,30 @@
++import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
++
++// Form primitives (plan v2, section 4.3): 12px radius, 40px minimum height,
++// a control border that meets the 3:1 contrast rule, and the shared focus ring.
++const CONTROL =
++  "w-full bg-surface border border-line-control rounded-card px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted " +
++  "focus:outline-none focus-visible:ring-[3px] focus-visible:ring-focus disabled:opacity-50";
++
++export function FieldLabel({ htmlFor, children, hint }: { htmlFor: string; children: ReactNode; hint?: ReactNode }) {
++  return (
++    <div className="flex items-baseline justify-between gap-3 mb-1.5">
++      <label htmlFor={htmlFor} className="text-sm font-semibold text-foreground">
++        {children}
++      </label>
++      {hint && <span className="text-xs text-muted">{hint}</span>}
++    </div>
++  );
++}
++
++export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
++  return <input {...props} className={`${CONTROL} min-h-10 ${props.className ?? ""}`} />;
++}
++
++export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {
++  return <textarea {...props} className={`${CONTROL} ${props.className ?? ""}`} />;
++}
++
++export function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
++  return <select {...props} className={`${CONTROL} min-h-10 ${props.className ?? ""}`} />;
++}
+diff --git a/src/components/ui/SegmentedControl.tsx b/src/components/ui/SegmentedControl.tsx
+new file mode 100644
+index 0000000..855d98f
+--- /dev/null
++++ b/src/components/ui/SegmentedControl.tsx
+@@ -0,0 +1,40 @@
++"use client";
++
++// Pill-shaped segmented control (plan v2, section 4.3). Used for the theme and
++// background choices in the Appearance menu. Each option is a button with
++// aria-pressed, so keyboard and screen-reader users hear the selection.
++export function SegmentedControl<T extends string>({
++  label,
++  options,
++  value,
++  onChange,
++  disabled = false,
++}: {
++  label: string;
++  options: { value: T; label: string }[];
++  value: T;
++  onChange: (next: T) => void;
++  disabled?: boolean;
++}) {
++  return (
++    <div role="group" aria-label={label} className="inline-flex flex-wrap gap-1 p-1 rounded-full bg-surface-sunken ring-1 ring-inset ring-line">
++      {options.map((o) => {
++        const on = o.value === value;
++        return (
++          <button
++            key={o.value}
++            type="button"
++            aria-pressed={on}
++            disabled={disabled}
++            onClick={() => onChange(o.value)}
++            className={`min-h-9 px-3.5 rounded-full text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-focus disabled:opacity-50 ${
++              on ? "bg-brand-deep text-on-primary" : "text-foreground hover:bg-line-soft"
++            }`}
++          >
++            {o.label}
++          </button>
++        );
++      })}
++    </div>
++  );
++}
+diff --git a/src/lib/appearance.ts b/src/lib/appearance.ts
+new file mode 100644
+index 0000000..a36b611
+--- /dev/null
++++ b/src/lib/appearance.ts
+@@ -0,0 +1,65 @@
++// Appearance preferences (plan v2, section 4.5): theme (light, dark or
++// system) and background canvas (white, cream or grey). The choice is kept in
++// the browser so it applies before first paint, and mirrored to the signed-in
++// user's profile so it follows them across devices.
++
++export type ThemeChoice = "light" | "dark" | "system";
++export type CanvasChoice = "white" | "cream" | "grey";
++
++export type Appearance = { theme: ThemeChoice; canvas: CanvasChoice };
++
++export const DEFAULT_APPEARANCE: Appearance = { theme: "system", canvas: "white" };
++
++export const APPEARANCE_STORAGE_KEY = "vantage-appearance";
++// Read-only fallback for the theme key this app used before plan v2.
++const LEGACY_THEME_KEY = "aiac-theme";
++
++export function isThemeChoice(v: unknown): v is ThemeChoice {
++  return v === "light" || v === "dark" || v === "system";
++}
++
++export function isCanvasChoice(v: unknown): v is CanvasChoice {
++  return v === "white" || v === "cream" || v === "grey";
++}
++
++// Accepts any value (from storage or the server) and returns a valid choice.
++export function normalizeAppearance(raw: unknown): Appearance {
++  const o = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
++  return {
++    theme: isThemeChoice(o.theme) ? o.theme : DEFAULT_APPEARANCE.theme,
++    canvas: isCanvasChoice(o.canvas) ? o.canvas : DEFAULT_APPEARANCE.canvas,
++  };
++}
++
++export function readStoredAppearance(): Appearance {
++  if (typeof window === "undefined") return DEFAULT_APPEARANCE;
++  try {
++    const raw = window.localStorage.getItem(APPEARANCE_STORAGE_KEY);
++    if (raw) return normalizeAppearance(JSON.parse(raw));
++    const legacy = window.localStorage.getItem(LEGACY_THEME_KEY);
++    if (legacy === "dark" || legacy === "light") return normalizeAppearance({ theme: legacy });
++  } catch {
++    // Storage can be blocked; fall back to the defaults.
++  }
++  return DEFAULT_APPEARANCE;
++}
++
++export function storeAppearance(a: Appearance): void {
++  try {
++    window.localStorage.setItem(APPEARANCE_STORAGE_KEY, JSON.stringify(a));
++  } catch {
++    // Ignore: the choice still applies for this page view.
++  }
++}
++
++// Applies the choice to the document. The dark class follows the theme, or
++// the operating system when the theme is "system". The canvas attribute is
++// only written for cream and grey, and never affects dark mode (CSS guards).
++export function applyAppearance(a: Appearance): void {
++  const root = document.documentElement;
++  const systemDark = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
++  const dark = a.theme === "dark" || (a.theme === "system" && systemDark);
++  root.classList.toggle("dark", dark);
++  if (a.canvas === "white") root.removeAttribute("data-canvas");
++  else root.setAttribute("data-canvas", a.canvas);
++}
+diff --git a/src/lib/brand.ts b/src/lib/brand.ts
+new file mode 100644
+index 0000000..704ffe8
+--- /dev/null
++++ b/src/lib/brand.ts
+@@ -0,0 +1,20 @@
++// Brand colours for places that cannot read CSS custom properties: the PDF
++// report, Excel exports and email templates (plan v2, section 4.1). These are
++// the same Node Grid values as the tokens in src/app/globals.css. This is the
++// only file in the app that may spell colours out as hex; a test enforces it.
++export const BRAND = {
++  navy: "#133E72",
++  navyDeep: "#0A2444",
++  navyTint: "#D9E5F5",
++  green: "#356D1B",
++  greenTint: "#E3F0D9",
++  ink: "#0D1B2E",
++  muted: "#526070",
++  line: "#D5DCE6",
++  cream: "#FBF9F4",
++  warning: "#8A5A00",
++  warningTint: "#FCF1D9",
++  critical: "#B42318",
++  criticalTint: "#FDE7E4",
++  white: "#FFFFFF",
++} as const;
+diff --git a/src/lib/contrast.node-grid.test.ts b/src/lib/contrast.node-grid.test.ts
+new file mode 100644
+index 0000000..3e6cdb5
+--- /dev/null
++++ b/src/lib/contrast.node-grid.test.ts
+@@ -0,0 +1,84 @@
++import { describe, expect, it } from "vitest";
++import fs from "node:fs";
++import path from "node:path";
++import { AA_LARGE_TEXT, AA_NORMAL_TEXT, contrastRatio, extractHexTokens, extractThemeBlocks } from "./contrast";
++
++// Plan v2, Phase 2 (Appendix A): extends the contrast checks to the Node Grid
++// pairs the redesign relies on, in both themes and on every canvas. Text pairs
++// must reach 4.5:1; control borders and focus rings must reach 3:1 against the
++// surface they sit on (WCAG 1.4.11).
++
++const cssText = fs.readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf8");
++const { light, dark } = extractThemeBlocks(cssText);
++
++const canvasBlocks = Array.from(
++  cssText.matchAll(/:root:not\(\.dark\)\[data-canvas="(\w+)"\]\s*\{([^}]*)\}/g)
++).map((m) => ({ name: m[1], tokens: extractHexTokens(m[2]) }));
++
++const TEXT_PAIRS: [string, string][] = [
++  ["foreground", "background"],
++  ["foreground", "surface"],
++  ["muted", "background"],
++  ["muted", "surface"],
++  ["muted", "surface-sunken"],
++  ["on-primary", "brand-deep"],
++  ["on-primary-container", "primary-container"],
++  ["on-secondary-container", "secondary-container"],
++  ["accent", "background"],
++  ["accent", "surface"],
++  ["accent-dark", "accent-soft"],
++  ["good", "surface"],
++  ["warning", "surface"],
++  ["critical", "surface"],
++  ["good", "good-soft"],
++  ["warning", "warning-soft"],
++  ["critical", "critical-soft"],
++];
++
++const CONTROL_PAIRS: [string, string][] = [
++  ["line-control", "surface"],
++  ["line-control", "background"],
++  ["focus", "background"],
++  ["focus", "surface"],
++];
++
++const THEMES: [string, string][] = [
++  ["light", light],
++  ["dark", dark],
++];
++
++describe.each(THEMES)("Node Grid %s theme", (_name, block) => {
++  const tokens = extractHexTokens(block);
++
++  it("defines every token the pairs need", () => {
++    const needed = new Set([...TEXT_PAIRS.flat(), ...CONTROL_PAIRS.flat()]);
++    for (const t of needed) expect(tokens[t], `--${t} is missing`).toBeDefined();
++  });
++
++  for (const [text, bg] of TEXT_PAIRS) {
++    it(`--${text} on --${bg} reaches AA text contrast`, () => {
++      expect(contrastRatio(tokens[text], tokens[bg])).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
++    });
++  }
++
++  for (const [part, bg] of CONTROL_PAIRS) {
++    it(`--${part} on --${bg} reaches the 3:1 non-text contrast`, () => {
++      expect(contrastRatio(tokens[part], tokens[bg])).toBeGreaterThanOrEqual(AA_LARGE_TEXT);
++    });
++  }
++});
++
++describe.each(canvasBlocks.map((c) => [c.name, c.tokens] as const))("light canvas %s", (_name, overrides) => {
++  const base = extractHexTokens(light);
++  const tokens = { ...base, ...overrides };
++
++  for (const [text, bg] of TEXT_PAIRS.filter(([, b]) => b === "background" || b === "surface-sunken")) {
++    it(`--${text} on --${bg} reaches AA text contrast`, () => {
++      expect(contrastRatio(tokens[text], tokens[bg])).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
++    });
++  }
++});
++
++it("has the cream and grey canvases defined", () => {
++  expect(canvasBlocks.map((c) => c.name).sort()).toEqual(["cream", "grey"]);
++});
+diff --git a/src/lib/no-raw-colours.test.ts b/src/lib/no-raw-colours.test.ts
+new file mode 100644
+index 0000000..287b0f6
+--- /dev/null
++++ b/src/lib/no-raw-colours.test.ts
+@@ -0,0 +1,50 @@
++import { describe, expect, it } from "vitest";
++import fs from "node:fs";
++import path from "node:path";
++
++// Plan v2, section 4: every colour in the app comes from a Node Grid token
++// (src/app/globals.css) or from src/lib/brand.ts for the places that cannot
++// read CSS variables (PDF, Excel, email). This test fails when a hard-coded
++// Tailwind palette class or a hex value turns up anywhere else, so the
++// redesign cannot quietly drift back to the old colours.
++
++const SRC = path.resolve(__dirname, "..");
++const ALLOWED = new Set([path.join(SRC, "lib", "brand.ts")]);
++
++const PALETTE =
++  /(?<![\w-])(?:[a-z-]+:)*(?:bg|text|border|ring|from|via|to|fill|stroke|divide|outline|shadow|placeholder|accent|decoration|caret)-(?:red|rose|pink|orange|amber|yellow|lime|green|emerald|teal|cyan|sky|blue|indigo|violet|purple|fuchsia|slate|gray|zinc|neutral|stone)-\d{2,3}\b/;
++const BRACKET_COLOUR = /\b(?:bg|text|border|ring|fill|stroke|from|to|via)-\[#/;
++const HEX = /#[0-9a-fA-F]{3,6}(?![\w-])/;
++
++function walk(dir: string, out: string[] = []): string[] {
++  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
++    const full = path.join(dir, entry.name);
++    if (entry.isDirectory()) walk(full, out);
++    else if (/\.(tsx|ts)$/.test(entry.name) && !/\.test\.tsx?$/.test(entry.name)) out.push(full);
++  }
++  return out;
++}
++
++// Comment-only lines describe colours; they are not styles, so they are skipped.
++function isComment(line: string) {
++  const t = line.trim();
++  return t.startsWith("//") || t.startsWith("*") || t.startsWith("/*");
++}
++
++describe("no hard-coded colours outside the design tokens", () => {
++  const offenders: string[] = [];
++  for (const file of walk(SRC)) {
++    if (ALLOWED.has(file)) continue;
++    const lines = fs.readFileSync(file, "utf8").split("\n");
++    lines.forEach((line, i) => {
++      if (isComment(line)) return;
++      if (PALETTE.test(line) || BRACKET_COLOUR.test(line) || HEX.test(line)) {
++        offenders.push(`${path.relative(SRC, file)}:${i + 1}: ${line.trim().slice(0, 120)}`);
++      }
++    });
++  }
++
++  it("uses tokens instead of palette classes or hex values", () => {
++    expect(offenders, offenders.join("\n")).toEqual([]);
++  });
++});
+diff --git a/src/lib/pdf-report.tsx b/src/lib/pdf-report.tsx
+index 115c47b..eac3cb4 100644
+--- a/src/lib/pdf-report.tsx
++++ b/src/lib/pdf-report.tsx
+@@ -1,11 +1,17 @@
+-import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect } from "@react-pdf/renderer";
++import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect, Circle } from "@react-pdf/renderer";
++import { BRAND as PALETTE } from "@/lib/brand";
+ 
+-const BRAND = "#4338CA";
+-const BRAND_DEEP = "#241E6B";
+-const ACCENT = "#0F8A5F";
+-const INK = "#111318";
+-const MUTED = "#5D6674";
+-const LINE = "#E3E8ED";
++// Node Grid palette for the PDF (plan v2, section 4.1). The primary is navy and
++// the secondary is green; the old indigo palette is gone.
++const BRAND = PALETTE.navy;
++const BRAND_DEEP = PALETTE.navyDeep;
++const ACCENT = PALETTE.green;
++const INK = PALETTE.ink;
++const MUTED = PALETTE.muted;
++const LINE = PALETTE.line;
++const GOOD = PALETTE.green;
++const WARN = PALETTE.warning;
++const CRIT = PALETTE.critical;
+ 
+ const styles = StyleSheet.create({
+   page: { padding: 40, fontSize: 10, color: INK, fontFamily: "Helvetica" },
+@@ -34,14 +40,14 @@ const styles = StyleSheet.create({
+   questionPrompt: { fontSize: 9, fontFamily: "Helvetica-Bold", marginBottom: 4 },
+   questionAnswer: { fontSize: 8.5, color: MUTED, marginBottom: 4, lineHeight: 1.4 },
+   rationale: { fontSize: 8, color: ACCENT, fontFamily: "Helvetica-Oblique" },
+-  needsReviewBadge: { fontSize: 7, fontFamily: "Helvetica-Bold", color: "#92651a", backgroundColor: "#fdf3dd", paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
++  needsReviewBadge: { fontSize: 7, fontFamily: "Helvetica-Bold", color: WARN, backgroundColor: PALETTE.warningTint, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4, marginBottom: 4, alignSelf: "flex-start" },
+   decisionRow: { flexDirection: "row", gap: 8, marginBottom: 6, alignItems: "flex-start" },
+-  decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: "#fff" },
++  decisionBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, color: PALETTE.white },
+   footer: { position: "absolute", bottom: 24, left: 40, right: 40, borderTop: `1 solid ${LINE}`, paddingTop: 8, flexDirection: "row", justifyContent: "space-between" },
+   footerText: { fontSize: 7, color: MUTED },
+   execCard: { border: `1 solid ${LINE}`, borderRadius: 8, padding: 14, marginBottom: 14 },
+   execHeadlineRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 6 },
+-  execRecBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: "#fff" },
++  execRecBadge: { fontSize: 7.5, fontFamily: "Helvetica-Bold", paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: PALETTE.white },
+   execHeadline: { fontSize: 9, color: INK, lineHeight: 1.5, marginBottom: 8 },
+   execCols: { flexDirection: "row", gap: 16, marginBottom: 6 },
+   execColTitle: { fontSize: 7, fontFamily: "Helvetica-Bold", color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+@@ -50,23 +56,23 @@ const styles = StyleSheet.create({
+ });
+ 
+ function bandInfo(score: number) {
+-  if (score >= 85) return { label: "Exceeds Expectations", color: "#1c400f" };
++  if (score >= 85) return { label: "Exceeds Expectations", color: GOOD };
+   if (score >= 70) return { label: "Fully Meets Expectations", color: ACCENT };
+-  if (score >= 50) return { label: "Partially Meets Expectations", color: "#b9861a" };
+-  return { label: "Does Not Meet Expectations", color: "#d03b3b" };
++  if (score >= 50) return { label: "Partially Meets Expectations", color: WARN };
++  return { label: "Does Not Meet Expectations", color: CRIT };
+ }
+ 
+ function recColor(label: string) {
+-  if (label === "Strong fit") return "#0e9f6e";
++  if (label === "Strong fit") return GOOD;
+   if (label === "Fit with reservations") return ACCENT;
+-  if (label === "Borderline") return "#d97706";
+-  return "#dc2626";
++  if (label === "Borderline") return WARN;
++  return CRIT;
+ }
+ 
+ function decisionColor(d: string) {
+-  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return "#0e9f6e";
+-  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return "#d97706";
+-  if (d === "reject" || d === "not_yet_ready") return "#dc2626";
++  if (d === "shortlist" || d === "recommend" || d === "strengths_identified") return GOOD;
++  if (d === "hold" || d === "needs_development_plan" || d === "growth_areas_identified") return WARN;
++  if (d === "reject" || d === "not_yet_ready") return CRIT;
+   return MUTED;
+ }
+ 
+@@ -98,12 +104,14 @@ export type ReportData = {
+   generatedAt: string;
+ };
+ 
++// The Vantage "Node V" mark (plan v2, section 4.4), drawn for the PDF.
+ function LogoMark() {
+   return (
+     <Svg width={26} height={26} viewBox="0 0 64 64">
+-      <Rect width={64} height={64} rx={14} fill={BRAND_DEEP} />
+-      <Path d="M32 12 L48 48 H40.5 L32 27 L23.5 48 H16 Z" fill="#ffffff" />
+-      <Path d="M27 42a5 5 0 1 0 10 0 5 5 0 0 0-10 0z" fill={ACCENT} />
++      <Rect width={64} height={64} rx={14} fill={BRAND} />
++      {[16, 32, 48].flatMap((x) => [16, 32, 48].map((y) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} fill={PALETTE.white} opacity={0.22} />))}
++      <Path d="M16 16 L32 48 L48 16" fill="none" stroke={PALETTE.white} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
++      <Circle cx={32} cy={32} r={5.2} fill={PALETTE.green} />
+     </Svg>
+   );
+ }
+diff --git a/src/lib/purpose.ts b/src/lib/purpose.ts
+index 00d7c1a..ed0f1e9 100644
+--- a/src/lib/purpose.ts
++++ b/src/lib/purpose.ts
+@@ -19,9 +19,9 @@ export type DecisionOption = {
+   cls: string;
+ };
+ 
+-const POSITIVE = "peer-checked:border-emerald-500 peer-checked:bg-emerald-50 peer-checked:text-emerald-700";
+-const NEUTRAL = "peer-checked:border-amber-500 peer-checked:bg-amber-50 peer-checked:text-amber-700";
+-const NEGATIVE = "peer-checked:border-red-500 peer-checked:bg-red-50 peer-checked:text-red-700";
++const POSITIVE = "peer-checked:border-good peer-checked:bg-good-soft peer-checked:text-good";
++const NEUTRAL = "peer-checked:border-warning peer-checked:bg-warning-soft peer-checked:text-warning";
++const NEGATIVE = "peer-checked:border-critical peer-checked:bg-critical-soft peer-checked:text-critical";
+ 
+ export const DECISION_OPTIONS: Record<AssessmentPurpose, DecisionOption[]> = {
+   hiring: [
+diff --git a/src/lib/reporting.ts b/src/lib/reporting.ts
+index a9c696d..86aef7d 100644
+--- a/src/lib/reporting.ts
++++ b/src/lib/reporting.ts
+@@ -13,17 +13,17 @@ export function scoreBucket(score: number): Bucket {
+ 
+ export const TALENT_BOX_META: Record<Bucket, Record<Bucket, { label: string; tone: string }>> = {
+   High: {
+-    Low: { label: "Enigma", tone: "bg-amber-50 border-amber-200" },
++    Low: { label: "Enigma", tone: "bg-warning-soft border-warning/40" },
+     Medium: { label: "Growth Employee", tone: "bg-accent-soft border-accent/30" },
+-    High: { label: "Future Leader", tone: "bg-emerald-50 border-emerald-300" },
++    High: { label: "Future Leader", tone: "bg-good-soft border-good/50" },
+   },
+   Medium: {
+-    Low: { label: "Inconsistent Player", tone: "bg-amber-50 border-amber-200" },
++    Low: { label: "Inconsistent Player", tone: "bg-warning-soft border-warning/40" },
+     Medium: { label: "Core Player", tone: "bg-accent-soft border-accent/20" },
+-    High: { label: "High Performer", tone: "bg-emerald-50 border-emerald-200" },
++    High: { label: "High Performer", tone: "bg-good-soft border-good/40" },
+   },
+   Low: {
+-    Low: { label: "Risk", tone: "bg-red-50 border-red-200" },
++    Low: { label: "Risk", tone: "bg-critical-soft border-critical/40" },
+     Medium: { label: "Trusted Professional", tone: "bg-accent-soft border-line" },
+     High: { label: "Solid Performer", tone: "bg-accent-soft border-line" },
+   },
+diff --git a/supabase/migrations/0017_appearance_preferences.sql b/supabase/migrations/0017_appearance_preferences.sql
+new file mode 100644
+index 0000000..3719367
+--- /dev/null
++++ b/supabase/migrations/0017_appearance_preferences.sql
+@@ -0,0 +1,39 @@
++-- Development plan v2, Phase 2: appearance preferences follow the user.
++--
++-- The theme (light, dark, system) and background (white, cream, grey) are
++-- kept in the browser for an instant first paint and mirrored here, so they
++-- follow the person across devices. Only the owner can write their own value,
++-- through the function below, so the profile's other columns (role, status)
++-- stay protected.
++
++alter table public.profiles
++  add column if not exists appearance jsonb not null default '{}'::jsonb;
++
++create or replace function public.set_my_appearance(p_appearance jsonb)
++returns void
++language plpgsql
++security definer
++set search_path = public
++as $$
++declare
++  v_theme text := p_appearance->>'theme';
++  v_canvas text := p_appearance->>'canvas';
++begin
++  if auth.uid() is null then
++    raise exception 'not signed in';
++  end if;
++  if v_theme is not null and v_theme not in ('light', 'dark', 'system') then
++    raise exception 'unknown theme';
++  end if;
++  if v_canvas is not null and v_canvas not in ('white', 'cream', 'grey') then
++    raise exception 'unknown background';
++  end if;
++
++  update public.profiles
++  set appearance = jsonb_strip_nulls(jsonb_build_object('theme', v_theme, 'canvas', v_canvas))
++  where id = auth.uid();
++end;
++$$;
++
++revoke all on function public.set_my_appearance(jsonb) from public;
++grant execute on function public.set_my_appearance(jsonb) to authenticated;
+-- 
+2.43.0
+
