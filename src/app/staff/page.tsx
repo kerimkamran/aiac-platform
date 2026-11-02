@@ -103,7 +103,7 @@ export default async function StaffHomePage() {
         <aside className="pt-2 space-y-4">
           <Link
             href="/staff/builder/new"
-            className="flex items-center justify-center gap-2 bg-brand-deep text-white text-sm font-semibold py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className="flex items-center justify-center gap-2 bg-brand text-on-primary text-sm font-semibold py-2.5 rounded-md hover:bg-brand-hover transition-colors"
           >
             <Icon name="plus" className="w-4 h-4" />
             New assessment

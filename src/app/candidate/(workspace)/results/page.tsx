@@ -96,7 +96,7 @@ export default async function CandidateResultsPage() {
                   <ScoreRing score={Math.round(r.overall_score!)} size={84} label={bandFor(r.overall_score!).label} />
                   <Link
                     href={`/candidate/results/${r.id}`}
-                    className="inline-flex items-center gap-2 text-sm bg-brand-deep text-white px-4 py-2.5 rounded-xl font-semibold hover:bg-brand transition-colors"
+                    className="inline-flex items-center gap-2 text-sm bg-brand text-on-primary px-4 py-2.5 rounded-md font-semibold hover:bg-brand-hover transition-colors"
                   >
                     Full profile
                     <Icon name="arrowRight" className="w-4 h-4" />

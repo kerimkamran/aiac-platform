@@ -106,7 +106,7 @@ export default async function CandidateDashboard() {
               {["invited", "in_progress"].includes(a.status) ? (
                 <Link
                   href={`/candidate/assessments/${a.id}`}
-                  className="text-sm bg-brand-deep text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand transition-colors"
+                  className="text-sm bg-brand text-on-primary px-4 py-2 rounded-md font-semibold hover:bg-brand-hover transition-colors"
                 >
                   {a.status === "invited" ? "Start" : "Continue"}
                 </Link>

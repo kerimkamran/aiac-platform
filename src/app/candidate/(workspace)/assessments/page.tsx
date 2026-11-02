@@ -71,7 +71,7 @@ export default async function CandidateAssessmentsPage() {
                 ) : ["invited", "in_progress"].includes(a.status) ? (
                   <Link
                     href={`/candidate/assessments/${a.id}`}
-                    className="inline-flex items-center gap-2 text-sm bg-brand-deep text-white px-4 py-2 rounded-xl font-semibold hover:bg-brand transition-colors"
+                    className="inline-flex items-center gap-2 text-sm bg-brand text-on-primary px-4 py-2 rounded-md font-semibold hover:bg-brand-hover transition-colors"
                   >
                     {a.status === "invited" ? "Start assessment" : "Continue"}
                     <Icon name="arrowRight" className="w-3.5 h-3.5" />

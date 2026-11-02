@@ -27,7 +27,7 @@ export function PublishChecklist({
       <button
         type="button"
         onClick={() => dialogRef.current?.showModal()}
-        className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
+        className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
       >
         Publish…
       </button>
@@ -46,7 +46,7 @@ export function PublishChecklist({
                 <span
                   aria-hidden
                   className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-2xs font-bold ${
-                    c.ok ? "bg-good text-white" : c.blocking ? "bg-critical text-white" : "bg-warning text-white"
+                    c.ok ? "bg-good text-on-good" : c.blocking ? "bg-critical text-on-critical" : "bg-warning text-on-warning"
                   }`}
                 >
                   {c.ok ? "✓" : c.blocking ? "!" : "·"}
@@ -84,7 +84,7 @@ export function PublishChecklist({
             <button
               type="submit"
               disabled={!canPublish}
-              className="text-sm font-semibold bg-brand-deep text-white rounded-xl px-5 py-2 hover:bg-accent-dark disabled:opacity-50"
+              className="text-sm font-semibold bg-brand text-on-primary rounded-md px-5 py-2 hover:bg-brand-hover disabled:opacity-50"
             >
               Publish
             </button>

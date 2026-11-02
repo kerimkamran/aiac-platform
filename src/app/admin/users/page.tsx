@@ -123,7 +123,7 @@ export default async function AdminUsersPage({
         </a>
         <Link
           href="/staff/people"
-          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+          className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
         >
           <Icon name="plus" className="w-4 h-4" />
           Invite / bulk import
@@ -160,7 +160,7 @@ export default async function AdminUsersPage({
           <option value="employee">Internal employees</option>
           <option value="external">External candidates</option>
         </select>
-        <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">Filter</button>
+        <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Filter</button>
       </form>
 
       <DataTable

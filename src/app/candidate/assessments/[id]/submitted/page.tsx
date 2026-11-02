@@ -102,7 +102,7 @@ export default async function AssessmentSubmittedPage({
       <div className="flex flex-wrap items-center justify-center gap-3 mt-7 anim-fade-up delay-3">
         <Link
           href="/candidate/assessments"
-          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors"
+          className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
         >
           Back to my assessments
           <Icon name="arrowRight" className="w-4 h-4" />

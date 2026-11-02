@@ -95,7 +95,7 @@ export default async function AdminOrganizationsPage() {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">Create unit</button>
+            <button className="w-full bg-brand text-on-primary rounded-md py-2.5 text-sm font-semibold hover:bg-brand-hover transition-colors">Create unit</button>
           </form>
         </Card>
       </div>

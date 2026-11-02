@@ -1,0 +1,181 @@
+// English: the source of truth for every translated string. az.ts and ru.ts
+// must have exactly the same keys (a test checks it). "Vantage" and
+// "Azerconnect" are never translated. LEGAL markers (double angle brackets)
+// stand for
+// facts Azerconnect Legal must supply; they render as a visible "to be
+// confirmed" marker and a release test blocks launch while any remain.
+export const en = {
+  meta: {
+    title: "Vantage — talent assessment by Azerconnect Group",
+    description:
+      "Vantage is how Azerconnect Group assesses skills for hiring, promotion and development: realistic questions, evidence drafted by AI, and a trained person behind every decision.",
+  },
+  common: {
+    appName: "Vantage",
+    company: "Azerconnect Group",
+    byCompany: "by Azerconnect Group",
+    signIn: "Sign in",
+    signingIn: "Signing in…",
+    email: "Email",
+    password: "Password",
+    show: "Show",
+    hide: "Hide",
+    forgot: "Forgot password?",
+    goHome: "Go to my home",
+    goHomeGeneric: "Go home",
+    tryAgain: "Try again",
+    continue: "Continue",
+    language: "Language",
+    appearance: "Appearance",
+    skip: "Skip to main content",
+    back: "Back",
+    backToSignIn: "Back to sign in",
+    legalPending: "to be confirmed by Legal",
+  },
+  nav: {
+    howItWorks: "How it works",
+    privacy: "Privacy",
+    accessibility: "Accessibility",
+    howWeUseAi: "How we use AI",
+    invitationHelp: "Invitation help",
+    about: "About",
+    menu: "Menu",
+    main: "Main",
+  },
+  hero: {
+    eyebrow: "Talent assessment · Azerconnect Group",
+    headline: "See talent clearly.",
+    lead: "Vantage is how Azerconnect Group assesses skills for hiring, promotion and development: realistic questions, evidence drafted by AI, and a trained person behind every decision.",
+    doorCandidates: "Taking an assessment? See what to expect",
+    doorTeams: "On a hiring team? See how reviews work",
+    cardTitle: "Sign in",
+    cardTag: "Candidates and staff",
+    invitationQuestion: "Got an invitation email?",
+    invitationLink: "Set up your account",
+    proof: ["37 competencies in one framework", "Assessments in EN · AZ · RU", "A person checks every score⟦LEGAL:person-check⟧"],
+  },
+  candidates: {
+    eyebrow: "For candidates",
+    title: "Know before you go.",
+    lead: "No surprises on the day.",
+    points: [
+      { t: "Start when you're ready", b: "Your invitation stays open until its due date. Begin whenever you have a quiet stretch of time." },
+      { t: "Your work saves itself", b: "Answers are saved as you go, so a dropped connection doesn't cost you your progress." },
+      { t: "Practise first", b: "Try an untimed practice question on the real exam screen before you begin." },
+      { t: "Check before you submit", b: "A review screen shows every answer, so nothing is left behind by accident." },
+    ],
+    fig: {
+      saved: "Saved 12:04",
+      timeLeft: "Time left",
+      progress: "Question 4 of 12 · 3 answered",
+      question: "A major client reports repeated outages. What do you do in the first hour?",
+      options: ["Call the client and agree the next update time", "Wait for the engineering report", "Escalate to your manager and stop"],
+      exit: "Save and exit",
+      caption: "A live preview of the exam screen: one question at a time, with your progress always in view.",
+    },
+  },
+  teams: {
+    eyebrow: "For hiring teams",
+    title: "Decide on evidence, not impressions.",
+    lead: "Every score comes with the words that earned it.",
+    steps: [
+      { n: "01", t: "Build", b: "Describe the role and get a draft assessment in minutes. Edit it, then publish." },
+      { n: "02", t: "Review", b: "See each answer beside the evidence behind its score. Confirm or adjust." },
+      { n: "03", t: "Decide", b: "Decision makers get one dossier at a time: score, evidence and a reviewer's note." },
+    ],
+    fig: {
+      answerLabel: "Candidate answer",
+      answer: "I called the client first, then agreed a fix with the network team and promised a follow-up call within the hour.",
+      draft: "AI draft",
+      band: "Fully meets",
+      score: "74",
+      stamp: "Confirmed by a reviewer",
+      caption: "A live example of an evidence card: the answer, the phrases the draft relied on, and the reviewer's confirmation.",
+    },
+  },
+  trust: {
+    eyebrow: "Trust and privacy",
+    title: "AI drafts. People decide.",
+    steps: [
+      { t: "Your answers", b: "What you write stays inside Vantage." },
+      { t: "An AI draft, with evidence", b: "A model proposes a score and shows the phrases it relied on." },
+      { t: "A person decides", b: "A trained reviewer confirms or changes every score.⟦LEGAL:person-check⟧" },
+    ],
+    glanceTitle: "At a glance",
+    glance: [
+      { k: "What we collect", v: "Your name, email, answers and timing. If an assessment uses a camera check, you are asked for consent first." },
+      { k: "Who can see it", v: "The hiring team for your role and the reviewers working on it. Not other candidates." },
+      { k: "How long we keep it", v: "⟦LEGAL:retention⟧" },
+      { k: "Your rights", v: "⟦LEGAL:rights⟧" },
+      { k: "Privacy contact", v: "⟦LEGAL:contact⟧" },
+    ],
+    fullNotice: "Read the full privacy notice",
+  },
+  closing: {
+    title: "Ready when you are.",
+    body: "Sign in to continue, or use the link in your invitation email to set up your account.",
+    signIn: "Sign in",
+    haveInvitation: "I have an invitation",
+  },
+  footer: {
+    copyright: "© 2026 Azerconnect Group",
+  },
+  auth: {
+    panelStatement: "AI drafts. People decide.",
+    panelSub: "Vantage, talent assessment by Azerconnect Group",
+    signIn: {
+      title: "Sign in to Vantage",
+      subtitle: "Use the email address your invitation was sent to.",
+      firstTime: "First time here? Set up your account from your invitation email.",
+      invitationLink: "Need help with your invitation?",
+      emailPlaceholder: "you@company.com",
+    },
+    errors: {
+      wrongPassword: "That email and password don't match. Check for typos, or reset your password.",
+      deactivated: "This account is no longer active. If you think that's a mistake, ask your HR contact.",
+      inactive: "This account isn't active yet. Ask your HR contact for help.",
+      tooMany: "Too many attempts. Wait a minute, then try again.",
+      expired: "That link has expired. Ask the HR person who invited you to send a new one.",
+      generic: "We couldn't sign you in. Please try again.",
+      missing: "Enter your email and password.",
+    },
+    invitation: {
+      title: "You're invited — here's how to get in",
+      subtitle: "Accounts are created by your HR team. There's nothing to sign up for.",
+      steps: [
+        { t: "Find the email", b: "Look for a message from Vantage with the subject “You're invited”. Check your spam folder if you can't see it." },
+        { t: "Select Set up my account", b: "The button in that email opens a page made just for you." },
+        { t: "Choose a password", b: "Pick one with at least 8 characters. After that, you can sign in here any time." },
+      ],
+      expired: "Link expired? Ask the HR person who invited you.",
+    },
+    reset: {
+      title: "Reset your password",
+      subtitle: "Enter your email and we'll send you a link.",
+      button: "Send reset link",
+      pending: "Sending…",
+      sentTitle: "Check your email",
+      sentBody: "If an account exists for that email, a reset link is on its way. It can take a few minutes.",
+    },
+    setPassword: {
+      title: "Set your password",
+      subtitle: "You'll use it to sign in from now on.",
+      newPassword: "New password",
+      confirm: "Confirm password",
+      rule: "At least 8 characters",
+      ruleMet: "At least 8 characters ✓",
+      mismatch: "Passwords don't match",
+      save: "Save and continue",
+      pending: "Saving…",
+      doneTitle: "You're all set",
+      doneBody: "Your account is ready.",
+    },
+  },
+  errors: {
+    notFound: { title: "This page is out of view.", body: "The link may be old, or the page has moved." },
+    error: { title: "Something went wrong on our side.", body: "You can try again, or go back home." },
+  },
+};
+
+type Widen<T> = T extends string ? string : T extends readonly (infer U)[] ? Widen<U>[] : { [K in keyof T]: Widen<T[K]> };
+export type Dict = Widen<typeof en>;

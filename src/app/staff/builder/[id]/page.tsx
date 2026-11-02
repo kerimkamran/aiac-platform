@@ -164,7 +164,7 @@ export default async function BuilderDetailPage({
           />
         )}
         {assessment.status === "published" && (
-          <Link href="/staff/people" className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors">
+          <Link href="/staff/people" className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">
             Invite candidates
           </Link>
         )}
@@ -209,7 +209,7 @@ export default async function BuilderDetailPage({
                 defaultValue={assessment.time_limit_minutes}
                 className="w-32 bg-background border border-line rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <button className="ml-auto bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+              <button className="ml-auto bg-brand text-on-primary text-sm font-semibold px-4 py-2 rounded-md hover:bg-brand-hover transition-colors">
                 Save changes
               </button>
             </div>
@@ -480,7 +480,7 @@ export default async function BuilderDetailPage({
                                 })}
                               </fieldset>
                             )}
-                            <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+                            <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2 rounded-md hover:bg-brand-hover transition-colors">
                               Save question
                             </button>
                           </form>
@@ -550,7 +550,7 @@ export default async function BuilderDetailPage({
                         <input name="weight" type="number" min={1} defaultValue={1} className="w-16 bg-surface border border-line rounded-lg px-2 py-1.5" />
                       </label>
                     </div>
-                    <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+                    <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2 rounded-md hover:bg-brand-hover transition-colors">
                       Add question
                     </button>
                   </form>
@@ -575,7 +575,7 @@ export default async function BuilderDetailPage({
                 className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <CompetencySelect name="competency_id" competencies={compList} required placeholder="Map to a competency…" />
-              <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">
+              <button className="w-full bg-brand text-on-primary rounded-md py-2.5 text-sm font-semibold hover:bg-brand-hover transition-colors">
                 Add section
               </button>
             </form>
@@ -654,7 +654,7 @@ export default async function BuilderDetailPage({
               <option value="local">Candidate&apos;s device only (not uploaded)</option>
             </select>
           </label>
-          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+          <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">
             Save
           </button>
         </form>

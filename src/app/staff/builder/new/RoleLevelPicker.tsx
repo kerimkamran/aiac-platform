@@ -53,7 +53,7 @@ export function RoleLevelPicker({
                 aria-pressed={on}
                 onClick={() => toggleLevel(l)}
                 className={`text-sm rounded-full px-3.5 py-1.5 ring-1 ring-inset transition-colors ${
-                  on ? "bg-brand-deep text-white ring-brand-deep" : "bg-canvas text-foreground ring-line hover:ring-accent"
+                  on ? "bg-brand text-on-primary ring-brand-deep" : "bg-canvas text-foreground ring-line hover:ring-accent"
                 }`}
               >
                 {LEVELS[l].label}

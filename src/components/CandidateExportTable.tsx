@@ -136,7 +136,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
             className={`inline-flex items-center gap-2 text-sm font-semibold px-3.5 py-2 rounded-xl border transition-colors ${
               selected.size === 0
                 ? "border-line text-muted cursor-not-allowed"
-                : "border-brand text-accent-dark hover:bg-brand-deep hover:text-white"
+                : "border-brand text-accent-dark hover:bg-brand-hover hover:text-on-primary"
             }`}
           >
             <Icon name="download" className="w-4 h-4" />
@@ -144,7 +144,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
           </a>
           <a
             href={exportBase}
-            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors"
+            className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-3.5 py-2 rounded-md hover:bg-brand-hover transition-colors"
           >
             <Icon name="download" className="w-4 h-4" />
             Export all (filtered)

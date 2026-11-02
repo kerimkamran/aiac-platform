@@ -139,7 +139,7 @@ export function ProctoredAssessmentRunner({
           <button
             onClick={requestAccess}
             disabled={stage === "requesting"}
-            className="w-full inline-flex items-center justify-center gap-2 bg-brand-deep text-white text-sm font-semibold px-5 py-3 rounded-xl hover:bg-brand transition-colors disabled:opacity-60"
+            className="w-full inline-flex items-center justify-center gap-2 bg-brand text-on-primary text-sm font-semibold px-5 py-3 rounded-md hover:bg-brand-hover transition-colors disabled:opacity-60"
           >
             <Icon name="camera" className="w-4 h-4" />
             {stage === "requesting" ? "Requesting access…" : "Allow camera & begin"}

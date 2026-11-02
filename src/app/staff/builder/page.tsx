@@ -203,7 +203,7 @@ export default async function BuilderListPage({
             </p>
             <Link
               href="/staff/builder/new"
-              className="block text-center bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors"
+              className="block text-center bg-brand text-on-primary rounded-md py-2.5 text-sm font-semibold hover:bg-brand-hover transition-colors"
             >
               Start a new assessment
             </Link>

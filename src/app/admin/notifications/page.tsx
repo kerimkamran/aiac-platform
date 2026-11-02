@@ -40,7 +40,7 @@ export default async function AdminNotificationsPage() {
             </select>
             <input name="title" required placeholder="Title" className={input} aria-label="Title" />
             <textarea name="body" rows={3} placeholder="Message…" className={input} aria-label="Message" />
-            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Send broadcast</button>
+            <button className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Send broadcast</button>
           </form>
         </Card>
 

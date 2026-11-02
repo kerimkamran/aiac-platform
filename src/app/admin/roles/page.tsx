@@ -40,7 +40,7 @@ export default async function AdminRolesPage({ searchParams }: { searchParams: P
             aria-selected={role === r}
             href={`/admin/roles?role=${r}`}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
-              role === r ? "bg-brand-deep text-white" : "bg-surface border border-line text-muted hover:text-foreground"
+              role === r ? "bg-brand text-on-primary" : "bg-surface border border-line text-muted hover:text-foreground"
             }`}
           >
             {r.replace(/_/g, " ")}
@@ -88,7 +88,7 @@ export default async function AdminRolesPage({ searchParams }: { searchParams: P
             <p className="text-xs text-muted max-w-md">
               Changes apply immediately to every user with the <span className="font-semibold">{role.replace(/_/g, " ")}</span> role and are audited.
             </p>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">
+            <button className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors">
               Save matrix
             </button>
           </div>

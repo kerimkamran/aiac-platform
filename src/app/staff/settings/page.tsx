@@ -92,7 +92,7 @@ export default async function SettingsPage({
               className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
-          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+          <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">
             Save template
           </button>
         </form>
@@ -116,9 +116,9 @@ export default async function SettingsPage({
             type="file"
             accept="image/png,image/jpeg"
             required
-            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand-deep file:text-white file:text-sm file:font-semibold file:cursor-pointer"
+            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-md file:border-0 file:bg-brand file:text-on-primary file:text-sm file:font-semibold file:cursor-pointer"
           />
-          <button className="bg-foreground text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity shrink-0">
+          <button className="bg-foreground text-background text-sm font-semibold px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity shrink-0">
             Upload
           </button>
         </form>
@@ -165,7 +165,7 @@ export default async function SettingsPage({
                   placeholder={e.api_key_secret_id ? "•••••••••••• (set — leave blank to keep)" : "Paste API key"}
                   className="flex-1 min-w-48 bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
-                <button className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors">
+                <button className="bg-brand text-on-primary text-xs font-semibold px-3.5 py-2 rounded-md hover:bg-brand-hover transition-colors">
                   Save
                 </button>
               </form>

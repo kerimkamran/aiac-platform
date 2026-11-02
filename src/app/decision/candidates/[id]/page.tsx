@@ -146,7 +146,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <div className="flex items-center gap-2 no-print">
           <a
             href={`/report/${id}/pdf`}
-            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
           >
             <Icon name="download" className="w-4 h-4" />
             Download PDF
@@ -372,7 +372,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           <ConfirmSubmitButton
             confirmMessage="Submit your decision for this candidate?"
             icon="send"
-            className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
           >
             Submit decision
           </ConfirmSubmitButton>

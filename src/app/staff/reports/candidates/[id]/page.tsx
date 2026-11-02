@@ -231,7 +231,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <div className="flex items-center gap-2 no-print">
           <a
             href={`/report/${id}/pdf`}
-            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
           >
             <Icon name="download" className="w-4 h-4" />
             Download PDF
@@ -577,7 +577,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 </option>
               ))}
             </select>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0">
+            <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors shrink-0">
               Assign
             </button>
           </form>
@@ -608,7 +608,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 requirement; your decision above can still be submitted either way.
               </p>
               <form action={requestSignoffWithId}>
-                <button className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+                <button className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">
                   <Icon name="send" className="w-4 h-4" />
                   Request sign-off from {managerProfile.full_name}
                 </button>
@@ -663,7 +663,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             placeholder="Reviewer notes — what stood out, what to probe in interview…"
             className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+          <button className="inline-flex items-center gap-2 bg-brand text-on-primary px-5 py-2.5 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
             <Icon name="send" className="w-4 h-4" />
             Submit decision
           </button>
@@ -735,7 +735,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             </div>
             {!ca.feedback_released_at && (
               <form action={releaseFeedback.bind(null, id)}>
-                <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+                <button className="inline-flex items-center gap-2 bg-brand text-on-primary px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
                   <Icon name="send" className="w-4 h-4" />
                   Release feedback
                 </button>

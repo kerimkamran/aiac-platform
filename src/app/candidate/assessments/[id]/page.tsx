@@ -23,7 +23,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   const { data: me } = await supabase.from("profiles").select("status").eq("id", user.id).single();
   if (me?.status === "deactivated") {
     await supabase.auth.signOut();
-    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+    redirect("/login?error=deactivated");
   }
 
   const { data: ca } = await supabase
@@ -92,7 +92,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
           </div>
 
           <form action={startWithId}>
-            <button className="w-full inline-flex items-center justify-center gap-2 bg-brand-deep text-white px-5 py-3 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+            <button className="w-full inline-flex items-center justify-center gap-2 bg-brand text-on-primary px-5 py-3 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
               <Icon name="arrowRight" className="w-4 h-4" />
               Start the timed assessment
             </button>

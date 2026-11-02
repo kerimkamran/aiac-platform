@@ -51,7 +51,7 @@ export default async function AdminSecurityPage() {
                 ))}
               </div>
             </div>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save security settings</button>
+            <button className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Save security settings</button>
           </form>
         </Card>
 

@@ -88,7 +88,7 @@ export default async function SignoffsPage() {
                             "use server";
                             await decideWithId("approved", formData);
                           }}
-                          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+                          className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
                         >
                           <Icon name="check" className="w-4 h-4" />
                           Approve

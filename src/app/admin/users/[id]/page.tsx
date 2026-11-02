@@ -74,7 +74,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
             <ConfirmSubmitButton
               confirmMessage={`Restore ${user.full_name}'s access? They will be able to sign in again.`}
               tone="accent"
-              className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors"
+              className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
             >
               Restore
             </ConfirmSubmitButton>
@@ -167,7 +167,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               </div>
 
               <div className="sm:col-span-2">
-                <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save profile</button>
+                <button className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Save profile</button>
               </div>
             </form>
           </Card>
@@ -203,7 +203,7 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
                 <option value="deny">Deny</option>
               </select>
               <input name="expires_at" type="date" className="bg-surface border border-line rounded-xl px-3 py-2 text-sm" aria-label="Expires" />
-              <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">Add</button>
+              <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Add</button>
             </form>
           </Card>
         </div>

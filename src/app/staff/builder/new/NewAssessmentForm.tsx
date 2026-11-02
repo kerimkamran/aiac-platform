@@ -339,7 +339,7 @@ export function NewAssessmentForm({
             type="button"
             onClick={onGenerate}
             disabled={running || includedCombos.length === 0 || !aiPossible}
-            className="text-sm font-semibold bg-brand-deep text-white rounded-xl px-5 py-2.5 hover:bg-brand disabled:opacity-50"
+            className="text-sm font-semibold bg-brand text-on-primary rounded-md px-5 py-2.5 hover:bg-brand-hover disabled:opacity-50"
           >
             {running ? "Generating…" : "Generate"}
           </button>

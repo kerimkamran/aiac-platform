@@ -331,7 +331,7 @@ export function AssessmentRunner({
                     <span
                       className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold tabular-nums transition-colors ${
                         isAnswered
-                          ? "bg-brand text-white"
+                          ? "bg-brand text-on-primary"
                           : "bg-surface text-muted ring-1 ring-inset ring-line"
                       } ${isCurrent ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""}`}
                     >
@@ -373,7 +373,7 @@ export function AssessmentRunner({
                     aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
                     className={`relative grid h-11 w-full place-items-center rounded-xl text-sm font-bold tabular-nums transition-colors ${
                       isAnswered
-                        ? "bg-brand text-white hover:bg-brand-hover"
+                        ? "bg-brand text-on-primary hover:bg-brand-hover"
                         : "bg-surface text-foreground ring-1 ring-inset ring-line-strong hover:ring-accent"
                     }`}
                   >
@@ -486,7 +486,7 @@ export function AssessmentRunner({
                       <span
                         aria-hidden
                         className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold ${
-                          selected ? "bg-brand text-white" : "bg-background text-foreground ring-1 ring-inset ring-line"
+                          selected ? "bg-brand text-on-primary" : "bg-background text-foreground ring-1 ring-inset ring-line"
                         }`}
                       >
                         {opt.key}
@@ -534,7 +534,7 @@ export function AssessmentRunner({
               <button
                 type="button"
                 onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-deep px-6 text-sm font-semibold text-white transition-colors hover:bg-brand"
+                className="inline-flex min-h-12 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-brand-hover"
               >
                 Next
                 <Icon name="arrowRight" className="h-4 w-4" />
@@ -543,7 +543,7 @@ export function AssessmentRunner({
               <button
                 type="button"
                 onClick={() => setReviewing(true)}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-deep px-6 text-sm font-semibold text-white transition-colors hover:bg-brand"
+                className="inline-flex min-h-12 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-brand-hover"
               >
                 Review answers
                 <Icon name="checkCircle" className="h-4 w-4" />

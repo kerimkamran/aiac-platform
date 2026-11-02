@@ -142,7 +142,7 @@ export default async function PeoplePage({
               />
             </div>
             <div className="flex gap-2">
-              <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+              <button className="bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors">
                 Save
               </button>
               <Link
@@ -208,7 +208,7 @@ export default async function PeoplePage({
                 className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
-            <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+            <button className="inline-flex items-center gap-2 bg-brand text-on-primary px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
               <Icon name="plus" className="w-4 h-4" />
               Add & invite candidate
             </button>
@@ -227,7 +227,7 @@ export default async function PeoplePage({
           <form action={addDecisionMaker} className="space-y-3">
             <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+            <button className="inline-flex items-center gap-2 bg-brand text-on-primary px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
               <Icon name="plus" className="w-4 h-4" />
               Add & invite decision maker
             </button>
@@ -255,7 +255,7 @@ export default async function PeoplePage({
             ))}
           </select>
           <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-          <button className="sm:col-span-2 inline-flex items-center justify-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+          <button className="sm:col-span-2 inline-flex items-center justify-center gap-2 bg-brand text-on-primary px-4 py-2.5 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
             <Icon name="plus" className="w-4 h-4" />
             Add & invite staff member
           </button>
@@ -286,9 +286,9 @@ export default async function PeoplePage({
             type="file"
             accept=".csv,text/csv"
             required
-            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-xl file:border-0 file:bg-brand-deep file:text-white file:text-sm file:font-semibold file:cursor-pointer"
+            className="text-sm text-muted file:mr-3 file:py-2 file:px-3.5 file:rounded-md file:border-0 file:bg-brand file:text-on-primary file:text-sm file:font-semibold file:cursor-pointer"
           />
-          <button className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0">
+          <button className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors shrink-0">
             <Icon name="download" className="w-4 h-4 rotate-180" />
             Upload & invite all
           </button>
@@ -318,7 +318,7 @@ export default async function PeoplePage({
           <option value="active">Active</option>
           <option value="deactivated">Deactivated</option>
         </select>
-        <button className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-2 rounded-xl hover:bg-brand transition-colors">
+        <button className="bg-brand text-on-primary text-xs font-semibold px-3.5 py-2 rounded-md hover:bg-brand-hover transition-colors">
           Apply
         </button>
         {(q || roleFilter || statusFilter) && (
@@ -357,7 +357,7 @@ export default async function PeoplePage({
           </select>
           <ConfirmSubmitButton
             confirmMessage="Apply this bulk action to everyone selected below?"
-            className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand transition-colors"
+            className="bg-brand text-on-primary text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-hover transition-colors"
           >
             Apply to selected
           </ConfirmSubmitButton>
@@ -491,7 +491,7 @@ export default async function PeoplePage({
           )}
           <ConfirmSubmitButton
             confirmMessage="Apply this bulk action to everyone selected below?"
-            className="bg-brand-deep text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand transition-colors"
+            className="bg-brand text-on-primary text-xs font-semibold px-3.5 py-1.5 rounded-lg hover:bg-brand-hover transition-colors"
           >
             Apply to selected
           </ConfirmSubmitButton>

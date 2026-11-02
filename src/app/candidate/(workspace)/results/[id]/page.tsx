@@ -58,7 +58,7 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
         <PageHeader title={meta?.title || "Result"} subtitle="Your reviewed competency profile for this assessment." />
         <a
           href={`/report/${id}/pdf`}
-          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0"
+          className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors shrink-0"
         >
           <Icon name="download" className="w-4 h-4" />
           Download PDF
