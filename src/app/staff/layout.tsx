@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { NavShell, type NavLink } from "@/components/NavShell";
+import { AppShell, type NavLink } from "@/components/AppShell";
+import { homeFor } from "@/lib/home";
 
 export default async function StaffLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -19,47 +20,46 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if (!profile) redirect("/login");
   if (profile.status === "deactivated") {
     await supabase.auth.signOut();
-    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+    redirect("/login?error=deactivated");
   }
-  if (profile.role === "candidate") redirect("/candidate");
-  if (profile.role === "decision_maker") redirect("/decision");
+  if (profile.role === "candidate" || profile.role === "decision_maker") redirect(homeFor(profile.role));
 
-  const isAdmin =
-    profile.role === "hr_admin" || profile.role === "system_admin" || profile.role === "org_admin";
+  const isAdmin = profile.role === "hr_admin" || profile.role === "system_admin" || profile.role === "org_admin";
+  const isSystemAdmin = profile.role === "system_admin";
 
   const { count: myInvites } = await supabase
     .from("candidate_assessments")
     .select("id", { count: "exact", head: true })
     .eq("candidate_id", user.id);
 
+  // Staff navigation (Clear Horizon plan, section 15): Home, Assessments,
+  // Candidates and Reports, plus People and Settings for admins.
   const links: NavLink[] = [
     { href: "/staff", label: "Home", icon: "home", exact: true },
-    { href: "/staff/reports/candidates", label: "Reports", icon: "chart" },
-    { href: "/staff/builder", label: "Assessment Builder", icon: "layers" },
+    { href: "/staff/builder", label: "Assessments", icon: "layers" },
+    { href: "/staff/reports/candidates", label: "Candidates", icon: "users" },
+    { href: "/staff/reports", label: "Reports", icon: "chart", exact: true },
   ];
   if (isAdmin) {
-    links.push({ href: "/staff/people", label: "People & Access", icon: "shield" });
-    links.push({ href: "/staff/settings", label: "Settings", icon: "grid" });
-  }
-  if (profile.role === "system_admin") {
-    links.push({ href: "/admin", label: "Admin Panel", icon: "command" });
-  }
-  if ((myInvites ?? 0) > 0) {
-    links.push({ href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" });
+    links.push({ href: "/staff/people", label: "People", icon: "shield" });
+    links.push({ href: "/staff/settings", label: "Settings", icon: "sliders" });
   }
 
-  const actions: NavLink[] = [
-    { href: "/staff/builder/new", label: "New assessment", icon: "plus" },
-  ];
+  const switchLinks: NavLink[] = [];
+  if (isSystemAdmin) switchLinks.push({ href: "/admin", label: "Admin", icon: "command" });
+  if ((myInvites ?? 0) > 0) switchLinks.push({ href: "/candidate", label: "My assessments", icon: "clipboard" });
+
+  const actions: NavLink[] = [{ href: "/staff/builder/new", label: "New assessment", icon: "plus" }];
   if (isAdmin) {
     actions.push({ href: "/staff/people#add-candidate", label: "Add a candidate", icon: "plus" });
     actions.push({ href: "/staff/people#add-staff", label: "Add a staff member", icon: "plus" });
     actions.push({ href: "/staff/people#bulk-upload", label: "Bulk-add candidates (CSV)", icon: "download" });
   }
+  actions.push({ href: "/staff/review", label: "Start review mode", icon: "play" });
 
   return (
-    <NavShell role={profile.role} name={profile.full_name} links={links} actions={actions}>
+    <AppShell role={profile.role} name={profile.full_name} homeHref="/staff" links={links} actions={actions} switchLinks={switchLinks} showCredit>
       {children}
-    </NavShell>
+    </AppShell>
   );
 }

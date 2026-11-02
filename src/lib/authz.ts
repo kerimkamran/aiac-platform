@@ -13,6 +13,8 @@ export type SessionProfile = {
 
 // The enterprise Admin Panel (/admin) is Super Admin only. Staff-level admin
 // tools (People & Access, Settings) remain gated separately in the staff layout.
+export { homeFor, safeNextPath } from "@/lib/home";
+
 export const ADMIN_ROLES = ["system_admin"] as const;
 
 // Mirrors the Postgres is_staff() helper used throughout RLS policies.

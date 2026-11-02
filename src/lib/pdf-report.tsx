@@ -1,9 +1,8 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect, Circle, Font } from "@react-pdf/renderer";
 import { BRAND as PALETTE } from "@/lib/brand";
-import { PDF_FONT_INTER_400, PDF_FONT_INTER_700, PDF_FONT_ONEST_700 } from "@/lib/pdf-fonts";
+import { PDF_FONT_INTER_400, PDF_FONT_INTER_700 } from "@/lib/pdf-fonts";
 
-// Registered once at load. Inter covers body text and Onest the headings, both
-// with Azerbaijani (ə ğ ı ş İ Ə) and Cyrillic glyphs; the built-in Helvetica
+// Registered once at load. Inter covers body text and headings, with Azerbaijani (ə ğ ı ş İ Ə) and Cyrillic glyphs; the built-in Helvetica
 // fonts cannot draw those characters.
 Font.register({
   family: "Inter",
@@ -12,10 +11,9 @@ Font.register({
     { src: PDF_FONT_INTER_700, fontWeight: 700 },
   ],
 });
-Font.register({ family: "Onest", fonts: [{ src: PDF_FONT_ONEST_700, fontWeight: 700 }] });
 
-// Node Grid palette for the PDF (plan v2, section 4.1). The primary is navy and
-// the secondary is green; the old indigo palette is gone.
+// Clear Horizon palette for the PDF (design plan, section 5). The primary is
+// navy and the secondary is green.
 const BRAND = PALETTE.navy;
 const BRAND_DEEP = PALETTE.navyDeep;
 const ACCENT = PALETTE.green;
@@ -30,18 +28,18 @@ const styles = StyleSheet.create({
   page: { padding: 40, fontSize: 10, color: INK, fontFamily: "Inter" },
   headerBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 24, borderBottom: `2 solid ${BRAND}`, paddingBottom: 14 },
   brandBlock: { flexDirection: "row", alignItems: "center", gap: 8 },
-  brandTitle: { fontSize: 13, fontFamily: "Onest", fontWeight: 700, color: BRAND_DEEP },
+  brandTitle: { fontSize: 13, fontFamily: "Inter", fontWeight: 700, color: BRAND_DEEP },
   brandSub: { fontSize: 7, color: ACCENT, letterSpacing: 1, marginTop: 2 },
   confidential: { fontSize: 8, color: MUTED, textAlign: "right" },
-  h1: { fontSize: 18, fontFamily: "Onest", fontWeight: 700, color: INK, marginBottom: 2 },
+  h1: { fontSize: 18, fontFamily: "Inter", fontWeight: 700, color: INK, marginBottom: 2 },
   subtitle: { fontSize: 10, color: MUTED, marginBottom: 16 },
   metaRow: { flexDirection: "row", gap: 24, marginBottom: 20 },
   metaLabel: { fontSize: 7, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
   metaValue: { fontSize: 10, fontFamily: "Inter", fontWeight: 700 },
-  sectionTitle: { fontSize: 12, fontFamily: "Onest", fontWeight: 700, color: INK, marginTop: 18, marginBottom: 10, borderBottom: `1 solid ${LINE}`, paddingBottom: 6 },
+  sectionTitle: { fontSize: 12, fontFamily: "Inter", fontWeight: 700, color: INK, marginTop: 18, marginBottom: 10, borderBottom: `1 solid ${LINE}`, paddingBottom: 6 },
   scoreCard: { flexDirection: "row", gap: 16, marginBottom: 8 },
   scoreBig: { width: 110, alignItems: "center", justifyContent: "center", border: `1 solid ${LINE}`, borderRadius: 8, padding: 14 },
-  scoreBigNum: { fontSize: 30, fontFamily: "Onest", fontWeight: 700, color: BRAND },
+  scoreBigNum: { fontSize: 30, fontFamily: "Inter", fontWeight: 700, color: BRAND },
   scoreBigLabel: { fontSize: 8, color: MUTED, marginTop: 2, textAlign: "center" },
   scoreSummary: { flex: 1, border: `1 solid ${LINE}`, borderRadius: 8, padding: 14, justifyContent: "center" },
   competencyRow: { marginBottom: 10 },
@@ -121,10 +119,10 @@ export type ReportData = {
 function LogoMark() {
   return (
     <Svg width={26} height={26} viewBox="0 0 64 64">
-      <Rect width={64} height={64} rx={14} fill={BRAND} />
+      <Rect width={64} height={64} rx={14} fill={PALETTE.markTile} />
       {[16, 32, 48].flatMap((x) => [16, 32, 48].map((y) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} fill={PALETTE.white} opacity={0.22} />))}
-      <Path d="M16 16 L32 48 L48 16" fill="none" stroke={PALETTE.white} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={32} cy={32} r={5.2} fill={PALETTE.green} />
+      <Path d="M16 16 L32 48 L48 16" fill="none" stroke={PALETTE.markFrom} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
+      <Circle cx={32} cy={32} r={5.2} fill={PALETTE.markNode} />
     </Svg>
   );
 }

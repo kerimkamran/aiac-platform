@@ -1,88 +1,18 @@
 import { VantageMark } from "@/components/VantageMark";
 import Link from "next/link";
 
-/* ---------------- Icons ---------------- */
+import { Icon } from "@/components/ui/Icon";
+import { Card } from "@/components/ui/Surfaces";
+import { ButtonLink } from "@/components/ui/Button";
+import { StatusPill, type PillTone } from "@/components/ui/StatusPill";
 
-const ICON_PATHS: Record<string, string> = {
-  home: "M3 10.5 12 3l9 7.5M5 9.5V21h5v-6h4v6h5V9.5",
-  grid: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z",
-  clipboard: "M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1zM8 6H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-2M9 12h6M9 16h4",
-  users: "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM22 21v-2a4 4 0 0 0-3-3.87M15 3.13a4 4 0 0 1 0 7.75",
-  chart: "M3 3v18h18M8 17V9m5 8V5m5 12v-6",
-  wand: "M15 4V2m0 20v-2m5-5h2M3 15h2m11.5-8.5L18 5m-9.5 9.5L4 19m12.5-4.5L18 16M8.5 8.5 7 7m4 4 9 9",
-  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3 3",
-  check: "M20 6 9 17l-5-5",
-  flag: "M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7",
-  checkCircle: "M22 11.1V12a10 10 0 1 1-5.93-9.14M22 4 12 14l-3-3",
-  arrowRight: "M5 12h14m-6-6 6 6-6 6",
-  arrowLeft: "M19 12H5m6 6-6-6 6-6",
-  arrowUp: "M12 19V5m-6 6 6-6 6 6",
-  arrowDown: "M12 5v14m6-6-6 6-6-6",
-  sparkles: "M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9zM5 16l.7 1.6L7.3 18l-1.6.7L5 20.3 4.3 18.7 2.7 18l1.6-.4z",
-  target: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zm0-5a5 5 0 1 0 0-10 5 5 0 0 0 0 10zm0-4a1 1 0 1 0 0-2 1 1 0 0 0 0 2z",
-  layers: "m12 2 9 5-9 5-9-5 9-5zM3 12l9 5 9-5M3 17l9 5 9-5",
-  shield: "M12 22s8-3.6 8-10V5.2L12 2 4 5.2V12c0 6.4 8 10 8 10zM9 12l2 2 4-4",
-  search: "M11 19a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm10 2-4.35-4.35",
-  logout: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4m7 14 5-5-5-5m5 5H9",
-  menu: "M4 6h16M4 12h16M4 18h16",
-  x: "M18 6 6 18M6 6l12 12",
-  plus: "M12 5v14M5 12h14",
-  printer: "M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2m-12-3h12v6H6z",
-  send: "m22 2-7 20-4-9-9-4 20-7zM22 2 11 13",
-  eye: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7zm10 3a3 3 0 1 0 0-6 3 3 0 0 0 0 6z",
-  file: "M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM14 2v6h6M9 13h6M9 17h6",
-  award: "M12 15a6 6 0 1 0 0-12 6 6 0 0 0 0 12zm-3.5-1.5L7 22l5-3 5 3-1.5-8.5",
-  zap: "M13 2 3 14h8l-1 8 11-13h-8l1-7z",
-  brain: "M12 4a3 3 0 0 0-3 3v10a3 3 0 1 0 6 0V7a3 3 0 0 0-3-3zM9 8H7a3 3 0 0 0 0 6h2m6-6h2a3 3 0 0 1 0 6h-2",
-  building: "M4 21V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v16m-12 0h16m-4 0v-8h4v8M8 7h2m-2 4h2m-2 4h2",
-  timer: "M10 2h4M12 14l3-3m-3 11a8 8 0 1 0 0-16 8 8 0 0 0 0 16z",
-  mail: "M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2 8 7 8-7",
-  image: "M4 4h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm2 12 4-5 3 3 3-4 5 6M8 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3z",
-  download: "M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2",
-  filter: "M4 5h16l-6 8v6l-4 2v-8z",
-  video: "M15 8v8H3V8h12zm0 3 6-4v10l-6-4z",
-  camera: "M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1zM12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
-  ban: "M4.9 4.9 19 19M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z",
-  play: "M6 4l14 8-14 8V4z",
-  trash: "M4 7h16M9 7V4h6v3m-9 0 1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13",
-  command: "M6 9a3 3 0 1 1 3 3H6V9zm0 0v6m0 0a3 3 0 1 0 3 3v-3H6zm6-6a3 3 0 1 1 3-3v3h-3zm0 0h6m-6 0a3 3 0 1 0-3 3h3V9zm6 6a3 3 0 1 1-3 3v-3h3zm0 0h-6m6 0a3 3 0 1 0 3-3h-3v3z",
-  sun: "M12 17a5 5 0 1 0 0-10 5 5 0 0 0 0 10zM12 1v3m0 16v3M4.2 4.2l2.1 2.1m11.4 11.4 2.1 2.1M1 12h3m16 0h3M4.2 19.8l2.1-2.1m11.4-11.4 2.1-2.1",
-  moon: "M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z",
-  trending: "M3 17l6-6 4 4 8-8M15 7h6v6",
-  alertTriangle: "M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4m0 4h.01",
-  info: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 16v-5m0-3.5h.01",
-  history: "M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2",
-  keyboard: "M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01M8 15h8",
-  messageSquare: "M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z",
-};
-
-// Design-execution-plan Phase 2 / T2.1: icons are decorative (aria-hidden) by
-// default, since almost every use sits beside its own visible text. Pass
-// `label` for the rare icon that IS the only content of its container (an
-// icon-only button with nothing else to name it) -- it switches the SVG to
-// role="img" with that accessible name instead of hiding it from AT.
-export function Icon({ name, className = "w-5 h-5", label }: { name: string; className?: string; label?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.8}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      {...(label ? { role: "img", "aria-label": label } : { "aria-hidden": true })}
-    >
-      <path d={ICON_PATHS[name] || ""} />
-    </svg>
-  );
-}
+export { Icon, Card };
 
 /* ---------------- Brand ---------------- */
 
-// The Vantage logo (plan v2, section 4.4). The mark is VantageMark; the lockup
-// adds the wordmark and the "AZERCONNECT GROUP" line between two rules.
-export function LogoMark({ className = "w-9 h-9" }: { className?: string }) {
+// The Vantage logo (Clear Horizon plan, sections 5.5 and 9): the mark, the
+// wordmark, and "Azerconnect Group" after a hairline. The mark is VantageMark.
+export function LogoMark({ className = "w-8 h-8" }: { className?: string }) {
   return <VantageMark className={className} tile />;
 }
 
@@ -90,14 +20,11 @@ export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <VantageMark className="w-8 h-8 shrink-0" />
+      <span className="text-lg font-semibold tracking-tight text-foreground">Vantage</span>
       {!compact && (
-        <span className="leading-none">
-          <span className="block font-display font-extrabold text-base tracking-tight text-accent-dark">Vantage</span>
-          <span className="flex items-center gap-1.5 mt-1">
-            <span aria-hidden className="h-px w-3 bg-gradient-to-r from-brand to-secondary" />
-            <span className="text-2xs font-semibold uppercase tracking-[0.14em] text-muted whitespace-nowrap">Azerconnect Group</span>
-            <span aria-hidden className="h-px w-3 bg-gradient-to-r from-brand to-secondary" />
-          </span>
+        <span className="hidden sm:inline-flex items-center gap-3 text-sm text-muted whitespace-nowrap">
+          <span aria-hidden className="h-4 w-px bg-line" />
+          Azerconnect Group
         </span>
       )}
     </span>
@@ -117,19 +44,16 @@ export type Band = { label: string; badge: string; bar: string; hex: string };
 // wrong the same way, just less severely. Each now reads the same CSS
 // custom property its own `bar`/`dot` class already resolves to.
 export function bandFor(score: number): Band {
-  if (score >= 85)
-    return { label: "Exceeds", badge: "bg-good-soft text-good", bar: "bg-good", hex: "var(--good)" };
-  if (score >= 70)
-    return { label: "Fully Meets", badge: "bg-line-soft text-foreground", bar: "bg-foreground", hex: "var(--foreground)" };
-  if (score >= 50)
-    return { label: "Partially Meets", badge: "bg-brand-50 text-accent-dark", bar: "bg-accent", hex: "var(--accent)" };
-  return { label: "Does Not Meet", badge: "bg-critical-soft text-critical", bar: "bg-critical", hex: "var(--critical)" };
+  if (score >= 85) return { label: "Exceeds", badge: "bg-good-soft text-good", bar: "bg-good", hex: "var(--good)" };
+  if (score >= 70) return { label: "Fully meets", badge: "bg-accent-soft text-accent-dark", bar: "bg-accent", hex: "var(--accent)" };
+  if (score >= 50) return { label: "Partially meets", badge: "bg-warning-soft text-warning", bar: "bg-warning", hex: "var(--warning)" };
+  return { label: "Does not meet", badge: "bg-critical-soft text-critical", bar: "bg-critical", hex: "var(--critical)" };
 }
 
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
-  Core: { text: "text-foreground", bg: "bg-line-soft", dot: "bg-foreground", hex: "var(--foreground)" },
-  Leadership: { text: "text-accent-dark", bg: "bg-brand-50", dot: "bg-accent", hex: "var(--accent)" },
-  Functional: { text: "text-muted", bg: "bg-line-soft", dot: "bg-line-strong", hex: "var(--line-strong)" },
+  Core: { text: "text-foreground", bg: "bg-line-soft", dot: "bg-foreground", hex: "var(--chart-1)" },
+  Leadership: { text: "text-accent-dark", bg: "bg-accent-soft", dot: "bg-accent", hex: "var(--chart-4)" },
+  Functional: { text: "text-muted", bg: "bg-line-soft", dot: "bg-line-strong", hex: "var(--chart-2)" },
 };
 
 export function categoryStyle(category: string) {
@@ -138,43 +62,38 @@ export function categoryStyle(category: string) {
 
 /* ---------------- Status ---------------- */
 
-// v4 "Field": three semantic hues only -- neutral (default/waiting), green
-// (good/complete), clay (needs attention/in progress) -- plus plain gray for
-// terminal/inactive states. Down from six competing hues in v3 so status
-// pills read as calm data, not a rainbow of chips.
-const STATUS_META: Record<string, { label: string; cls: string }> = {
-  invited: { label: "Invited", cls: "bg-line-soft text-muted" },
-  in_progress: { label: "In progress", cls: "bg-brand-50 text-accent-dark" },
-  submitted: { label: "Submitted", cls: "bg-line-soft text-muted" },
-  scored: { label: "Scored — awaiting review", cls: "bg-brand-50 text-accent-dark" },
-  reviewed: { label: "Reviewed", cls: "bg-good-soft text-good" },
-  draft: { label: "Draft", cls: "bg-line-soft text-muted" },
-  published: { label: "Published", cls: "bg-good-soft text-good" },
-  shortlist: { label: "Shortlisted", cls: "bg-good-soft text-good" },
-  hold: { label: "On hold", cls: "bg-brand-50 text-accent-dark" },
-  reject: { label: "Rejected", cls: "bg-critical-soft text-critical" },
-  recommend: { label: "Recommended", cls: "bg-good-soft text-good" },
-  needs_development_plan: { label: "Needs development plan", cls: "bg-brand-50 text-accent-dark" },
-  not_yet_ready: { label: "Not yet ready", cls: "bg-critical-soft text-critical" },
-  strengths_identified: { label: "Strengths identified", cls: "bg-good-soft text-good" },
-  growth_areas_identified: { label: "Growth areas identified", cls: "bg-brand-50 text-accent-dark" },
-  active: { label: "Active", cls: "bg-good-soft text-good" },
-  deactivated: { label: "Deactivated", cls: "bg-line-soft text-muted" },
+// Status labels (Clear Horizon plan, sections 12.1 and 16). Staff see the
+// review state; candidates see plain language, and "AI scored" never appears.
+const STATUS_META: Record<string, { label: string; candidate?: string; tone: PillTone }> = {
+  invited: { label: "Invited", tone: "neutral" },
+  in_progress: { label: "In progress", tone: "info" },
+  submitted: { label: "Submitted", candidate: "Submitted", tone: "neutral" },
+  scored: { label: "Awaiting review", candidate: "Being reviewed by a person", tone: "info" },
+  reviewed: { label: "Reviewed", candidate: "Result ready", tone: "good" },
+  draft: { label: "Draft", tone: "neutral" },
+  published: { label: "Published", tone: "good" },
+  shortlist: { label: "Shortlisted", tone: "good" },
+  hold: { label: "On hold", tone: "warning" },
+  reject: { label: "Rejected", tone: "critical" },
+  recommend: { label: "Recommended", tone: "good" },
+  needs_development_plan: { label: "Needs development plan", tone: "warning" },
+  not_yet_ready: { label: "Not yet ready", tone: "critical" },
+  strengths_identified: { label: "Strengths identified", tone: "good" },
+  growth_areas_identified: { label: "Growth areas identified", tone: "info" },
+  active: { label: "Active", tone: "good" },
+  deactivated: { label: "Deactivated", tone: "neutral" },
 };
 
-export function StatusBadge({ status }: { status: string }) {
-  const meta = STATUS_META[status] || { label: status.replace(/_/g, " "), cls: "bg-line-soft text-muted" };
-  return (
-    <span className={`inline-flex items-center text-2xs font-semibold px-2 py-[3px] rounded whitespace-nowrap ${meta.cls}`}>
-      {meta.label}
-    </span>
-  );
+export function StatusBadge({ status, audience = "staff" }: { status: string; audience?: "staff" | "candidate" }) {
+  const meta = STATUS_META[status];
+  const label = meta ? (audience === "candidate" && meta.candidate ? meta.candidate : meta.label) : status.replace(/_/g, " ");
+  return <StatusPill tone={meta?.tone ?? "neutral"}>{label}</StatusPill>;
 }
 
 export function ScoreBadge({ score }: { score: number }) {
   // v4 "Field": the score is just bold tabular text, no pill/badge chrome --
   // matches the approved dashboard mockup where scores read as plain numbers.
-  return <span className="text-xs font-semibold tabular-nums text-foreground">{score}</span>;
+  return <span className="text-sm font-semibold tabular-nums text-foreground">{score}</span>;
 }
 
 // Visible, plain-language disclosure of how scores are actually produced,
@@ -197,9 +116,9 @@ export function ScoreBadge({ score }: { score: number }) {
 // for human confirmation.
 export function ScoringDisclosure({ className = "" }: { className?: string }) {
   return (
-    <div className={`flex items-start gap-2.5 rounded-xl border border-warning/40 bg-warning-soft px-3.5 py-2.5 ${className}`}>
-      <Icon name="info" className="w-4 h-4 text-warning mt-0.5 shrink-0" />
-      <p className="text-2xs leading-relaxed text-warning">
+    <div className={`flex items-start gap-3 rounded-lg bg-warning-soft px-4 py-3 ${className}`}>
+      <Icon name="info" className="w-5 h-5 text-warning shrink-0" />
+      <p className="text-sm text-warning">
         <span className="font-bold">How scores are calculated:</span> Multiple-choice questions are scored exactly
         (correct/incorrect). Free-text answers are graded by an AI model against the competency&rsquo;s own behavioural
         indicators, with a written rationale for each score — falling back to a length/structure heuristic only if no
@@ -212,32 +131,6 @@ export function ScoringDisclosure({ className = "" }: { className?: string }) {
 
 /* ---------------- Layout primitives ---------------- */
 
-export function Card({
-  className = "",
-  id,
-  children,
-  interactive = false,
-}: {
-  className?: string;
-  id?: string;
-  children: React.ReactNode;
-  interactive?: boolean;
-}) {
-  // v4 "Field": a surface is defined by a hairline border, not a shadow.
-  // No elevation, no squircle radius -- flat and sharp-cornered so cards
-  // read as plain content containers rather than decorative "AI app" tiles.
-  // `interactive` still gets a subtle border-darken on hover so clickable
-  // rows have honest affordance without a lift/shadow flourish.
-  return (
-    <div
-      id={id}
-      className={`bg-surface border border-line rounded-md print-card ${interactive ? "hover:border-line-strong/50 cursor-pointer transition-colors" : ""} ${className}`}
-    >
-      {children}
-    </div>
-  );
-}
-
 export function PageHeader({
   title,
   subtitle,
@@ -247,16 +140,15 @@ export function PageHeader({
   subtitle?: string;
   children?: React.ReactNode;
 }) {
-  // v4 "Field": plain type sets the hierarchy -- no icon chip, no gradient,
-  // no colored band. A page title is just a page title. Matches the
-  // approved dashboard mockup (title + date/context on the baseline).
+  // Plain type sets the hierarchy: a headline, a quiet line under it, and the
+  // page's actions on the right.
   return (
-    <div className="mb-6 flex flex-wrap items-baseline justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div>
-        <h1 className="text-xl leading-tight font-semibold tracking-tight text-foreground">{title}</h1>
-        {subtitle && <p className="text-xs text-muted mt-1 max-w-2xl">{subtitle}</p>}
+        <h1 className="text-headline text-foreground">{title}</h1>
+        {subtitle && <p className="text-base text-muted mt-1.5 measure">{subtitle}</p>}
       </div>
-      {children && <div className="flex items-center gap-2.5">{children}</div>}
+      {children && <div className="flex items-center gap-3">{children}</div>}
     </div>
   );
 }
@@ -281,11 +173,11 @@ export function StatCard({
 }) {
   return (
     <div className={emphasis ? "sm:col-span-2" : ""}>
-      <p className="text-2xs text-muted font-medium mb-1.5">{label}</p>
-      <p className={`font-semibold tabular-nums tracking-tight ${emphasis ? "text-2xl text-accent" : "text-2xl text-foreground"}`}>
+      <p className="text-sm text-muted font-medium mb-1.5">{label}</p>
+      <p className={`font-semibold tabular-nums tracking-tight text-3xl ${emphasis ? "text-accent-dark" : "text-foreground"}`}>
         {value}
       </p>
-      {hint && <p className="text-xs text-muted mt-1">{hint}</p>}
+      {hint && <p className="text-sm text-muted mt-1">{hint}</p>}
     </div>
   );
 }
@@ -300,7 +192,7 @@ export function Avatar({ name, className = "w-9 h-9 text-xs" }: { name: string; 
   // compete with the one accent color reserved for the page's key action.
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full bg-line-soft text-muted font-semibold shrink-0 ${className}`}
+      className={`inline-flex items-center justify-center rounded-full bg-accent-soft text-accent-dark font-semibold shrink-0 ${className}`}
     >
       {initials}
     </span>
@@ -350,7 +242,7 @@ export function ScoreRing({
         </text>
       </svg>
       {label && (
-        <span className={`text-2xs font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${band.badge}`}>{label}</span>
+        <span className={`text-xs font-semibold px-2.5 py-1 rounded-sm ${band.badge}`}>{label}</span>
       )}
     </div>
   );
@@ -358,14 +250,15 @@ export function ScoreRing({
 
 export function ProgressBar({ value, barClass = "bg-accent", className = "h-2" }: { value: number; barClass?: string; className?: string }) {
   return (
-    <div className={`w-full bg-line/70 rounded-full overflow-hidden ${className}`}>
+    <div className={`w-full bg-line-soft rounded-full overflow-hidden ${className}`}>
       <div className={`h-full rounded-full anim-grow ${barClass}`} style={{ width: `${Math.min(100, Math.max(0, value))}%` }} />
     </div>
   );
 }
 
+// An empty state shows an "empty horizon": a hairline with one faint node,
+// then a short title, a line of help and at most one action.
 export function EmptyState({
-  icon = "clipboard",
   title,
   body,
   action,
@@ -377,19 +270,19 @@ export function EmptyState({
 }) {
   return (
     <Card className="p-10 text-center">
-      <span className="mx-auto w-12 h-12 rounded-2xl bg-brand/8 text-accent-dark grid place-items-center mb-4">
-        <Icon name={icon} className="w-6 h-6" />
-      </span>
-      <p className="font-semibold text-foreground">{title}</p>
-      <p className="text-sm text-muted mt-1.5 max-w-sm mx-auto">{body}</p>
+      <svg viewBox="0 0 160 24" className="mx-auto w-40 h-6 mb-5" aria-hidden>
+        <line x1="0" y1="12" x2="160" y2="12" style={{ stroke: "var(--line)" }} strokeWidth="1.5" />
+        <circle cx="80" cy="12" r="5" style={{ fill: "var(--surface)", stroke: "var(--line-control)" }} strokeWidth="1.5" />
+      </svg>
+      <p className="text-lg font-semibold text-foreground">{title}</p>
+      <p className="text-base text-muted mt-1.5 max-w-sm mx-auto">{body}</p>
       {action && (
-        <Link
-          href={action.href}
-          className="inline-flex items-center gap-2 mt-5 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
-        >
-          {action.label}
-          <Icon name="arrowRight" className="w-4 h-4" />
-        </Link>
+        <div className="mt-6">
+          <ButtonLink href={action.href}>
+            {action.label}
+            <Icon name="arrowRight" className="w-4 h-4" />
+          </ButtonLink>
+        </div>
       )}
     </Card>
   );
@@ -397,38 +290,30 @@ export function EmptyState({
 
 /* ---------------- Status journey tracker ---------------- */
 
-const JOURNEY = ["invited", "in_progress", "scored", "reviewed"] as const;
-const JOURNEY_LABELS = ["Invited", "In progress", "AI scored", "Reviewed"];
+const JOURNEY = ["invited", "in_progress", "submitted", "scored", "reviewed"] as const;
+const JOURNEY_LABELS = ["Invited", "In progress", "Submitted", "Being reviewed", "Result ready"];
 
+// A compact path for lists (the candidate home draws the full PathHorizon).
 export function JourneyTracker({ status }: { status: string }) {
-  const normalized = status === "submitted" ? "scored" : status;
-  const activeIdx = JOURNEY.indexOf(normalized as (typeof JOURNEY)[number]);
+  const activeIdx = Math.max(0, JOURNEY.indexOf(status as (typeof JOURNEY)[number]));
   return (
-    <div className="flex items-center gap-0 w-full max-w-xs" aria-label={`Progress: ${status}`}>
+    <ol className="flex items-center w-full max-w-md" aria-label={`Progress: ${JOURNEY_LABELS[activeIdx]}`}>
       {JOURNEY.map((step, i) => (
-        <div key={step} className="flex items-center flex-1 last:flex-none">
-          <div className="flex flex-col items-center gap-1">
+        <li key={step} className="flex items-center flex-1 last:flex-none" aria-current={i === activeIdx ? "step" : undefined}>
+          <span className="flex flex-col items-center gap-1.5">
             <span
-              className={`w-5 h-5 rounded-full grid place-items-center ring-2 ${
-                i < activeIdx
-                  ? "bg-brand-deep ring-accent text-white"
-                  : i === activeIdx
-                    ? "bg-brand-deep ring-brand text-white"
-                    : "bg-surface ring-line text-muted"
+              className={`w-3 h-3 rounded-full ${
+                i < activeIdx ? "bg-good" : i === activeIdx ? "bg-surface ring-2 ring-accent" : "bg-surface ring-1 ring-line-control"
               }`}
-            >
-              {i < activeIdx ? <Icon name="check" className="w-3 h-3" /> : <span className="text-2xs font-bold">{i + 1}</span>}
-            </span>
-            <span className={`text-2xs font-medium whitespace-nowrap ${i <= activeIdx ? "text-foreground" : "text-muted"}`}>
+            />
+            <span className={`text-xs whitespace-nowrap ${i === activeIdx ? "text-foreground font-semibold" : "text-muted"}`}>
               {JOURNEY_LABELS[i]}
             </span>
-          </div>
-          {i < JOURNEY.length - 1 && (
-            <div className={`h-0.5 flex-1 mx-1 -mt-4 rounded ${i < activeIdx ? "bg-accent" : "bg-line"}`} />
-          )}
-        </div>
+          </span>
+          {i < JOURNEY.length - 1 && <span aria-hidden className={`h-px flex-1 mx-1.5 -mt-5 ${i < activeIdx ? "bg-good" : "bg-line"}`} />}
+        </li>
       ))}
-    </div>
+    </ol>
   );
 }
 

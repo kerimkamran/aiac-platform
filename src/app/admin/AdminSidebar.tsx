@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SidebarLayout, type SidebarLink } from "@/components/NavShell";
+import { SidebarLayout, type SidebarLink } from "@/components/SidebarLayout";
 
 // Design-execution-plan Phase 5 / T5.4: these eleven destinations used to all
 // live as a single crowded row of links in the admin area's own top bar

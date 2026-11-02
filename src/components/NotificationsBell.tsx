@@ -41,37 +41,40 @@ export function NotificationsBell() {
   return (
     <div className="relative" ref={ref}>
       <button
+        type="button"
         onClick={() => setOpen((o) => !o)}
+        aria-haspopup="true"
+        aria-expanded={open}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
-        className="relative p-2 rounded-xl border border-line bg-surface text-muted hover:text-foreground hover:border-line-strong/50 transition-colors"
+        className="press relative inline-flex items-center justify-center w-11 h-11 rounded-md text-muted hover:text-foreground hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
-        <Icon name="mail" className="w-4.5 h-4.5" />
+        <Icon name="bell" className="w-5 h-5" />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-4.5 h-4.5 px-1 rounded-full bg-critical text-white text-2xs font-bold grid place-items-center">
+          <span className="absolute top-1.5 right-1 min-w-5 h-5 px-1 rounded-full bg-critical text-on-critical text-xs font-semibold grid place-items-center">
             {unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-surface border border-line rounded-2xl shadow-xl z-50 overflow-hidden anim-fade-in">
+        <div className="anim-menu absolute right-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-surface text-foreground border border-line rounded-xl shadow-md z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-            <p className="text-xs font-bold text-foreground">Notifications</p>
+            <p className="text-sm font-semibold text-foreground">Notifications</p>
             {unread > 0 && (
-              <button onClick={markAllRead} className="text-2xs font-semibold text-accent-dark hover:underline">
+              <button onClick={markAllRead} className="text-sm font-semibold text-accent hover:underline">
                 Mark all read
               </button>
             )}
           </div>
-          <div className="max-h-80 overflow-y-auto divide-y divide-line">
+          <div className="max-h-80 overflow-y-auto divide-y divide-line-soft">
             {notes.map((n) => (
-              <div key={n.id} className={`px-4 py-3 ${!n.read_at ? "bg-accent-soft/40" : ""}`}>
-                <p className="text-xs font-semibold text-foreground">{n.title}</p>
-                {n.body && <p className="text-2xs text-muted mt-0.5">{n.body}</p>}
-                <div className="flex items-center justify-between mt-1">
-                  <span className="text-2xs text-muted">{new Date(n.created_at).toLocaleString()}</span>
+              <div key={n.id} className={`px-4 py-3 ${!n.read_at ? "bg-accent-soft" : ""}`}>
+                <p className="text-sm font-semibold text-foreground">{n.title}</p>
+                {n.body && <p className="text-sm text-muted mt-0.5">{n.body}</p>}
+                <div className="flex items-center justify-between mt-1.5">
+                  <span className="text-xs text-muted">{new Date(n.created_at).toLocaleString()}</span>
                   {n.link && (
-                    <Link href={n.link} className="text-2xs font-semibold text-accent-dark hover:underline" onClick={() => setOpen(false)}>
+                    <Link href={n.link} className="text-sm font-semibold text-accent hover:underline" onClick={() => setOpen(false)}>
                       Open
                     </Link>
                   )}
