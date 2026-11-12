@@ -171,6 +171,27 @@ export const en = {
       doneBody: "Your account is ready.",
     },
   },
+  about: {
+    title: "About Vantage",
+    body: "Vantage is the talent assessment platform of Azerconnect Group. It is used for hiring, promotion and development.",
+    aiTitle: "How we use AI",
+    aiBody: "AI only drafts: it proposes a score and shows the phrases it relied on. People make the decisions.",
+    credit: "Developed by Kamran Karimli",
+  },
+  privacy: {
+    title: "Privacy notice",
+    lead: "This explains what Vantage does with your information. Parts marked as to be confirmed are being finalised by Azerconnect Legal.",
+    sections: [
+      { t: "Who is responsible", b: "⟦LEGAL:controller⟧ is responsible for your information in Vantage." },
+      { t: "What we collect", b: "Your name, email, role, answers, timing, scores and the reviewer's notes. If an assessment uses a camera check, you are asked for consent first." },
+      { t: "Why we use it", b: "To assess skills for hiring, promotion and development. The legal basis is ⟦LEGAL:basis⟧." },
+      { t: "AI and people", b: "An AI model drafts a score and shows the phrases it relied on. A trained reviewer confirms or changes every score before it counts.⟦LEGAL:person-check⟧ AI never makes the final decision." },
+      { t: "Who can see it", b: "The hiring team for your role and the reviewers working on it. Not other candidates." },
+      { t: "How long we keep it", b: "⟦LEGAL:retention⟧" },
+      { t: "Your rights", b: "⟦LEGAL:rights⟧" },
+      { t: "Contact", b: "⟦LEGAL:contact⟧" },
+    ],
+  },
   errors: {
     notFound: { title: "This page is out of view.", body: "The link may be old, or the page has moved." },
     error: { title: "Something went wrong on our side.", body: "You can try again, or go back home." },

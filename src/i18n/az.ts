@@ -170,6 +170,27 @@ export const az: Dict = {
       doneBody: "Hesabınız hazırdır.",
     },
   },
+  about: {
+    title: "Vantage haqqında",
+    body: "Vantage Azerconnect Group-un istedad qiymətləndirmə platformasıdır. İşə qəbul, irəli çəkilmə və inkişaf üçün istifadə olunur.",
+    aiTitle: "Süni intellektdən necə istifadə edirik",
+    aiBody: "Süni intellekt yalnız layihə hazırlayır: balı təklif edir və əsaslandığı ifadələri göstərir. Qərarları insanlar verir.",
+    credit: "Hazırlayan: Kamran Karimli",
+  },
+  privacy: {
+    title: "Məxfilik bildirişi",
+    lead: "Bu səhifə Vantage-in məlumatlarınızla nə etdiyini izah edir. “Təsdiq gözləyir” kimi işarələnmiş hissələri Azerconnect Hüquq şöbəsi yekunlaşdırır.",
+    sections: [
+      { t: "Kim cavabdehdir", b: "Vantage-dəki məlumatlarınıza görə ⟦LEGAL:controller⟧ cavabdehdir." },
+      { t: "Nələri toplayırıq", b: "Adınızı, e-poçtunuzu, rolunuzu, cavablarınızı, cavab vaxtını, balları və qiymətləndiricinin qeydlərini. Qiymətləndirmədə kamera yoxlaması varsa, əvvəlcə sizdən razılıq istənilir." },
+      { t: "Nə üçün istifadə edirik", b: "İşə qəbul, irəli çəkilmə və inkişaf üçün bacarıqları qiymətləndirmək məqsədilə. Hüquqi əsas: ⟦LEGAL:basis⟧." },
+      { t: "Süni intellekt və insanlar", b: "Süni intellekt modeli bal layihəsi hazırlayır və əsaslandığı ifadələri göstərir. Hər balı təlim keçmiş qiymətləndirici təsdiqləyir və ya dəyişir, yalnız bundan sonra nəzərə alınır.⟦LEGAL:person-check⟧ Yekun qərarı heç vaxt süni intellekt vermir." },
+      { t: "Kim görə bilər", b: "Vəzifəniz üzrə işə qəbul komandası və onunla işləyən qiymətləndiricilər. Digər namizədlər görmür." },
+      { t: "Nə qədər saxlayırıq", b: "⟦LEGAL:retention⟧" },
+      { t: "Hüquqlarınız", b: "⟦LEGAL:rights⟧" },
+      { t: "Əlaqə", b: "⟦LEGAL:contact⟧" },
+    ],
+  },
   errors: {
     notFound: { title: "Bu səhifə görünmür.", body: "Keçid köhnə ola bilər və ya səhifə köçürülüb." },
     error: { title: "Bizim tərəfdə nəsə xəta baş verdi.", body: "Yenidən cəhd edə və ya ana səhifəyə qayıda bilərsiniz." },
