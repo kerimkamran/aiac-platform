@@ -53,6 +53,7 @@ export const ICON_PATHS: Record<string, string> = {
   history: "M3 12a9 9 0 1 0 3-6.7M3 4v4h4M12 7v5l3.5 2",
   keyboard: "M4 6h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1zM6 9h.01M9 9h.01M12 9h.01M15 9h.01M18 9h.01M6 12h.01M9 12h.01M12 12h.01M15 12h.01M18 12h.01M8 15h8",
   chevronDown: "m6 9 6 6 6-6",
+  chevronUp: "m18 15-6-6-6 6",
   chevronRight: "m9 6 6 6-6 6",
   chevronLeft: "m15 6-6 6 6 6",
   globe: "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20",

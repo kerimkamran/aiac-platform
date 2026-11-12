@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, STAFF_ROLES } from "@/lib/authz";
+import { clampExtra } from "@/lib/exam-time";
 
 export async function submitReview(candidateAssessmentId: string, formData: FormData) {
   // Shared with decision/candidates/[id]/actions.ts, so decision makers are
@@ -112,5 +113,20 @@ export async function releaseFeedback(candidateAssessmentId: string) {
     details: { candidate_assessment_id: candidateAssessmentId },
   });
 
+  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
+}
+
+// Extra time for one candidate (Clear Horizon D4, migration 0018). Staff only;
+// the database trigger enforces the same rule. Quietly does nothing if the
+// migration has not been applied yet.
+export async function setExtraTime(candidateAssessmentId: string, formData: FormData) {
+  await requireRole(...STAFF_ROLES);
+  const supabase = await createClient();
+  const minutes = clampExtra(Number(formData.get("extra_minutes")));
+  await supabase
+    .from("candidate_assessments")
+    .update({ extra_minutes: minutes })
+    .eq("id", candidateAssessmentId)
+    .in("status", ["invited", "in_progress"]);
   revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }

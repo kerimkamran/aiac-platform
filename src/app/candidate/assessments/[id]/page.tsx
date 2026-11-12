@@ -4,9 +4,12 @@ import { redirect } from "next/navigation";
 import { startAssessment, submitAssessment } from "./actions";
 import { AssessmentRunner, type RunnerSection } from "./runner";
 import { ProctoredAssessmentRunner } from "./proctoring-gate";
-import { PracticeQuestion } from "@/components/PracticeQuestion";
-import { Card, Icon } from "@/components/ui";
+import { Icon } from "@/components/ui/Icon";
+import { Card } from "@/components/ui/Surfaces";
+import { ButtonLink } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { nowMs } from "@/lib/time";
+import { examDeadlineMs } from "@/lib/exam-time";
 
 export default async function TakeAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -37,28 +40,30 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
 
   const metaEarly = ca.assessments as unknown as { title: string; description: string; time_limit_minutes: number };
 
+  // Extra time granted by HR (migration 0018). Read on its own and tolerant of
+  // the column not existing yet, so the exam keeps working until the migration
+  // has been run: a failed read simply means no extra time.
+  const { data: extraRow } = await supabase.from("candidate_assessments").select("extra_minutes").eq("id", id).maybeSingle();
+  const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
+  const totalMinutes = (metaEarly?.time_limit_minutes || 60) + extraMinutes;
+
   // Deadline gate: once due_at has passed, the assessment can no longer be
   // started or continued -- HR can extend/re-invite from People & Access.
   if (ca.due_at && new Date(ca.due_at).getTime() < nowMs()) {
     return (
-      <div className="p-6 lg:p-10 max-w-2xl mx-auto">
-        <Card className="p-8 text-center">
-          <Icon name="clock" className="w-8 h-8 text-critical mx-auto mb-3" />
-          <p className="font-bold text-foreground mb-1">The deadline for this assessment has passed</p>
-          <p className="text-sm text-muted mb-1">
-            {metaEarly?.title} was due by {new Date(ca.due_at).toLocaleDateString()}.
-          </p>
-          <p className="text-sm text-muted mb-6">
-            If you still need to complete it, contact your HR representative — they can extend the deadline or send a
-            new invitation.
-          </p>
-          <Link
-            href="/candidate/assessments"
-            className="inline-flex items-center gap-2 text-sm font-semibold border border-line px-4 py-2 rounded-xl text-foreground hover:border-accent transition-colors"
-          >
+      <div className="container-page max-w-2xl py-12">
+        <h1 className="text-display text-foreground">The deadline for this assessment has passed.</h1>
+        <p className="mt-3 text-body-large text-muted">
+          {metaEarly?.title} was due by {new Date(ca.due_at).toLocaleDateString()}.
+        </p>
+        <p className="mt-2 text-base text-muted">
+          If you still need to complete it, contact your HR representative. They can extend the deadline or send a new invitation.
+        </p>
+        <div className="mt-7">
+          <ButtonLink href="/candidate/assessments" variant="secondary" size="lg">
             Back to my assessments
-          </Link>
-        </Card>
+          </ButtonLink>
+        </div>
       </div>
     );
   }
@@ -69,43 +74,51 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   if (ca.status === "invited") {
     const startWithId = startAssessment.bind(null, id);
     return (
-      <div className="p-6 lg:p-10 max-w-2xl mx-auto">
-        <Card className="p-8">
-          <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-2">Ready to begin</p>
-          <h1 className="text-xl font-bold text-foreground mb-2">{metaEarly?.title}</h1>
-          {metaEarly?.description && <p className="text-sm text-muted mb-4">{metaEarly.description}</p>}
-          <div className="flex flex-wrap items-center gap-4 text-xs text-muted mb-6">
-            <span className="inline-flex items-center gap-1.5 font-semibold">
-              <Icon name="timer" className="w-3.5 h-3.5" />
-              {metaEarly?.time_limit_minutes} minutes once you start
-            </span>
-            {ca.due_at && (
-              <span className="inline-flex items-center gap-1.5 font-semibold">
-                <Icon name="clock" className="w-3.5 h-3.5" />
-                Complete by {new Date(ca.due_at).toLocaleDateString()}
-              </span>
-            )}
-          </div>
+      <div className="container-page max-w-2xl py-10 lg:py-14">
+        <p className="text-mono-label text-muted">Ready to begin</p>
+        <h1 className="mt-2 text-display text-foreground">{metaEarly?.title}</h1>
+        {metaEarly?.description && <p className="mt-3 text-body-large text-muted measure">{metaEarly.description}</p>}
+        <ul className="mt-6 space-y-2 text-base text-foreground">
+          <li className="flex items-center gap-2">
+            <Icon name="timer" className="w-4 h-4 text-muted" />
+            {totalMinutes} minutes once you start
+            {extraMinutes > 0 && <span className="text-muted">(includes {extraMinutes} extra)</span>}
+          </li>
+          {ca.due_at && (
+            <li className="flex items-center gap-2">
+              <Icon name="clock" className="w-4 h-4 text-muted" />
+              Complete by {new Date(ca.due_at).toLocaleDateString()}
+            </li>
+          )}
+          <li className="flex items-center gap-2 text-muted">
+            <Icon name="check" className="w-4 h-4" />
+            Your answers save as you go. You can hide the timer.
+          </li>
+        </ul>
 
-          <div className="mb-6">
-            <PracticeQuestion />
+        <Card className="mt-8 p-6">
+          <h2 className="text-title text-foreground">Try the practice room first</h2>
+          <p className="mt-1 text-base text-muted">
+            The same screen, with sample questions. There is no timer, nothing is scored and nothing is recorded.
+          </p>
+          <div className="mt-4">
+            <ButtonLink href={`/candidate/assessments/${id}/practice`} variant="secondary">
+              Open the practice room
+            </ButtonLink>
           </div>
-
-          <form action={startWithId}>
-            <button className="w-full inline-flex items-center justify-center gap-2 bg-brand text-on-primary px-5 py-3 rounded-md text-sm font-semibold hover:bg-brand-hover transition-colors">
-              <Icon name="arrowRight" className="w-4 h-4" />
-              Start the timed assessment
-            </button>
-          </form>
-          <p className="text-xs text-muted text-center mt-3">
-            The {metaEarly?.time_limit_minutes}-minute timer begins the moment you press start.
-          </p>
-          <p className="text-center mt-5">
-            <Link href="/candidate/assessments" className="text-sm font-semibold text-accent-dark hover:underline">
-              Back to my assessments
-            </Link>
-          </p>
         </Card>
+
+        <form action={startWithId} className="mt-8">
+          <SubmitButton size="lg" block pendingLabel="Starting…">
+            Start the timed assessment
+          </SubmitButton>
+        </form>
+        <p className="mt-3 text-sm text-muted text-center">The {totalMinutes}-minute timer begins the moment you press start.</p>
+        <p className="mt-5 text-center">
+          <Link href="/candidate/assessments" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
+            Back to my assessments
+          </Link>
+        </p>
       </div>
     );
   }
@@ -157,7 +170,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   };
   const submitWithId = submitAssessment.bind(null, id);
 
-  const deadlineMs = new Date(startedAt).getTime() + (meta?.time_limit_minutes || 60) * 60_000;
+  const deadlineMs = examDeadlineMs(startedAt, meta?.time_limit_minutes, extraMinutes);
 
   const totalQuestions = runnerSections.reduce((n, s) => n + s.questions.length, 0);
 

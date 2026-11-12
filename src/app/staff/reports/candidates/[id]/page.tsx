@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime } from "./actions";
+import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { assignDecisionMaker, unassignDecisionMaker } from "../../../people/actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
@@ -202,6 +203,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       : null;
 
   const submitReviewWithId = submitReview.bind(null, id);
+
+  // Extra time (migration 0018): read on its own, so a database that has not
+  // had the migration yet just shows "none" instead of breaking this page.
+  const { data: extraRow } = await supabase.from("candidate_assessments").select("extra_minutes").eq("id", id).maybeSingle();
+  const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
+  const { data: limitRow } = await supabase.from("assessments").select("time_limit_minutes").eq("id", ca.assessment_id).maybeSingle();
+  const limitMinutes = (limitRow as { time_limit_minutes?: number } | null)?.time_limit_minutes ?? 60;
 
   return (
     <div className="p-6 lg:p-10 max-w-5xl print-page">
@@ -537,6 +545,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       )}
 
       {/* ---------- The human decision ---------- */}
+      {["invited", "in_progress"].includes(ca.status) && (
+        <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
+      )}
+
       {/* Decision makers */}
       <Card className="p-6 mb-6 no-print">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">

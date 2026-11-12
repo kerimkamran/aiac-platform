@@ -1,25 +1,27 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { Card, Icon } from "@/components/ui";
-import { SubmissionSeal } from "@/components/celebration";
+import { ButtonLink } from "@/components/ui/Button";
+import { Timeline } from "@/components/ui/Timeline";
+import { HorizonSeal } from "@/components/horizon/HorizonSeal";
 import { AssessmentPurpose, normalizePurpose } from "@/lib/purpose";
 
-const NEXT_STEPS: Record<AssessmentPurpose, { icon: string; title: string; body: string }[]> = {
+// What happens next, in plain language. A person reviews every score, and a
+// candidate is never told "AI scored" (Clear Horizon plan, section 11).
+const NEXT_STEPS: Record<AssessmentPurpose, { t: string; b: string }[]> = {
   hiring: [
-    { icon: "wand", title: "AI scoring", body: "Your responses are scored against the role's competency model within moments." },
-    { icon: "eye", title: "Human review", body: "A recruiter reviews the AI-assisted scores alongside your answers before any decision is made." },
-    { icon: "mail", title: "You'll hear back", body: "You'll be notified here once a decision maker has reviewed your results." },
+    { t: "A draft is prepared", b: "Your answers are compared with the role's competencies, with the evidence noted." },
+    { t: "A person reviews it", b: "A recruiter checks the draft against your answers before anything is decided." },
+    { t: "You'll hear back", b: "You'll be notified here once a decision maker has reviewed your results." },
   ],
   promotion: [
-    { icon: "wand", title: "AI scoring", body: "Your responses are scored against the target role's competency model within moments." },
-    { icon: "eye", title: "Manager & HR review", body: "Your manager and HR review the AI-assisted scores alongside your answers before any outcome is decided." },
-    { icon: "mail", title: "You'll hear back", body: "You'll be notified here once your promotion review is complete." },
+    { t: "A draft is prepared", b: "Your answers are compared with the target role's competencies, with the evidence noted." },
+    { t: "Your manager and HR review it", b: "They check the draft against your answers before any outcome is decided." },
+    { t: "You'll hear back", b: "You'll be notified here once your promotion review is complete." },
   ],
   development: [
-    { icon: "wand", title: "AI scoring", body: "Your responses are scored against the competency model within moments." },
-    { icon: "eye", title: "Reviewer feedback", body: "A reviewer looks at the AI-assisted scores alongside your answers to identify strengths and growth areas." },
-    { icon: "mail", title: "You'll hear back", body: "You'll be notified here once your development feedback is ready — there's no pass/fail outcome attached." },
+    { t: "A draft is prepared", b: "Your answers are compared with the competency model, with the evidence noted." },
+    { t: "A reviewer gives feedback", b: "A person looks at the draft alongside your answers to identify strengths and growth areas." },
+    { t: "You'll hear back", b: "You'll be notified here when your feedback is ready. There is no pass or fail." },
   ],
 };
 
@@ -59,60 +61,38 @@ export default async function AssessmentSubmittedPage({
   const nextSteps = NEXT_STEPS[purpose];
 
   return (
-    <div className="p-6 lg:p-10 max-w-xl mx-auto">
-      <div className="relative flex flex-col items-center text-center pt-6 pb-2">
-        <SubmissionSeal />
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground mt-3 [font-family:var(--font-display)]">
-          {expired ? "Time's up — you're all set" : `You did it, ${firstName}!`}
-        </h1>
-        <p className="text-sm text-muted mt-2.5 max-w-sm">
+    <div className="container-page max-w-xl py-10 lg:py-14">
+      <div className="flex flex-col items-center text-center">
+        <HorizonSeal />
+        <h1 className="mt-5 text-display text-foreground">{expired ? "Time ran out. Your answers are in." : `Your answers are in, ${firstName}.`}</h1>
+        <p className="mt-3 text-body-large text-muted measure">
           {expired ? (
             <>
-              The timer ran out, so <span className="font-semibold text-foreground">{assessment?.title}</span> was
-              submitted automatically with the answers you had in — nothing further to do.
+              The timer ended, so <span className="font-semibold text-foreground">{assessment?.title}</span> was submitted automatically with the answers you had. There is nothing more to do.
             </>
           ) : (
             <>
-              <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted — nice
-              work seeing that through to the end.
+              <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted. Thank you for seeing it through.
             </>
           )}
         </p>
       </div>
 
-      <Card className="p-6 mt-6 anim-fade-up delay-2">
-        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-4">What happens next</p>
-        <div className="space-y-4">
-          {nextSteps.map((s, i) => (
-            <div key={s.title} className="flex items-start gap-3.5">
-              <span className="w-8 h-8 rounded-xl bg-accent-soft text-accent-dark grid place-items-center shrink-0">
-                <Icon name={s.icon} className="w-4 h-4" />
-              </span>
-              <div className="min-w-0 pt-0.5">
-                <p className="text-sm font-semibold text-foreground">
-                  {i + 1}. {s.title}
-                </p>
-                <p className="text-xs text-muted mt-0.5">{s.body}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </Card>
+      <section className="mt-10 border-t border-line pt-6 anim-fade-up">
+        <h2 className="text-title-large text-foreground">What happens next</h2>
+        <Timeline
+          className="mt-5"
+          steps={nextSteps.map((s, i) => ({ label: s.t, detail: s.b, state: i === 0 ? "current" : "todo" }))}
+        />
+      </section>
 
-      <div className="flex flex-wrap items-center justify-center gap-3 mt-7 anim-fade-up delay-3">
-        <Link
-          href="/candidate/assessments"
-          className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
-        >
-          Back to my assessments
-          <Icon name="arrowRight" className="w-4 h-4" />
-        </Link>
-        <Link
-          href="/candidate"
-          className="inline-flex items-center gap-2 border border-line text-sm font-semibold px-5 py-2.5 rounded-xl text-foreground hover:border-brand transition-colors"
-        >
-          Go to dashboard
-        </Link>
+      <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+        <ButtonLink href="/candidate" size="lg">
+          Go to my home
+        </ButtonLink>
+        <ButtonLink href="/candidate/assessments" variant="secondary" size="lg">
+          My assessments
+        </ButtonLink>
       </div>
     </div>
   );
