@@ -9,11 +9,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (profile.status !== "active") redirect("/login?error=inactive");
   if (!ADMIN_ROLES.includes(profile.role as (typeof ADMIN_ROLES)[number])) redirect("/staff");
 
-  // The top bar carries the admin entry and the way back to the workspace; the
+  // The logo is the way to the system horizon; the top bar carries the way back to the workspace; the
   // sub-pages live in the side rail (AdminSidebar). The notification bell now
   // sits in the top bar with everyone else's.
   const links: NavLink[] = [
-    { href: "/admin", label: "Admin", icon: "command", exact: true },
     { href: "/staff", label: "Workspace", icon: "arrowLeft" },
   ];
   const switchLinks: NavLink[] = [{ href: "/staff", label: "Workspace", icon: "home" }];

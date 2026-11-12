@@ -1,13 +1,23 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
+import { Avatar, ScoreBadge, StatusBadge } from "@/components/ui";
+import { ButtonLink } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { PipelineHorizon, type PipelineStage } from "@/components/horizon/PipelineHorizon";
+import { ageLabel, daysSince, greeting, REVIEW_TARGET_DAYS } from "@/lib/dates";
 
-// Home is the review queue (plan v2): candidates the AI has scored and a
-// person still has to confirm, then the most recent submissions. Dashboards
-// and charts were removed. Both lists are paged, so nothing is silently cut
-// at 1,000 rows.
-const QUEUE_PAGE = 50;
-const RECENT_LIMIT = 10;
+// Staff home (Clear Horizon plan, section 10): a statement of what needs a
+// person, the pipeline horizon, and the first few waiting reviews. Counts use
+// head-only queries, so the page stays cheap however many candidates exist.
+const QUEUE_SHOWN = 5;
+const RECENT_SHOWN = 5;
+const STAGES = [
+  { key: "invited", label: "Invited" },
+  { key: "in_progress", label: "In progress" },
+  { key: "submitted", label: "Submitted" },
+  { key: "scored", label: "Ready for review" },
+  { key: "reviewed", label: "Reviewed" },
+] as const;
 
 type Row = {
   id: string;
@@ -17,7 +27,6 @@ type Row = {
   candidate: { full_name: string; email: string } | null;
   assessments: { title: string; vacancy_title: string | null } | null;
 };
-
 const ROW_SELECT =
   "id, status, overall_score, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email), assessments(title, vacancy_title)";
 
@@ -26,95 +35,116 @@ export default async function StaffHomePage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  const nowIso = new Date().toISOString();
 
-  const [{ data: profile }, { data: queue, count: queueCount }, { data: recent }] = await Promise.all([
+  const counts = await Promise.all(
+    STAGES.map((s) => supabase.from("candidate_assessments").select("id", { count: "exact", head: true }).eq("status", s.key))
+  );
+  const [{ data: profile }, { data: queue }, { data: recent }, { count: overdue }] = await Promise.all([
     supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
     supabase
       .from("candidate_assessments")
-      .select(ROW_SELECT, { count: "exact" })
+      .select(ROW_SELECT)
       .eq("status", "scored")
-      .order("submitted_at", { ascending: false, nullsFirst: false })
-      .range(0, QUEUE_PAGE - 1),
+      .order("submitted_at", { ascending: true, nullsFirst: false })
+      .limit(QUEUE_SHOWN),
     supabase
       .from("candidate_assessments")
       .select(ROW_SELECT)
       .not("submitted_at", "is", null)
       .order("submitted_at", { ascending: false })
-      .limit(RECENT_LIMIT),
+      .limit(RECENT_SHOWN),
+    supabase
+      .from("candidate_assessments")
+      .select("id", { count: "exact", head: true })
+      .in("status", ["invited", "in_progress"])
+      .lt("due_at", nowIso),
   ]);
 
-  const firstName = (profile?.full_name || "there").split(" ")[0];
-  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
+  const stages: PipelineStage[] = STAGES.map((s, i) => ({
+    key: s.key,
+    label: s.label,
+    count: counts[i].count ?? 0,
+    href: `/staff/reports/candidates?status=${s.key}`,
+    emphasis: s.key === "scored",
+  }));
+  const waitingCount = stages.find((s) => s.key === "scored")?.count ?? 0;
   const waiting = (queue || []) as unknown as Row[];
-  const total = queueCount ?? waiting.length;
   const recentRows = (recent || []) as unknown as Row[];
+  const oldest = waiting[0]?.submitted_at ?? null;
+  const oldestDays = daysSince(oldest);
+  const firstName = (profile?.full_name || "").split(" ")[0];
 
   return (
-    <div className="max-w-[1180px] mx-auto px-6 lg:px-10">
-      <div className="pt-10 pb-6 flex items-baseline justify-between gap-4 flex-wrap">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">Good to see you, {firstName}</h1>
-        <span className="text-xs text-muted">{today}</span>
-      </div>
+    <div className="container-page py-8 lg:py-12">
+      <p className="text-mono-label text-muted">
+        {greeting()}
+        {firstName ? `, ${firstName}` : ""}
+      </p>
+      <h1 className="mt-2 text-display text-foreground measure">
+        {waitingCount === 0
+          ? "You're all caught up."
+          : waitingCount === 1
+            ? "1 candidate is waiting for your review."
+            : `${waitingCount} candidates are waiting for your review.`}
+      </h1>
+      <p className="mt-2 text-body-large text-muted measure">
+        {waitingCount === 0
+          ? "Nothing needs a person right now."
+          : oldest
+            ? `The longest wait is ${ageLabel(oldest)}${oldestDays > REVIEW_TARGET_DAYS ? `, past the ${REVIEW_TARGET_DAYS}-day target` : ""}.`
+            : "Every score is a draft until a person confirms it."}
+      </p>
+      {waitingCount > 0 && (
+        <div className="mt-6">
+          <ButtonLink href="/staff/review" size="lg">
+            Start review mode
+            <Icon name="arrowRight" className="w-4 h-4 ml-2" />
+          </ButtonLink>
+        </div>
+      )}
 
-      <div className="grid lg:grid-cols-[1fr_300px] gap-10 pb-14">
-        <section aria-labelledby="review-queue">
-          <div className="flex items-center justify-between mb-4">
-            <h2 id="review-queue" className="text-sm font-semibold text-foreground">
-              Review queue
-              {total > 0 && <span className="ml-2 text-muted font-normal">{total} waiting</span>}
+      <section aria-label="Pipeline" className="mt-12 border-t border-line pt-8">
+        <PipelineHorizon stages={stages} overdue={overdue ?? 0} />
+      </section>
+
+      <div className="mt-14 grid gap-12 lg:grid-cols-2">
+        <section aria-labelledby="waiting-h">
+          <div className="flex items-baseline justify-between">
+            <h2 id="waiting-h" className="text-title-large text-foreground">
+              Waiting longest
             </h2>
-            <Link href="/staff/reports/candidates" className="text-xs font-medium text-muted hover:text-foreground">
-              All candidates
+            <Link href="/staff/reports/candidates?status=scored" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
+              See all
             </Link>
           </div>
-
           {waiting.length === 0 ? (
-            <p className="text-sm text-muted py-8 border-t border-line">Nothing is waiting for review.</p>
+            <p className="mt-3 border-t border-line py-6 text-base text-muted">Nothing is waiting for review.</p>
           ) : (
-            <div className="border-t border-line">
+            <div className="mt-3 border-t border-line">
               {waiting.map((r) => (
-                <QueueRow key={r.id} row={r} />
-              ))}
-              {total > waiting.length && (
-                <p className="text-xs text-muted pt-3">
-                  Showing the first {waiting.length} of {total}.{" "}
-                  <Link href="/staff/reports/candidates?status=scored" className="font-semibold text-accent-dark hover:underline">
-                    See all
-                  </Link>
-                </p>
-              )}
-            </div>
-          )}
-
-          <div className="flex items-center justify-between mt-12 mb-4">
-            <h2 className="text-sm font-semibold text-foreground">Recent submissions</h2>
-          </div>
-          {recentRows.length === 0 ? (
-            <p className="text-sm text-muted py-8 border-t border-line">Nothing submitted yet. Publish an assessment and invite candidates from People &amp; Access.</p>
-          ) : (
-            <div className="border-t border-line">
-              {recentRows.map((r) => (
                 <QueueRow key={r.id} row={r} />
               ))}
             </div>
           )}
         </section>
 
-        <aside className="pt-2 space-y-4">
-          <Link
-            href="/staff/builder/new"
-            className="flex items-center justify-center gap-2 bg-brand text-on-primary text-sm font-semibold py-2.5 rounded-md hover:bg-brand-hover transition-colors"
-          >
-            <Icon name="plus" className="w-4 h-4" />
-            New assessment
-          </Link>
-          <Link
-            href="/staff/builder"
-            className="flex items-center justify-center gap-2 border border-line text-sm font-semibold py-2.5 rounded-xl hover:border-accent"
-          >
-            Assessment Builder
-          </Link>
-        </aside>
+        <section aria-labelledby="recent-h">
+          <h2 id="recent-h" className="text-title-large text-foreground">
+            Recent submissions
+          </h2>
+          {recentRows.length === 0 ? (
+            <p className="mt-3 border-t border-line py-6 text-base text-muted">
+              Nothing submitted yet. Publish an assessment, then invite candidates from People.
+            </p>
+          ) : (
+            <div className="mt-3 border-t border-line">
+              {recentRows.map((r) => (
+                <QueueRow key={r.id} row={r} />
+              ))}
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );
@@ -124,12 +154,15 @@ function QueueRow({ row }: { row: Row }) {
   return (
     <Link
       href={`/staff/reports/candidates/${row.id}`}
-      className="flex items-center gap-3.5 py-3.5 border-b border-line hover:bg-line-soft/40 transition-colors -mx-2 px-2"
+      className="press flex min-h-16 items-center gap-3.5 border-b border-line-soft px-2 -mx-2 py-3 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-focus"
     >
-      <Avatar name={row.candidate?.full_name || "?"} className="w-7 h-7 text-2xs" />
+      <Avatar name={row.candidate?.full_name || "?"} className="w-9 h-9 text-xs" />
       <div className="min-w-0 flex-1">
-        <p className="text-xs font-medium text-foreground truncate">{row.candidate?.full_name}</p>
-        <p className="text-2xs text-muted truncate">{row.assessments?.vacancy_title || row.assessments?.title}</p>
+        <p className="truncate text-base font-semibold text-foreground">{row.candidate?.full_name}</p>
+        <p className="truncate text-sm text-muted">
+          {row.assessments?.vacancy_title || row.assessments?.title}
+          {row.submitted_at ? ` · ${ageLabel(row.submitted_at)}` : ""}
+        </p>
       </div>
       <StatusBadge status={row.status} />
       {row.overall_score !== null && <ScoreBadge score={Math.round(row.overall_score)} />}

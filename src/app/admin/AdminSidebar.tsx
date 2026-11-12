@@ -17,7 +17,7 @@ import { SidebarLayout, type SidebarLink } from "@/components/SidebarLayout";
 // sidebars) so nothing that was reachable from a phone before becomes
 // unreachable now.
 const SECTIONS: SidebarLink[] = [
-  { id: "overview", label: "Overview", icon: "shield", href: "/admin" },
+  { id: "overview", label: "System", icon: "shield", href: "/admin" },
   { id: "users", label: "Users", icon: "users", href: "/admin/users" },
   { id: "roles", label: "Roles & Permissions", icon: "check", href: "/admin/roles" },
   { id: "organizations", label: "Organizations", icon: "building", href: "/admin/organizations" },

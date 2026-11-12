@@ -1,15 +1,32 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Card, EmptyState, Icon, JourneyTracker, PageHeader, StatCard, StatusBadge } from "@/components/ui";
+import { EmptyState, StatusBadge } from "@/components/ui";
+import { ButtonLink } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { ListRow, PrimaryCard } from "@/components/ui/Surfaces";
+import { PathHorizon, type PathStep } from "@/components/horizon/PathHorizon";
+import { dueLabel, greeting } from "@/lib/dates";
 
 type Row = {
   id: string;
   status: string;
   invited_at: string;
+  due_at: string | null;
   assessments: { title: string; time_limit_minutes: number } | null;
 };
 
-export default async function CandidateDashboard() {
+const STEPS = ["Invited", "Taking it", "Submitted", "Being reviewed", "Result"];
+const CURRENT: Record<string, number> = { invited: 0, in_progress: 1, submitted: 2, scored: 3, reviewed: 4 };
+
+function pathFor(status: string): PathStep[] {
+  const cur = CURRENT[status] ?? 0;
+  return STEPS.map((label, i) => ({ label, state: i < cur ? "done" : i === cur ? "current" : "todo" }));
+}
+
+// Candidate home (Clear Horizon plan, section 11): one next step, your place on
+// the path, and plain-language statuses. A person reviews every score, so the
+// words "AI scored" never appear here.
+export default async function CandidateHome() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,123 +36,97 @@ export default async function CandidateDashboard() {
     supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
     supabase
       .from("candidate_assessments")
-      .select("id, status, invited_at, assessments(title, time_limit_minutes)")
+      .select("id, status, invited_at, due_at, assessments(title, time_limit_minutes)")
       .eq("candidate_id", user!.id)
       .order("invited_at", { ascending: false }),
   ]);
 
   const list = (assessments || []) as unknown as Row[];
-  const invited = list.filter((a) => a.status === "invited");
-  const inProgress = list.filter((a) => a.status === "in_progress");
-  const done = list.filter((a) => ["submitted", "scored", "reviewed"].includes(a.status));
-  const reviewed = list.filter((a) => a.status === "reviewed");
-  const firstName = (profile?.full_name || "there").split(" ")[0];
-  const next = inProgress[0] || invited[0];
+  const next = list.find((a) => a.status === "in_progress") || list.find((a) => a.status === "invited");
+  const focus = next || list[0];
+  const firstName = (profile?.full_name || "").split(" ")[0];
 
   return (
-    <div className="p-6 lg:p-10 max-w-5xl">
-      <PageHeader
-        title={`Welcome back, ${firstName}`}
-        subtitle="This is your assessment home — pick up where you left off, or review your results."
-      />
+    <div className="container-page max-w-4xl py-8 lg:py-12">
+      <p className="text-mono-label text-muted">
+        {greeting()}
+        {firstName ? `, ${firstName}` : ""}
+      </p>
 
-      {/* Hero action */}
-      {next ? (
-        <div className="relative overflow-hidden hero-mesh rounded-2xl text-white p-7 md:p-8 mb-8 anim-fade-up">
-          <div className="relative flex flex-wrap items-center justify-between gap-5">
-            <div>
-              <p className="text-2xs font-bold uppercase tracking-[0.18em] text-accent mb-2">
-                {next.status === "in_progress" ? "Continue where you left off" : "Up next for you"}
-              </p>
-              <h2 className="text-xl md:text-2xl font-bold [font-family:var(--font-display)]">{next.assessments?.title}</h2>
-              <p className="text-sm text-white/60 mt-1.5 flex items-center gap-2">
-                <Icon name="timer" className="w-4 h-4" />
-                {next.assessments?.time_limit_minutes} minute time limit · answers save automatically
-              </p>
-            </div>
-            <Link
-              href={`/candidate/assessments/${next.id}`}
-              className="inline-flex items-center gap-2 bg-accent px-6 py-3 rounded-xl font-semibold hover:bg-accent-dark transition-colors shadow-lg shadow-accent/25"
-            >
-              {next.status === "in_progress" ? "Continue assessment" : "Start assessment"}
-              <Icon name="arrowRight" className="w-4 h-4" />
-            </Link>
-          </div>
-        </div>
-      ) : list.length === 0 ? (
-        <div className="mb-8">
+      {list.length === 0 ? (
+        <div className="mt-6">
           <EmptyState
             icon="clipboard"
             title="No invitations yet"
-            body="You'll be invited to an assessment using this account's email address — for hiring, promotion, or development. You'll see it here the moment it lands."
+            body="When you are invited to an assessment, it will appear here. Invitations are sent to this account's email address."
           />
         </div>
-      ) : null}
+      ) : (
+        <>
+          <h1 className="mt-2 text-display text-foreground measure">
+            {next ? (next.status === "in_progress" ? "Pick up where you left off." : "Your next step is ready.") : "Thank you. Here is where things stand."}
+          </h1>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard label="To start" value={invited.length} />
-        <StatCard label="In progress" value={inProgress.length} />
-        <StatCard label="Completed" value={done.length} />
-        <StatCard label="Results ready" value={reviewed.length} />
-      </div>
+          {focus && <PathHorizon steps={pathFor(focus.status)} className="mt-8" />}
 
-      {/* Recent assessments */}
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="font-bold text-foreground [font-family:var(--font-display)]">Your assessments</h2>
-        <Link href="/candidate/assessments" className="inline-flex items-center gap-1.5 text-sm text-accent-dark font-semibold hover:underline">
-          View all
-          <Icon name="arrowRight" className="w-3.5 h-3.5" />
-        </Link>
-      </div>
-
-      <div className="space-y-3">
-        {list.slice(0, 4).map((a) => (
-          <Card key={a.id} className="p-5 flex flex-wrap items-center justify-between gap-5">
-            <div className="min-w-0">
-              <p className="font-semibold text-foreground truncate">{a.assessments?.title}</p>
-              <p className="text-xs text-muted mt-1">
-                {a.assessments?.time_limit_minutes} min · invited {new Date(a.invited_at).toLocaleDateString()}
+          {next && (
+            <PrimaryCard className="mt-8 p-6 sm:p-8">
+              <p className="text-mono-label text-muted">{next.status === "in_progress" ? "In progress" : "Up next"}</p>
+              <h2 className="mt-2 text-headline text-foreground">{next.assessments?.title}</h2>
+              <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-muted">
+                <span className="inline-flex items-center gap-1.5">
+                  <Icon name="clock" className="w-4 h-4" />
+                  {next.assessments?.time_limit_minutes} minutes
+                </span>
+                <span>Answers save as you go</span>
+                {next.due_at && <span className="font-semibold text-foreground">{dueLabel(next.due_at)}</span>}
               </p>
-            </div>
-            <div className="hidden md:block">
-              <JourneyTracker status={a.status} />
-            </div>
-            <div className="flex items-center gap-3">
-              <StatusBadge status={a.status} />
-              {["invited", "in_progress"].includes(a.status) ? (
-                <Link
-                  href={`/candidate/assessments/${a.id}`}
-                  className="text-sm bg-brand text-on-primary px-4 py-2 rounded-md font-semibold hover:bg-brand-hover transition-colors"
-                >
-                  {a.status === "invited" ? "Start" : "Continue"}
-                </Link>
-              ) : a.status === "reviewed" ? (
-                <Link
-                  href={`/candidate/results/${a.id}`}
-                  className="text-sm border border-line text-foreground px-4 py-2 rounded-xl font-semibold hover:border-accent hover:text-accent-dark transition-colors"
-                >
-                  View results
-                </Link>
-              ) : null}
-            </div>
-          </Card>
-        ))}
-      </div>
+              <div className="mt-6">
+                <ButtonLink href={`/candidate/assessments/${next.id}`} size="lg">
+                  {next.status === "in_progress" ? "Continue assessment" : "Start assessment"}
+                  <Icon name="arrowRight" className="w-4 h-4 ml-2" />
+                </ButtonLink>
+              </div>
+            </PrimaryCard>
+          )}
 
-      {/* Tips */}
-      <Card className="mt-10 p-6 flex items-start gap-4">
-        <span className="w-10 h-10 rounded-xl bg-accent-soft text-accent-dark grid place-items-center shrink-0">
-          <Icon name="sparkles" className="w-5 h-5" />
-        </span>
-        <div className="text-sm text-muted leading-relaxed">
-          <p className="font-semibold text-foreground mb-1">How to give your best answers</p>
-          For open questions, describe a real <span className="font-medium text-foreground">situation</span>, the{" "}
-          <span className="font-medium text-foreground">action you took</span>, and the measurable{" "}
-          <span className="font-medium text-foreground">result</span>. Responses are evaluated against Azerconnect&apos;s
-          competency behavioural anchors — specific beats generic, every time.
-        </div>
-      </Card>
+          <section aria-labelledby="mine-h" className="mt-12">
+            <div className="flex items-baseline justify-between">
+              <h2 id="mine-h" className="text-title-large text-foreground">
+                Your assessments
+              </h2>
+              <Link href="/candidate/assessments" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
+                View all
+              </Link>
+            </div>
+            <div className="mt-3 border-t border-line">
+              {list.slice(0, 4).map((a) => (
+                <ListRow
+                  key={a.id}
+                  href={a.status === "reviewed" ? `/candidate/results/${a.id}` : ["invited", "in_progress"].includes(a.status) ? `/candidate/assessments/${a.id}` : undefined}
+                  trailing={<StatusBadge status={a.status} audience="candidate" />}
+                >
+                  <p className="truncate text-base font-semibold text-foreground">{a.assessments?.title}</p>
+                  <p className="text-sm text-muted">
+                    {a.assessments?.time_limit_minutes} min · invited {new Date(a.invited_at).toLocaleDateString()}
+                  </p>
+                </ListRow>
+              ))}
+            </div>
+          </section>
+
+          <section aria-labelledby="know-h" className="mt-12 rounded-card bg-surface-sunken p-6">
+            <h2 id="know-h" className="text-title text-foreground">
+              Know before you go
+            </h2>
+            <ul className="mt-3 space-y-2 text-base text-muted">
+              <li>You can start whenever you have a quiet stretch of time before the due date.</li>
+              <li>Answers save as you go, so a dropped connection will not cost you your progress.</li>
+              <li>A person reviews every score. Specific examples beat general statements.</li>
+            </ul>
+          </section>
+        </>
+      )}
     </div>
   );
 }

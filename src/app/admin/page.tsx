@@ -1,92 +1,133 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { getSessionProfile } from "@/lib/authz";
-import { Avatar, Card, Icon, PageHeader, StatCard } from "@/components/ui";
+import { Callout } from "@/components/ui/Callout";
+import { ListRow } from "@/components/ui/Surfaces";
+import { Icon } from "@/components/ui/Icon";
+import { Avatar } from "@/components/ui";
+import { nowMs } from "@/lib/time";
 
-export default async function AdminDashboard() {
+export const metadata = { title: "System" };
+
+// System horizon (Clear Horizon plan, section 10): exceptions only. When
+// nothing needs attention the page says so and stays quiet; otherwise each
+// exception is one line with a way to act. All counts are head-only queries.
+const INDEX = [
+  { href: "/admin/users", label: "Users", note: "Accounts, roles and status" },
+  { href: "/admin/roles", label: "Roles & permissions", note: "What each role can do" },
+  { href: "/admin/organizations", label: "Organizations", note: "Companies and teams" },
+  { href: "/admin/approvals", label: "Approvals", note: "Requests that need a second person" },
+  { href: "/admin/audit", label: "Audit log", note: "Every admin action, append-only" },
+  { href: "/admin/security", label: "Security", note: "Sign-in and session rules" },
+  { href: "/admin/ai-governance", label: "AI governance", note: "Scoring engines and keys" },
+  { href: "/admin/data-governance", label: "Data governance", note: "Retention and exports" },
+  { href: "/admin/notifications", label: "Notifications", note: "What people are told, and when" },
+  { href: "/admin/api-docs", label: "API", note: "Endpoints and reference" },
+];
+
+export default async function SystemHorizon() {
   const supabase = await createClient();
-  const profile = await getSessionProfile();
+  const weekAgo = new Date(nowMs() - 7 * 86_400_000).toISOString();
 
-  const [{ data: roleCounts }, { count: pendingApprovals }, { data: recentAudit }, { count: activeUsers }] = await Promise.all([
-    supabase.from("profiles").select("role, status"),
+  const [{ count: pending }, { count: denied }, { count: inactive }, { data: recent }] = await Promise.all([
     supabase.from("approval_requests").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("admin_audit_log").select("id", { count: "exact", head: true }).eq("result", "denied").gte("created_at", weekAgo),
+    supabase.from("profiles").select("id", { count: "exact", head: true }).neq("status", "active"),
     supabase
       .from("admin_audit_log")
       .select("id, module, action, result, created_at, actor:profiles!admin_audit_log_actor_id_fkey(full_name)")
       .order("created_at", { ascending: false })
-      .limit(8),
-    supabase.from("profiles").select("id", { count: "exact", head: true }).eq("status", "active"),
+      .limit(5),
   ]);
 
-  const rows = roleCounts || [];
-  const staff = rows.filter((r) => r.role !== "candidate").length;
-  const suspended = rows.filter((r) => r.status !== "active").length;
+  const exceptions: { key: string; tone: "warning" | "info"; text: string; href: string; cta: string }[] = [];
+  if ((pending ?? 0) > 0)
+    exceptions.push({
+      key: "approvals",
+      tone: "warning",
+      text: pending === 1 ? "1 approval is waiting for a decision." : `${pending} approvals are waiting for a decision.`,
+      href: "/admin/approvals",
+      cta: "Review approvals",
+    });
+  if ((denied ?? 0) > 0)
+    exceptions.push({
+      key: "denied",
+      tone: "warning",
+      text: denied === 1 ? "1 action was denied in the last 7 days." : `${denied} actions were denied in the last 7 days.`,
+      href: "/admin/audit",
+      cta: "Open the audit log",
+    });
 
   return (
-    <div className="p-6 lg:p-10 max-w-6xl">
-      <PageHeader
-        title={`Admin Panel`}
-        subtitle={`Signed in as ${profile?.full_name} (${profile?.role.replace(/_/g, " ")}). Every action here is written to the append-only audit log.`}
-      />
+    <div className="px-1 py-2">
+      <h1 className="text-display text-foreground measure">{exceptions.length === 0 ? "Nothing needs attention." : "A few things need attention."}</h1>
+      <p className="mt-2 text-body-large text-muted measure">
+        {exceptions.length === 0 ? "No pending approvals and no denied actions this week." : "Everything else is running as expected."}
+      </p>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Active users" value={activeUsers ?? 0} />
-        <StatCard label="Staff accounts" value={staff} />
-        <StatCard label="Suspended / deactivated" value={suspended} />
-        <StatCard label="Pending approvals" value={pendingApprovals ?? 0} />
-      </div>
+      {exceptions.length > 0 && (
+        <div className="mt-6 space-y-3">
+          {exceptions.map((e) => (
+            <Callout key={e.key} tone={e.tone}>
+              <span className="flex flex-wrap items-center justify-between gap-3">
+                <span>{e.text}</span>
+                <Link href={e.href} className="font-semibold underline underline-offset-4">
+                  {e.cta}
+                </Link>
+              </span>
+            </Callout>
+          ))}
+        </div>
+      )}
 
-      <div className="grid lg:grid-cols-2 gap-5">
-        <Card className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-sm font-bold text-foreground">Recent admin activity</p>
-            <Link href="/admin/audit" className="text-xs font-semibold text-accent-dark hover:underline">
-              Full audit log
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {(recentAudit || []).map((e) => {
-              const actor = e.actor as unknown as { full_name: string } | null;
-              return (
-                <div key={e.id} className="flex items-center gap-3 text-xs">
-                  <Avatar name={actor?.full_name || "?"} className="w-7 h-7 text-2xs" />
-                  <span className="text-foreground font-medium truncate">{actor?.full_name || "System"}</span>
-                  <span className="text-muted truncate">
-                    {e.module ? `${e.module} · ` : ""}
-                    {e.action.replace(/_/g, " ")}
-                  </span>
-                  {e.result === "denied" && <span className="text-critical text-2xs font-bold">DENIED</span>}
-                  <span className="text-muted text-2xs ml-auto whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</span>
-                </div>
-              );
-            })}
-            {(!recentAudit || recentAudit.length === 0) && <p className="text-sm text-muted">No activity recorded yet.</p>}
-          </div>
-        </Card>
+      <p className="mt-6 text-sm text-muted">
+        {(inactive ?? 0) === 0 ? "All accounts are active." : `${inactive} ${inactive === 1 ? "account is" : "accounts are"} suspended or deactivated.`}{" "}
+        <Link href="/admin/users" className="font-semibold text-accent hover:underline">
+          Manage users
+        </Link>
+      </p>
 
-        <Card className="p-6">
-          <p className="text-sm font-bold text-foreground mb-4">Quick actions</p>
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { href: "/admin/users", icon: "users", label: "Manage users" },
-              { href: "/staff/people", icon: "send", label: "Invite / bulk import" },
-              { href: "/admin/roles", icon: "check", label: "Permission matrix" },
-              { href: "/admin/approvals", icon: "checkCircle", label: "Review approvals" },
-              { href: "/admin/security", icon: "ban", label: "Security settings" },
-              { href: "/admin/audit", icon: "file", label: "Audit & export" },
-            ].map((a) => (
-              <Link
-                key={a.href + a.label}
-                href={a.href}
-                className="flex items-center gap-2.5 border border-line rounded-xl px-3.5 py-3 text-xs font-semibold text-foreground hover:border-accent transition-colors"
-              >
-                <Icon name={a.icon} className="w-4 h-4 text-accent-dark" />
-                {a.label}
-              </Link>
-            ))}
-          </div>
-        </Card>
-      </div>
+      <section aria-labelledby="idx-h" className="mt-12">
+        <h2 id="idx-h" className="text-title-large text-foreground">
+          Everything in Admin
+        </h2>
+        <div className="mt-3 border-t border-line">
+          {INDEX.map((s) => (
+            <ListRow key={s.href} href={s.href}>
+              <p className="text-base font-semibold text-foreground">{s.label}</p>
+              <p className="text-sm text-muted">{s.note}</p>
+            </ListRow>
+          ))}
+        </div>
+      </section>
+
+      <section aria-labelledby="act-h" className="mt-12">
+        <div className="flex items-baseline justify-between">
+          <h2 id="act-h" className="text-title-large text-foreground">
+            Latest activity
+          </h2>
+          <Link href="/admin/audit" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
+            Full audit log
+          </Link>
+        </div>
+        <ul className="mt-3 border-t border-line">
+          {(recent || []).map((e) => {
+            const actor = e.actor as unknown as { full_name: string } | null;
+            return (
+              <li key={e.id} className="flex items-center gap-3 border-b border-line-soft py-3 text-sm">
+                <Avatar name={actor?.full_name || "?"} className="w-8 h-8 text-xs" />
+                <span className="truncate font-semibold text-foreground">{actor?.full_name || "System"}</span>
+                <span className="truncate text-muted">
+                  {e.module ? `${e.module} · ` : ""}
+                  {e.action.replace(/_/g, " ")}
+                </span>
+                {e.result === "denied" && <span className="inline-flex items-center gap-1 font-semibold text-critical"><Icon name="ban" className="w-3.5 h-3.5" />Denied</span>}
+                <span className="ml-auto whitespace-nowrap text-muted">{new Date(e.created_at).toLocaleDateString()}</span>
+              </li>
+            );
+          })}
+          {(!recent || recent.length === 0) && <li className="py-6 text-base text-muted">No activity recorded yet.</li>}
+        </ul>
+      </section>
     </div>
   );
 }
