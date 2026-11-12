@@ -75,7 +75,7 @@ export function HorizonField({ className = "" }: { className?: string }) {
             <stop offset="0" className="horizon-stop-from" />
             <stop offset="1" className="horizon-stop-to" />
           </linearGradient>
-          <linearGradient id="hf-line" x1="0" y1="0" x2="1" y2="0">
+          <linearGradient id="hf-line" gradientUnits="userSpaceOnUse" x1={-200} y1={0} x2={W + 400} y2={0}>
             <stop offset="0" className="horizon-stop-from" style={{ stopOpacity: 0 }} />
             <stop offset="0.3" className="horizon-stop-from" />
             <stop offset="1" className="horizon-stop-to" />

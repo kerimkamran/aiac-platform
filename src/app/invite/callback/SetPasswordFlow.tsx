@@ -98,7 +98,7 @@ export function SetPasswordFlow({ t }: { t: Dict }) {
           <line x1="0" y1="20" x2="240" y2="20" stroke="var(--line)" strokeWidth="2" />
           <line className="anim-grow-x" x1="0" y1="20" x2="240" y2="20" stroke="url(#sp-h)" strokeWidth="2" style={{ transformBox: "fill-box" }} />
           <defs>
-            <linearGradient id="sp-h" x1="0" y1="0" x2="1" y2="0">
+            <linearGradient id="sp-h" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="240" y2="0">
               <stop offset="0" className="horizon-stop-from" />
               <stop offset="1" className="horizon-stop-to" />
             </linearGradient>

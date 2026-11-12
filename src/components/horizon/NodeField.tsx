@@ -36,7 +36,7 @@ export function NodeField({
           <stop offset="0" style={{ stopColor: from }} />
           <stop offset="1" style={{ stopColor: to }} />
         </linearGradient>
-        <linearGradient id={hid} x1="0" y1="0" x2="1" y2="0">
+        <linearGradient id={hid} gradientUnits="userSpaceOnUse" x1={0} y1={0} x2={W} y2={0}>
           <stop offset="0" style={{ stopColor: from, stopOpacity: 0 }} />
           <stop offset="0.35" style={{ stopColor: from }} />
           <stop offset="1" style={{ stopColor: to }} />
