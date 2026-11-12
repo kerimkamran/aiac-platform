@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@/components/ui";
-import type { NavLink } from "@/components/NavShell";
+import type { NavLink } from "@/components/AppShell";
 
 const RECENTS_KEY = "aiac-recent-nav";
 const MAX_RECENTS = 5;
@@ -186,17 +186,26 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
 
   if (!open) {
     return (
-      <button
-        onClick={openPalette}
-        aria-label="Quick jump"
-        className="hidden lg:flex items-center gap-2 text-xs text-muted hover:text-muted transition-colors px-2.5 py-1.5 rounded-md border border-line hover:border-line-strong/50"
-      >
-        <Icon name="search" className="w-3.5 h-3.5" />
-        <span className="w-28 text-left">Search</span>
-        <span className="inline-flex items-center gap-0.5 text-2xs font-medium text-muted">
-          <Icon name="command" className="w-2.5 h-2.5" />K
-        </span>
-      </button>
+      <>
+        <button
+          type="button"
+          onClick={openPalette}
+          aria-label="Search or jump to"
+          className="press hidden lg:flex items-center gap-2 h-10 text-sm text-muted hover:text-foreground px-3 rounded-md border border-line hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Icon name="search" className="w-4 h-4" />
+          <span className="w-36 text-left">Search or jump to…</span>
+          <kbd className="text-mono-label text-muted">⌘K</kbd>
+        </button>
+        <button
+          type="button"
+          onClick={openPalette}
+          aria-label="Search or jump to"
+          className="press lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-muted hover:text-foreground hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
+          <Icon name="search" className="w-5 h-5" />
+        </button>
+      </>
     );
   }
 
@@ -209,8 +218,8 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
 
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 px-4">
-      <div className="absolute inset-0 bg-black/50 anim-fade-in" onClick={closePalette} />
-      <div className="relative w-full max-w-lg bg-surface rounded-2xl shadow-2xl border border-line overflow-hidden anim-fade-up">
+      <div className="absolute inset-0 bg-foreground/50 anim-fade-in" onClick={closePalette} />
+      <div role="dialog" aria-modal="true" aria-label="Search or jump to" className="relative w-full max-w-lg bg-surface text-foreground rounded-dialog shadow-lg border border-line overflow-hidden anim-sheet">
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
           <Icon name="search" className="w-4 h-4 text-muted shrink-0" />
           <input
@@ -239,15 +248,15 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
                 go(displayList[active].href);
               }
             }}
-            placeholder="Jump to a page or action…"
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted"
+            placeholder="Search or jump to…"
+            className="flex-1 bg-transparent text-base outline-none placeholder:text-muted"
           />
-          <kbd className="text-2xs text-muted border border-line rounded px-1.5 py-0.5">Esc</kbd>
+          <kbd className="text-mono-label text-muted border border-line rounded-sm px-1.5 py-0.5">Esc</kbd>
         </div>
         <div className="max-h-80 overflow-y-auto p-1.5">
           {groups.map(({ label, rows }) => (
             <div key={label} className="mb-1.5 last:mb-0">
-              <p className="px-3 pt-2.5 pb-1 text-2xs font-semibold uppercase tracking-[0.14em] text-muted flex items-center gap-1.5">
+              <p className="px-3 pt-2.5 pb-1 text-xs font-semibold text-muted flex items-center gap-1.5">
                 {label === "Recent" && <Icon name="history" className="w-3 h-3" />}
                 {label}
               </p>
@@ -256,8 +265,8 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
                   key={l.href}
                   onClick={() => go(l.href)}
                   onMouseEnter={() => setActiveIdx(l.idx)}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-left transition-colors ${
-                    l.idx === active ? "bg-accent-soft text-accent-dark" : "text-foreground hover:bg-background"
+                  className={`w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-base font-medium text-left transition-colors ${
+                    l.idx === active ? "bg-accent-soft text-accent-dark" : "text-foreground hover:bg-surface-sunken"
                   }`}
                 >
                   <Icon name={l.icon} className="w-4 h-4 shrink-0" />
@@ -270,8 +279,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
             </div>
           ))}
           {searching && (
-            <p className="px-3 py-2.5 text-xs text-muted flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full border-2 border-line border-t-accent-dark animate-spin" />
+            <p className="px-3 py-2.5 text-sm text-muted">
               Searching people &amp; assessments…
             </p>
           )}

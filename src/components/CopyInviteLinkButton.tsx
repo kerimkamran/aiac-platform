@@ -127,22 +127,22 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
       </button>
 
       {state === "error" && (
-        <span className="absolute z-50 top-full right-0 mt-1 w-56 bg-surface border border-line rounded-lg shadow-lg px-3 py-2 text-2xs text-critical">
+        <span className="absolute z-50 top-full right-0 mt-1 w-56 bg-surface border border-line rounded-lg shadow-lg px-3 py-2 text-xs text-critical">
           {message}
         </span>
       )}
 
       {state === "manual" && (
         <span className="absolute z-50 top-full right-0 mt-1 w-72 bg-surface border border-line rounded-lg shadow-lg p-3 space-y-2">
-          <span className="block text-2xs text-muted">Your browser blocked automatic copying. Select the link and copy it:</span>
+          <span className="block text-xs text-muted">Your browser blocked automatic copying. Select the link and copy it:</span>
           <input
             readOnly
             value={link}
             onFocus={(e) => e.currentTarget.select()}
             aria-label="Invite link"
-            className="w-full bg-canvas border border-line rounded-md px-2 py-1 text-2xs"
+            className="w-full bg-canvas border border-line rounded-md px-2 py-1 text-xs"
           />
-          <button type="button" onClick={() => setState("idle")} className="text-2xs font-semibold text-accent-dark hover:underline">
+          <button type="button" onClick={() => setState("idle")} className="text-xs font-semibold text-accent-dark hover:underline">
             Close
           </button>
         </span>

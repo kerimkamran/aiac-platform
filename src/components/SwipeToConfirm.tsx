@@ -207,7 +207,7 @@ export function SwipeToConfirm({
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
         onKeyDown={onKeyDown}
-        className={`absolute top-1 left-1 rounded-full ${t.handle} text-white grid place-items-center shadow-md cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand ${
+        className={`absolute top-1 left-1 rounded-full ${t.handle} text-on-primary grid place-items-center shadow-md cursor-grab active:cursor-grabbing focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-brand ${
           snapping ? "transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]" : ""
         } ${disabled ? "pointer-events-none" : ""} ${armed ? "animate-pulse" : ""}`}
         style={{ width: handleSize, height: handleSize, transform: `translateX(${dragX}px)` }}

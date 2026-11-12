@@ -110,9 +110,9 @@ export function ConfirmSubmitButton({
       {open && (
         <div
           ref={popoverRef}
-          className="absolute z-50 top-full right-0 mt-2 w-56 bg-surface border border-line rounded-2xl shadow-xl p-3 anim-fade-in"
+          className="absolute z-50 top-full right-0 mt-2 w-56 bg-surface border border-line rounded-card shadow-xl p-3 anim-fade-in"
         >
-          <p className="text-2xs text-muted leading-snug mb-2.5">{confirmMessage}</p>
+          <p className="text-xs text-muted leading-snug mb-2.5">{confirmMessage}</p>
           <SwipeToConfirm
             label={
               <span className="inline-flex items-center gap-1.5 text-xs">

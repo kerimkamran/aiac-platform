@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "vitest run"
+    "test": "vitest run",
+    "release-check": "RELEASE_BUILD=1 vitest run src/lib/legal-placeholders.test.ts"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.4.1",

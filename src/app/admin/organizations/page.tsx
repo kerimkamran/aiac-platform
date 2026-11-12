@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, Icon, PageHeader } from "@/components/ui";
 import { addOrgUnit, deleteOrgUnit } from "../actions";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
+import { buttonClass } from "@/components/ui/Button";
 
 type Unit = { id: string; parent_id: string | null; unit_type: string; name: string };
 
@@ -22,7 +23,7 @@ function UnitTree({ units, parentId, depth }: { units: Unit[]; parentId: string 
           <div className="flex items-center gap-3 text-sm py-1">
             <Icon name={u.unit_type === "location" ? "building" : u.unit_type === "team" ? "users" : "layers"} className="w-4 h-4 text-accent-dark shrink-0" />
             <span className="font-semibold text-foreground">{u.name}</span>
-            <span className="text-2xs font-semibold uppercase tracking-wider text-muted bg-line/50 px-2 py-0.5 rounded-full">
+            <span className="text-sm font-semibold text-muted bg-line/50 px-2 py-0.5 rounded-full">
               {TYPE_LABEL[u.unit_type] || u.unit_type}
             </span>
             <form action={deleteOrgUnit.bind(null, u.id)} className="ml-auto">
@@ -95,7 +96,7 @@ export default async function AdminOrganizationsPage() {
                 <option key={u.id} value={u.id}>{u.name}</option>
               ))}
             </select>
-            <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">Create unit</button>
+            <button className={buttonClass({ size: "md", block: true })}>Create unit</button>
           </form>
         </Card>
       </div>

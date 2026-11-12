@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Avatar, Icon, PageHeader } from "@/components/ui";
 import { DataTable, DataTablePagination, type DataTableColumn } from "@/components/DataTable";
+import { buttonClass } from "@/components/ui/Button";
 
 const PAGE_SIZE = 40;
 
@@ -44,7 +45,7 @@ export default async function AdminAuditPage({
         const actor = e.actor as unknown as { full_name: string; email: string } | null;
         return (
           <span className="flex items-center gap-2">
-            <Avatar name={actor?.full_name || "?"} className="w-6 h-6 text-2xs" />
+            <Avatar name={actor?.full_name || "?"} className="w-6 h-6 text-xs" />
             <span className="font-medium text-foreground text-xs">{actor?.full_name || "System"}</span>
           </span>
         );
@@ -56,15 +57,15 @@ export default async function AdminAuditPage({
       key: "target",
       label: "Target",
       render: (e) => (
-        <span className="text-muted text-2xs">{e.target_type ? `${e.target_type} ${String(e.target_id || "").slice(0, 8)}` : "—"}</span>
+        <span className="text-muted text-xs">{e.target_type ? `${e.target_type} ${String(e.target_id || "").slice(0, 8)}` : "—"}</span>
       ),
     },
-    { key: "ip", label: "IP", render: (e) => <span className="text-muted text-2xs">{e.ip || "—"}</span> },
+    { key: "ip", label: "IP", render: (e) => <span className="text-muted text-xs">{e.ip || "—"}</span> },
     {
       key: "result",
       label: "Result",
       render: (e) => (
-        <span className={`text-2xs font-bold ${e.result === "denied" ? "text-critical" : e.result === "error" ? "text-warning" : "text-good"}`}>
+        <span className={`text-xs font-bold ${e.result === "denied" ? "text-critical" : e.result === "error" ? "text-warning" : "text-good"}`}>
           {e.result || "success"}
         </span>
       ),
@@ -96,7 +97,7 @@ export default async function AdminAuditPage({
         <input name="q" defaultValue={q} placeholder="Action contains…" className="bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm w-44" aria-label="Action filter" />
         <label className="text-xs text-muted">From <input name="from" type="date" defaultValue={from} className="bg-surface border border-line rounded-xl px-3 py-2 text-sm ml-1" /></label>
         <label className="text-xs text-muted">To <input name="to" type="date" defaultValue={to} className="bg-surface border border-line rounded-xl px-3 py-2 text-sm ml-1" /></label>
-        <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">Filter</button>
+        <button className={buttonClass({ size: "md" })}>Filter</button>
       </form>
 
       <DataTable

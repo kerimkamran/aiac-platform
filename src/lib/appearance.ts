@@ -53,13 +53,14 @@ export function storeAppearance(a: Appearance): void {
 }
 
 // Applies the choice to the document. The dark class follows the theme, or
-// the operating system when the theme is "system". The canvas attribute is
-// only written for cream and grey, and never affects dark mode (CSS guards).
+// the operating system when the theme is "system". The canvas attribute never
+// affects dark mode (CSS guards).
 export function applyAppearance(a: Appearance): void {
   const root = document.documentElement;
   const systemDark = typeof window.matchMedia === "function" && window.matchMedia("(prefers-color-scheme: dark)").matches;
   const dark = a.theme === "dark" || (a.theme === "system" && systemDark);
   root.classList.toggle("dark", dark);
-  if (a.canvas === "white") root.removeAttribute("data-canvas");
-  else root.setAttribute("data-canvas", a.canvas);
+  // An explicit choice is always written, including white, so pages with a
+  // role default (cream for candidates) can tell "chosen" from "not chosen".
+  root.setAttribute("data-canvas", a.canvas);
 }

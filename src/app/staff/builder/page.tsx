@@ -6,6 +6,7 @@ import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { LEVELS, isLevelKey } from "@/lib/levels";
+import { buttonClass } from "@/components/ui/Button";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -117,7 +118,7 @@ export default async function BuilderListPage({
                     <p className="font-bold text-foreground truncate">{a.title}</p>
                     <div className="flex items-center gap-2 shrink-0">
                       {a.mode !== "manual" && (
-                        <span className="text-2xs font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
+                        <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-accent-soft text-accent-dark ring-1 ring-inset ring-accent/20">
                           {MODE_LABEL[a.mode] || a.mode}
                         </span>
                       )}
@@ -158,15 +159,15 @@ export default async function BuilderListPage({
                     <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
                   )}
                   <form action={duplicateAssessment.bind(null, a.id)}>
-                    <button className="text-2xs font-semibold text-accent-dark hover:underline">Duplicate</button>
+                    <button className="text-xs font-semibold text-accent-dark hover:underline">Duplicate</button>
                   </form>
                   <form action={setAssessmentArchived.bind(null, a.id, a.status !== "archived")}>
-                    <button className="text-2xs font-semibold text-muted hover:text-foreground hover:underline">
+                    <button className="text-xs font-semibold text-muted hover:text-foreground hover:underline">
                       {a.status === "archived" ? "Restore" : "Archive"}
                     </button>
                   </form>
                   {a.status === "draft" && (
-                    <span className="text-2xs text-muted ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
+                    <span className="text-xs text-muted ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
                   )}
                 </div>
                 {isAdmin && (
@@ -203,7 +204,7 @@ export default async function BuilderListPage({
             </p>
             <Link
               href="/staff/builder/new"
-              className="block text-center bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors"
+              className={buttonClass({ size: "md", className: "block text-center" })}
             >
               Start a new assessment
             </Link>
@@ -236,7 +237,7 @@ export default async function BuilderListPage({
                   />
                 </div>
                 <button className="w-full border border-line rounded-xl py-2.5 text-sm font-semibold hover:border-accent">Create blank draft</button>
-                <p className="text-2xs text-muted">Drafts stay private until you publish. You&apos;ll add sections and questions by hand.</p>
+                <p className="text-xs text-muted">Drafts stay private until you publish. You&apos;ll add sections and questions by hand.</p>
               </form>
             </Card>
           </details>

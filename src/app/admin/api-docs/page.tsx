@@ -35,7 +35,7 @@ export default async function ApiDocsPage() {
             <div className="space-y-2">
               {Object.entries(ops).map(([method, op]) => (
                 <div key={method} className="flex items-start gap-3 text-sm">
-                  <span className={`text-2xs font-bold uppercase px-2 py-1 rounded-md w-14 text-center shrink-0 ${METHOD_TONE[method] || "bg-line/60 text-muted"}`}>
+                  <span className={`text-sm font-semibold px-2 py-1 rounded-md w-14 text-center shrink-0 ${METHOD_TONE[method] || "bg-line/60 text-muted"}`}>
                     {method}
                   </span>
                   <span className="text-muted">{op.summary}</span>

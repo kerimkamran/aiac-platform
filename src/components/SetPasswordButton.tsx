@@ -89,8 +89,8 @@ export function SetPasswordButton({ userId, userName }: { userId: string; userNa
       <button type="button" onClick={reset} className="text-muted text-xs font-semibold hover:underline">
         Cancel
       </button>
-      {state === "error" && <span className="text-2xs text-critical">{message}</span>}
-      {state === "done" && <span className="text-2xs text-good">{message}</span>}
+      {state === "error" && <span className="text-xs text-critical">{message}</span>}
+      {state === "done" && <span className="text-xs text-good">{message}</span>}
     </form>
   );
 }

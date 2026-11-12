@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
-import { HEADER_FILL, HEADER_FONT } from "@/lib/excel-style";
+import { HEADER_FILL, HEADER_FONT, brandWorksheet } from "@/lib/excel-style";
 import { requirePermission, logAudit } from "@/lib/authz";
 
 export const runtime = "nodejs";
@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
   ];
   ws.getRow(1).font = HEADER_FONT;
   ws.getRow(1).fill = HEADER_FILL;
+  brandWorksheet(ws);
   for (const u of users || []) ws.addRow(u);
 
   await logAudit({ module: "users", action: "exported", details: { count: users?.length ?? 0 } });

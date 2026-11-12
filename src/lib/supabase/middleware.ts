@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { safeNextPath } from "@/lib/home";
 
 // `requestHeaders`, when passed, replaces `request`'s own headers on every
 // `NextResponse.next({ request })` call below -- this is how the per-request
@@ -37,8 +38,14 @@ export async function updateSession(request: NextRequest, requestHeaders?: Heade
   const isProtected = protectedPrefixes.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (!user && isProtected) {
+    // Send the visitor to sign-in and remember where they were going, so an
+    // emailed deep link returns there afterwards. The path is validated so it
+    // can never redirect to another site.
     const url = request.nextUrl.clone();
+    const target = safeNextPath(request.nextUrl.pathname + request.nextUrl.search);
     url.pathname = "/login";
+    url.search = "";
+    if (target && request.method === "GET") url.searchParams.set("next", target);
     return NextResponse.redirect(url);
   }
 

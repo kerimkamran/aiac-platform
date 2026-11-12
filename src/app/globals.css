@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Vantage "Node Grid" design system (plan v2, section 4).
+/* Vantage "Clear Horizon" design language (design plan, sections 5-8).
    Colours come from Azerconnect Group's own assets: navy #133E72 and green
    #356D1B. Every colour in the app comes from one of the tokens below; a
    test (src/lib/no-raw-colours.test.ts) fails the build on hard-coded
@@ -9,45 +9,49 @@
    Themes: light is the default and the `.dark` class switches to dark
    (set before first paint by src/app/layout.tsx). Canvases (white, cream,
    grey) change only the page background in light mode; dark mode has one
-   canvas. The contrast tests in src/lib/contrast.test.ts read these blocks
-   directly, so the values here are the source of truth. */
+   canvas. The contrast tests in src/lib/contrast*.test.ts read these blocks
+   directly, so the values here are the source of truth. Keep every token
+   value a plain hex colour so the tests can read it. */
 
 :root {
   /* Surfaces and text */
   --background: #ffffff;
   --surface: #ffffff;
-  --surface-sunken: #f3f5f8;
-  --foreground: #0d1b2e;
-  --muted: #526070;
-  --line: #d5dce6;
-  --line-soft: #e8edf3;
+  --raised: #ffffff;
+  --surface-sunken: #f4f6f9;
+  --foreground: #0b1a2e;
+  --muted: #4d5b6e;
+  --line: #d6dde6;
+  --line-soft: #e7ecf2;
   /* Control borders (inputs, checkboxes) need 3:1 against the surface. */
-  --line-strong: #727e8e;
-  --line-control: #727e8e;
+  --line-strong: #75808f;
+  --line-control: #75808f;
 
+  /* Three soft shadows only: hover and primary card, menus, dialogs. */
   --shadow-xs: none;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.1);
+  --shadow-sm: 0 1px 2px rgba(11, 26, 46, 0.06), 0 2px 8px rgba(11, 26, 46, 0.05);
+  --shadow-md: 0 4px 16px rgba(11, 26, 46, 0.1);
+  --shadow-lg: 0 16px 48px rgba(11, 26, 46, 0.16);
 
-  /* Primary: Azerconnect navy. Buttons, selected states, links. */
+  /* Primary: Azerconnect navy. Buttons and selected states. */
   --brand: #133e72;
-  --brand-light: #2d5f97;
+  --brand-light: #1b4d8a;
   --brand-deep: #133e72;
-  --brand-hover: #0e2f57;
-  --brand-pressed: #0a2444;
-  --brand-50: #d9e5f5;
+  --brand-hover: #1b4d8a;
+  --brand-pressed: #0e3360;
+  --brand-50: #eef3fa;
   --on-primary: #ffffff;
-  --primary-container: #d9e5f5;
-  --on-primary-container: #0a2547;
+  --primary-container: #eef3fa;
+  --on-primary-container: #0b1a2e;
 
-  /* Accent is the text and focus colour for the primary family. */
-  --accent: #133e72;
-  --accent-dark: #133e72;
-  --accent-soft: #d9e5f5;
-  --focus: #133e72;
+  /* Signal blue: links, focus ring and info. Kept apart from the navy so
+     links never look like buttons. */
+  --accent: #1d5aa6;
+  --accent-dark: #1d5aa6;
+  --accent-soft: #eef3fa;
+  --focus: #1d5aa6;
 
-  /* Secondary: Azerconnect green. Success, progress, small accent rules. */
+  /* Secondary: Azerconnect green. Progress, success, the vantage point. */
   --secondary: #356d1b;
   --secondary-container: #e3f0d9;
   --on-secondary-container: #1f4a0f;
@@ -56,72 +60,112 @@
 
   --good: #356d1b;
   --good-soft: #e3f0d9;
+  --on-good: #ffffff;
   --warning: #8a5a00;
   --warning-soft: #fcf1d9;
+  --on-warning: #ffffff;
   --serious: #b42318;
   --critical: #b42318;
   --critical-soft: #fde7e4;
-  --info: #526070;
+  --on-critical: #ffffff;
+  --info: #1d5aa6;
+
+  /* Brand panel: a deep night-navy block, at most one per screen. */
+  --panel: #0c2a4f;
+  --on-panel: #ffffff;
+  --on-panel-muted: #b6c6dc;
+  --on-panel-green: #9fd77f;
+  --panel-line: #7f9cc2;
+
+  /* The horizon line and the mark. The mark always sits on its own dark
+     tile, so its colours are the same in light and dark. */
+  --horizon-from: #133e72;
+  --horizon-to: #356d1b;
+  --mark-tile: #0c2a4f;
+  --mark-from: #5a90d4;
+  --mark-to: #8fd16e;
+  --mark-node: #8fd16e;
+  --mark-field: #ffffff;
 
   /* Charts: always labelled, because navy and green are only 1.7:1 apart. */
   --chart-1: #133e72;
   --chart-2: #356d1b;
   --chart-3: #a86400;
-  --chart-4: #4f7fc3;
-  --chart-grid: #e8edf3;
+  --chart-4: #4a7fc1;
+  --chart-grid: #e7ecf2;
   --chart-axis: #c9d1dc;
+
+  /* Motion: calm tokens (design plan, section 8). */
+  --dur-press: 90ms;
+  --dur-hover: 160ms;
+  --dur-menu: 240ms;
+  --dur-sheet: 360ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Glass is allowed on the sticky top bar and the exam toolbar only. */
+  --glass-alpha: 82%;
 }
 
 /* Backgrounds. White is the default for staff and admin; cream is the
    candidate's canvas, the exam and the report; grey is optional. The
-   selectors are light-only so they never override dark mode. */
+   selectors are light-only so they never override dark mode. Cards stay
+   white on cream and grey, like paper on a desk. */
 :root:not(.dark)[data-canvas="cream"] {
-  --background: #fbf9f4;
-  --surface-sunken: #f2eee3;
+  --background: #fcfaf5;
+  --surface-sunken: #f3efe6;
 }
 :root:not(.dark)[data-canvas="grey"] {
-  --background: #f3f5f8;
-  --surface-sunken: #e8edf3;
+  --background: #f4f6f9;
+  --surface-sunken: #e9edf2;
+}
+/* Role default: candidates see cream until they choose a background. The
+   canvas attribute is written only for an explicit choice (including
+   white), so its absence means "not chosen". */
+:root:not(.dark):not([data-canvas]) .canvas-role-cream {
+  --background: #fcfaf5;
+  --surface-sunken: #f3efe6;
 }
 /* The focused exam is cream in light mode whatever the person's canvas
-   choice, so the question page reads as a paper, not an app screen. */
+   choice, so the question page reads as paper, not an app screen. */
 :root:not(.dark) .exam-canvas {
-  --background: #fbf9f4;
-  --surface-sunken: #f2eee3;
+  --background: #fcfaf5;
+  --surface-sunken: #f3efe6;
 }
 
 .dark {
-  --background: #0b1220;
-  --surface: #131c2e;
-  --surface-sunken: #0e1728;
-  --foreground: #e6ecf5;
-  --muted: #94a1b5;
-  --line: #26344d;
-  --line-soft: #1c2840;
-  --line-strong: #66758f;
-  --line-control: #66758f;
+  --background: #0a1424;
+  --surface: #0f1c30;
+  --raised: #14243c;
+  --surface-sunken: #08111f;
+  --foreground: #e8eef7;
+  --muted: #9ba9bd;
+  --line: #243551;
+  --line-soft: #1a2a43;
+  --line-strong: #6e7f99;
+  --line-control: #6e7f99;
 
   --shadow-xs: none;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
 
-  /* Filled buttons keep white text, so their fill stays dark navy in dark
-     mode. Text and focus use the lighter tint. */
-  --brand: #24508f;
-  --brand-light: #3a68a8;
-  --brand-deep: #1c4274;
-  --brand-hover: #24508f;
-  --brand-pressed: #2a5c9e;
-  --brand-50: #1c4274;
-  --on-primary: #ffffff;
-  --primary-container: #1c4274;
+  /* Navy fills disappear on a navy-black page, so buttons become a light
+     "horizon blue" with ink text. The brand is carried by the panel, the
+     mark and the horizon line instead. */
+  --brand: #9cc0f0;
+  --brand-light: #b3d0f5;
+  --brand-deep: #9cc0f0;
+  --brand-hover: #b3d0f5;
+  --brand-pressed: #86aee3;
+  --brand-50: #14304f;
+  --on-primary: #08182e;
+  --primary-container: #14304f;
   --on-primary-container: #d8e5ff;
 
-  --accent: #a8c8ff;
+  --accent: #9cc0f0;
   --accent-dark: #c0d7ff;
-  --accent-soft: #1c4274;
-  --focus: #a8c8ff;
+  --accent-soft: #14304f;
+  --focus: #9cc0f0;
 
   --secondary: #8fd16e;
   --secondary-container: #1f3a17;
@@ -131,24 +175,58 @@
 
   --good: #8fd16e;
   --good-soft: #1f3a17;
-  --warning: #f2c25b;
+  --on-good: #08182e;
+  --warning: #f0c060;
   --warning-soft: #3a2b0c;
-  --serious: #ffb0a8;
-  --critical: #ffb0a8;
+  --on-warning: #08182e;
+  --serious: #ffaca3;
+  --critical: #ffaca3;
   --critical-soft: #451a17;
-  --info: #94a1b5;
+  --on-critical: #08182e;
+  --info: #9cc0f0;
 
-  --chart-1: #a8c8ff;
+  /* The panel keeps its night-navy fill; a hairline separates it from the
+     page. */
+  --panel: #0c2a4f;
+  --on-panel: #ffffff;
+  --on-panel-muted: #b6c6dc;
+  --on-panel-green: #9fd77f;
+  --panel-line: #7f9cc2;
+
+  --horizon-from: #5a90d4;
+  --horizon-to: #8fd16e;
+
+  --chart-1: #9cc0f0;
   --chart-2: #8fd16e;
-  --chart-3: #f2c25b;
+  --chart-3: #f0c060;
   --chart-4: #ff9fa3;
-  --chart-grid: #1c2840;
+  --chart-grid: #1a2a43;
   --chart-axis: #33415c;
+}
+
+/* Increased contrast (operating-system setting): muted text and control
+   borders darken (lighten in dark mode), and glass becomes opaque. */
+@media (prefers-contrast: more) {
+  :root:not(.dark) {
+    --muted: #3a4757;
+    --line-control: #56616f;
+    --line-strong: #56616f;
+    --line: #9aa5b3;
+    --glass-alpha: 100%;
+  }
+  .dark {
+    --muted: #c3cedd;
+    --line-control: #9db0cc;
+    --line-strong: #9db0cc;
+    --line: #4a5f80;
+    --glass-alpha: 100%;
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-raised: var(--raised);
   --color-surface-sunken: var(--surface-sunken);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
@@ -166,9 +244,13 @@
   --color-on-primary-container: var(--on-primary-container);
   --color-secondary: var(--secondary);
   --color-secondary-container: var(--secondary-container);
+  --color-on-secondary-container: var(--on-secondary-container);
   --color-good-soft: var(--good-soft);
   --color-warning-soft: var(--warning-soft);
   --color-critical-soft: var(--critical-soft);
+  --color-on-good: var(--on-good);
+  --color-on-warning: var(--on-warning);
+  --color-on-critical: var(--on-critical);
   --color-line-control: var(--line-control);
   --color-focus: var(--focus);
   --color-accent: var(--accent);
@@ -180,72 +262,139 @@
   --color-warning: var(--warning);
   --color-serious: var(--serious);
   --color-critical: var(--critical);
+  --color-info: var(--info);
+  --color-panel: var(--panel);
+  --color-on-panel: var(--on-panel);
+  --color-on-panel-muted: var(--on-panel-muted);
+  --color-on-panel-green: var(--on-panel-green);
+  --color-panel-line: var(--panel-line);
+  --color-horizon-from: var(--horizon-from);
+  --color-horizon-to: var(--horizon-to);
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
-  /* Registers this app's own flat, near-shadowless shadow scale under
-     Tailwind's `shadow-*` namespace. Without this, `shadow-sm`/`shadow-md`/
-     `shadow-lg` classNames (used in a few places -- SwipeToConfirm,
-     CopyInviteLinkButton, the candidate dashboard CTA) silently fell back
-     to Tailwind's own, much more pronounced, default shadow scale instead
-     of the app's intended flat design language; only the two call sites
-     that happened to use `style={{ boxShadow: "var(--shadow-lg)" }}"`
-     directly got the real token. Found while auditing token wiring for
-     T1.1; fixed here since it's the same "one correct, themeable source
-     of truth" goal T1 opens with. */
+
+  /* Three soft shadows registered under Tailwind's shadow-* names so every
+     `shadow-sm|md|lg` class uses the app's own scale. */
   --shadow-xs: var(--shadow-xs);
   --shadow-sm: var(--shadow-sm);
   --shadow-md: var(--shadow-md);
   --shadow-lg: var(--shadow-lg);
+
+  /* Inter carries everything (variable, with the optical-size axis, so large
+     sizes automatically use the tighter Inter Display cut). Geist Mono is for
+     the timer, figure labels, IDs and keyboard hints. Onest is retired;
+     `font-display` stays as an alias so old call sites keep working until the
+     rollout removes them. */
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: var(--font-onest), var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Design-execution-plan Phase 1 / T1.2 -- the type scale. Replaces the
-     322 one-off `text-[Npx]` arbitrary values scattered across the app
-     (many below the 12px AA-legibility floor, several within half a pixel
-     of each other for no reason -- 12.5px vs 13px vs 13.5px) with seven
-     named, intentional steps. 12px is the floor: nothing a user has to
-     read goes smaller. T1.5 migrates every existing call site onto this
-     scale, rounding up at the floor; T1.7 lints against new bracket sizes
-     appearing again. */
-  --text-2xs: 0.75rem;      /* 12px */
-  --text-2xs--line-height: 1rem;       /* 16px */
-  --text-xs: 0.8125rem;     /* 13px */
-  --text-xs--line-height: 1.125rem;    /* 18px */
-  --text-sm: 0.875rem;      /* 14px */
-  --text-sm--line-height: 1.25rem;     /* 20px */
-  --text-base: 1rem;        /* 16px */
-  --text-base--line-height: 1.5rem;    /* 24px */
-  --text-lg: 1.125rem;      /* 18px */
-  --text-lg--line-height: 1.625rem;    /* 26px */
-  --text-xl: 1.375rem;      /* 22px */
-  --text-xl--line-height: 1.75rem;     /* 28px */
-  --text-2xl: 1.875rem;     /* 30px */
-  --text-2xl--line-height: 2.25rem;    /* 36px */
+  /* Type scale (design plan, section 6). Display XL, Display and Headline
+     are utilities below because they change size with the screen. */
+  --text-2xs: 0.75rem;                 /* 12px, the legibility floor */
+  --text-2xs--line-height: 1rem;
+  --text-xs: 0.8125rem;                /* Caption 13/18 */
+  --text-xs--line-height: 1.125rem;
+  --text-sm: 0.875rem;                 /* Label 14/20 */
+  --text-sm--line-height: 1.25rem;
+  --text-base: 1rem;                   /* Body 16/24 */
+  --text-base--line-height: 1.5rem;
+  --text-lg: 1.125rem;                 /* Body large 18/28 */
+  --text-lg--line-height: 1.75rem;
+  --text-xl: 1.25rem;                  /* Title 20/28 */
+  --text-xl--line-height: 1.75rem;
+  --text-2xl: 1.5rem;                  /* Title large 24/32 */
+  --text-2xl--line-height: 2rem;
+  --text-3xl: 2rem;                    /* Headline 32/40 */
+  --text-3xl--line-height: 2.5rem;
 
-  /* Two marketing-only display sizes, outside the seven-step UI scale
-     above on purpose. The public landing page's hero headline (mobile
-     40px, md: 52px) is 33-73% larger than the biggest in-app step
-     (--text-2xl, 30px, reserved for stat numbers and score rings) --
-     folding it into that step would visibly shrink the one place this app
-     is allowed to look like marketing rather than a dashboard. Named and
-     scoped narrowly so they read as an intentional exception, not a second
-     scale to reach for: nowhere else in the app should use these. */
-  --text-display: 2.5rem;        /* 40px */
-  --text-display-lg: 3.25rem;    /* 52px */
+  /* Radius scale: 4 badges, 8 buttons and inputs, 12 cards and menus, 16
+     dialogs and the sign-in card, 24 landing figures only. The standard
+     Tailwind names are mapped onto it so the whole app moves at once. */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
+  --radius-chip: 0.25rem;
+  --radius-control: 0.5rem;
+  --radius-card: 0.75rem;
+  --radius-dialog: 1rem;
+  --radius-figure: 1.5rem;
+}
 
-  /* Radius -- one decision, three steps. `rounded-full` (avatars) is a
-     static Tailwind utility already and needs no token. Replaces the
-     `.squircle`/`.squircle-lg`/`.squircle-sm` classes (T1.3) and every
-     bracket radius value, collapsing what had drifted to four effective
-     radii (6/8/10px, plus whatever a bracket value said) down to two. */
-  --radius-chip: 0.25rem;   /* 4px -- chips, badges */
-  --radius-card: 0.5rem;    /* 8px -- cards, inputs, buttons */
+/* Display XL: landing headline only. 40px to 72px, fluid. */
+@utility text-display-xl {
+  font-size: clamp(2.5rem, 1.4rem + 4.6vw, 4.5rem);
+  line-height: 1.05;
+  letter-spacing: -0.035em;
+  font-weight: 600;
+}
+/* Display: landing section titles, closing band, completion. */
+@utility text-display {
+  font-size: 2rem;
+  line-height: 2.375rem;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  @media (min-width: 48rem) {
+    font-size: 3rem;
+    line-height: 3.25rem;
+  }
+}
+/* Headline: the statement on every home, sign-in titles. */
+@utility text-headline {
+  font-size: 1.625rem;
+  line-height: 2rem;
+  letter-spacing: -0.025em;
+  font-weight: 600;
+  @media (min-width: 48rem) {
+    font-size: 2rem;
+    line-height: 2.5rem;
+  }
+}
+/* Timer: exam countdown, mono and tabular. */
+@utility text-timer {
+  font-family: var(--font-mono);
+  font-size: 1.25rem;
+  line-height: 1.75rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+/* Mono label: figure labels, eyebrows, counts, keyboard hints. */
+@utility text-mono-label {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+  letter-spacing: 0;
+}
+/* Reading measure: no line longer than 68 characters. */
+@utility measure {
+  max-width: 68ch;
+}
+/* The page container: centred, 1200px, margins 16 / 24 / 32 / 40. */
+@utility container-page {
+  width: 100%;
+  max-width: 75rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 40rem) {
+    padding-inline: 1.5rem;
+  }
+  @media (min-width: 64rem) {
+    padding-inline: 2rem;
+  }
+  @media (min-width: 80rem) {
+    padding-inline: 2.5rem;
+  }
 }
 
 html {
   color-scheme: light;
+  -webkit-text-size-adjust: 100%;
 }
 html.dark {
   color-scheme: dark;
@@ -254,40 +403,53 @@ html.dark {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  font-feature-settings: "cv02", "cv03", "cv11";
-  transition: background-color 0.2s ease, color 0.2s ease;
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.5rem;
+  font-optical-sizing: auto;
+  -webkit-font-smoothing: antialiased;
+  transition: background-color var(--dur-menu) var(--ease-standard), color var(--dur-menu) var(--ease-standard);
+}
+
+h1, h2, h3 {
+  text-wrap: balance;
+}
+p, li {
+  text-wrap: pretty;
 }
 
 ::selection {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* Design-execution-plan Phase 1 / T1.3: the .squircle/.squircle-lg/
-   .squircle-sm classes above this comment were deleted -- sharp, minimal
-   corners were already the actual design (see the "v4 Field" note at the
-   top of this file), so "squircle" was describing a shape these classes
-   never drew; a plain 8px/10px/6px radius isn't a squircle by definition.
-   T1.5 replaces every call site with `rounded-card` (8px) or `rounded-chip`
-   (4px) from the radius scale above, collapsing the old three-value radius
-   drift down to the two the plan calls for. */
+/* Visible focus on every interactive element, in signal blue. */
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
 
-/* ---------- Motion ---------- */
+/* ---------- Motion ----------
+   Calm system: 90ms press, 160ms hover, 240ms menus, 360ms sheets. Only
+   position and opacity animate. Nothing loops. */
 @keyframes fade-up {
-  from { opacity: 0; transform: translateY(16px); }
+  from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
 @keyframes fade-in {
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes float-slow {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-12px); }
+@keyframes sheet-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
-@keyframes shimmer {
-  from { background-position: 200% 0; }
-  to { background-position: -200% 0; }
+@keyframes menu-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
 }
 @keyframes ring-fill {
   from { stroke-dashoffset: var(--ring-circ); }
@@ -298,101 +460,189 @@ body {
 @keyframes grow-bar-y {
   from { transform: scaleY(0); }
 }
+@keyframes draw-line {
+  from { stroke-dashoffset: var(--len, 1); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
 
-.anim-fade-up { animation: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-fade-in { animation: fade-in 0.5s ease both; }
-.anim-float { animation: float-slow 7s ease-in-out infinite; }
-.delay-1 { animation-delay: 0.08s; }
-.delay-2 { animation-delay: 0.16s; }
-.delay-3 { animation-delay: 0.24s; }
-.delay-4 { animation-delay: 0.32s; }
-.delay-5 { animation-delay: 0.4s; }
+.anim-fade-up { animation: fade-up var(--dur-sheet) var(--ease-standard) both; }
+.anim-fade-in { animation: fade-in var(--dur-menu) var(--ease-standard) both; }
+.anim-menu { animation: menu-in var(--dur-menu) var(--ease-standard) both; }
+.anim-sheet { animation: sheet-in var(--dur-sheet) var(--ease-standard) both; }
+.delay-1 { animation-delay: 0.06s; }
+.delay-2 { animation-delay: 0.12s; }
+.delay-3 { animation-delay: 0.18s; }
+.delay-4 { animation-delay: 0.24s; }
+.delay-5 { animation-delay: 0.3s; }
 
 .anim-ring circle.ring-value {
-  animation: ring-fill 1s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: ring-fill var(--dur-sheet) var(--ease-standard) both;
 }
-.anim-grow { transform-origin: left; animation: grow-bar 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-grow-y { transform-origin: bottom; animation: grow-bar-y 0.8s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-grow { transform-origin: left; animation: grow-bar var(--dur-sheet) var(--ease-standard) both; }
+.anim-grow-y { transform-origin: bottom; animation: grow-bar-y var(--dur-sheet) var(--ease-standard) both; }
 
+/* Skeletons are static blocks that breathe while a page is slow to load. */
 .skeleton {
-  background: linear-gradient(90deg, var(--line-soft) 25%, var(--surface-sunken) 50%, var(--line-soft) 75%);
-  background-size: 200% 100%;
-  animation: shimmer 1.4s linear infinite;
+  background: var(--line-soft);
+  border-radius: var(--radius-control);
+  animation: skeleton-pulse 1.6s var(--ease-standard) infinite;
 }
 
-/* ---------- Interactive lift -- subtle hover affordance for clickable cards ---------- */
+/* Press, hover and lift. */
+.press {
+  transition: transform var(--dur-press) var(--ease-standard), background-color var(--dur-hover) var(--ease-standard),
+    color var(--dur-hover) var(--ease-standard), box-shadow var(--dur-hover) var(--ease-standard);
+}
+.press:active { transform: scale(0.985); }
 .lift-on-hover {
-  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease;
+  transition: box-shadow var(--dur-hover) var(--ease-standard), border-color var(--dur-hover) var(--ease-standard);
 }
-.lift-on-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+.lift-on-hover:hover { box-shadow: var(--shadow-sm); }
+
+/* ---------- Glass (top bar and exam toolbar only) ---------- */
+.glass {
+  background: color-mix(in srgb, var(--background) var(--glass-alpha), transparent);
+  -webkit-backdrop-filter: blur(14px) saturate(1.4);
+  backdrop-filter: blur(14px) saturate(1.4);
+  border-bottom: 1px solid transparent;
+  transition: border-color var(--dur-hover) var(--ease-standard);
+}
+.glass[data-scrolled="true"] {
+  border-bottom-color: var(--line);
+}
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
 }
 
-/* ---------- Celebration (assessment-submitted moment) ---------- */
+/* ---------- Horizon ----------
+   The 2px navy-to-green line. Used for the hero, the primary card on each
+   home, exam progress and the completion seal. Never decoration. */
+.horizon-rule {
+  height: 2px;
+  border: 0;
+  border-radius: 1px;
+  background: linear-gradient(47deg, var(--horizon-from), var(--horizon-to));
+}
+.horizon-stop-from { stop-color: var(--horizon-from); }
+.horizon-stop-to { stop-color: var(--horizon-to); }
+
+/* ---------- Expressive moment 1: horizon resolve (landing hero) ----------
+   2.4s, plays once, pure SVG and CSS. Nodes glide into the V, the links
+   draw, the vantage point lands with one pulse, then the horizon extends to
+   the edges. Reduced motion shows the final frame (the global rule below
+   ends every animation at once). The hero pauses off-screen through the
+   data-paused attribute that the HorizonField component sets. */
+.hf-node-drift {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hf-drift 1.4s var(--ease-standard) both;
+  animation-delay: var(--hf-delay, 0s);
+}
+@keyframes hf-drift {
+  from { opacity: 0; transform: translate(var(--hf-dx, 0), var(--hf-dy, 0)); }
+  to { opacity: 1; transform: translate(0, 0); }
+}
+.hf-lattice {
+  animation: fade-in 0.5s var(--ease-standard) both;
+}
+.hf-link {
+  stroke-dasharray: var(--len, 1);
+  animation: draw-line 0.7s var(--ease-standard) both;
+  animation-delay: 1.1s;
+}
+.hf-vantage {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hf-land 0.6s var(--ease-standard) both;
+  animation-delay: 1.5s;
+}
+@keyframes hf-land {
+  from { opacity: 0; transform: scale(0.4); }
+  to { opacity: 1; transform: scale(1); }
+}
+.hf-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hf-pulse 0.8s var(--ease-standard) both;
+  animation-delay: 1.6s;
+}
+@keyframes hf-pulse {
+  0% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0; transform: scale(3.2); }
+}
+.hf-horizon {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: grow-x 0.9s var(--ease-standard) both;
+  animation-delay: 1.5s;
+}
+[data-paused="true"] .hf-node-drift,
+[data-paused="true"] .hf-lattice,
+[data-paused="true"] .hf-link,
+[data-paused="true"] .hf-vantage,
+[data-paused="true"] .hf-pulse,
+[data-paused="true"] .hf-horizon {
+  animation-play-state: paused;
+}
+
+/* ---------- Expressive moment 3: Horizon seal ("Your answers are in") ---------- */
 @keyframes seal-pop {
   0% { transform: scale(0.6); opacity: 0; }
   60% { transform: scale(1.06); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
-@keyframes seal-draw {
-  from { stroke-dashoffset: var(--seal-len, 160); }
-  to { stroke-dashoffset: 0; }
+.anim-seal-pop { animation: seal-pop 0.7s var(--ease-standard) both; }
+.anim-draw {
+  stroke-dasharray: var(--len, 100);
+  animation: draw-line 0.7s var(--ease-standard) both;
+  animation-delay: var(--draw-delay, 0s);
 }
-@keyframes seal-ring-pulse {
-  0% { transform: scale(0.9); opacity: 0.55; }
-  100% { transform: scale(1.55); opacity: 0; }
-}
-.anim-seal-pop { animation: seal-pop 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anim-seal-draw {
-  stroke-dasharray: var(--seal-len, 160);
-  animation: seal-draw 0.6s 0.5s cubic-bezier(0.65, 0, 0.35, 1) both;
-}
-.anim-seal-ring {
-  animation: seal-ring-pulse 1.8s ease-out 0.15s infinite;
+.anim-grow-x {
+  transform-origin: left;
+  animation: grow-x 0.9s var(--ease-standard) both;
+  animation-delay: var(--draw-delay, 0s);
 }
 
 /* ---------- Toasts ---------- */
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(10px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 @keyframes toast-bar {
   from { width: 100%; }
   to { width: 0%; }
 }
-.anim-toast-in { animation: toast-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anim-toast-in { animation: toast-in var(--dur-menu) var(--ease-standard) both; }
 .anim-toast-bar { animation: toast-bar linear forwards; }
 
+/* One global reduced-motion rule: every animation and transition finishes
+   at once, so the final frame shows and nothing moves. */
 @media (prefers-reduced-motion: reduce) {
-  .anim-fade-up, .anim-fade-in, .anim-float, .anim-grow, .anim-grow-y,
-  .anim-ring circle.ring-value, .skeleton, .lift-on-hover,
-  .anim-seal-pop, .anim-seal-draw, .anim-seal-ring,
-  .anim-toast-in, .anim-toast-bar {
-    animation: none;
-    transition: none;
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    transition-delay: 0s !important;
+    scroll-behavior: auto !important;
   }
-  .anim-seal-draw { stroke-dashoffset: 0; }
+  .skeleton { animation: none !important; }
 }
 
-/* ---------- Brand panels -- flat, no gradients. A solid dark panel with a
-   thin rule is the "confident moment" now, not a mesh gradient. ---------- */
+/* ---------- Brand panel: a flat night-navy block with a thin rule. ---------- */
 .hero-mesh {
-  background: var(--brand-deep);
+  background: var(--panel);
 }
-
-/* Design-execution-plan Phase 1 / T1.4: three vestigial rules removed from
-   here --
-   .hero-grid-overlay { display: none; } -- a permanently-hidden overlay
-     div in the candidate dashboard hero rendered nothing and did nothing;
-     deleted along with the dead <div> that used it.
-   .text-gradient { color: var(--accent); } -- named for a gradient text
-     effect that no longer exists (flat single accent color now); unused
-     anywhere in the app, so deleted rather than renamed.
-   .glass-panel { background: var(--surface); border: ...; } -- named for
-     a glassmorphism/backdrop-blur treatment this design system explicitly
-     retired (see the comment this one replaces); unused anywhere in the
-     app. Card's own flat surface+border already covers what this drew. */
 
 /* ---------- Anti-copy deterrents (assessment runner only) ---------- */
 .no-copy {
@@ -404,13 +654,8 @@ body {
   user-select: text;
   -webkit-user-select: text;
 }
-/* Design-execution-plan Phase 6 / T6.3: this exists to deter someone from
-   screenshotting exam content and passing it off as their own -- it embeds
-   the candidate's own email, so it has to stay visible on the live screen
-   (moving it to exports/print only, the plan's other option, would defeat
-   that entirely). Softened instead: lower opacity, lighter weight, fewer/
-   more widely spaced rows, so it reads as a faint texture rather than
-   competing with the assessment text for attention. */
+/* The watermark deters screenshots passed off as someone's own work, so it
+   stays on the live screen, faint enough not to compete with the text. */
 .watermark-overlay {
   position: fixed;
   inset: 0;
@@ -435,8 +680,30 @@ body {
   body { background: #fff; }
   .no-print { display: none !important; }
   .print-page { padding: 0 !important; max-width: none !important; }
-  .print-card { border: 1px solid #d5dbe3 !important; box-shadow: none !important; break-inside: avoid; }
-  /* PageHeader's navy banner wastes ink and looks odd on paper -- print it
-     as plain black-on-white text instead, matching print-card's approach. */
+  .print-card { border: 1px solid #d6dde6 !important; box-shadow: none !important; break-inside: avoid; }
   .print-page :where(h1) { color: #000 !important; }
+}
+
+/* ---------- Dialog and sheet (native <dialog>) ---------- */
+dialog.vx-dialog {
+  color: inherit;
+  margin: auto;
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+}
+dialog.vx-dialog[open] {
+  animation: sheet-in var(--dur-sheet) var(--ease-standard) both;
+}
+dialog.vx-dialog::backdrop {
+  background: color-mix(in srgb, var(--foreground) 50%, transparent);
+  animation: fade-in var(--dur-menu) var(--ease-standard) both;
+}
+/* A sheet docks to the bottom edge on phones. */
+@media (max-width: 39.99rem) {
+  dialog.vx-sheet {
+    margin: auto 0 0 0;
+    width: 100%;
+    max-width: none;
+    max-height: 90dvh;
+  }
 }

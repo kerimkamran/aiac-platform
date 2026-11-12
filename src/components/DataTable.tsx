@@ -3,7 +3,7 @@ import { Card, Icon } from "@/components/ui";
 
 // Design-execution-plan Phase 5 / T5.2: candidates, users and audit each
 // re-implemented their own <table> -- same overall shape (Card wrapper,
-// text-2xs uppercase header, divide-y rows, a colSpan "no results" row) but
+// text-sm label header, divide-y rows, a colSpan "no results" row) but
 // copy-pasted three times with small, silent drifts (only users had sort
 // links; only audit had no zebra hover; only candidates had row selection).
 // One primitive here instead: callers describe columns and rows, this
@@ -70,9 +70,39 @@ export function DataTable<T>({
 
   return (
     <Card className="overflow-x-auto">
-      <table className={`w-full text-sm ${minWidthClassName}`}>
+      {/* Phones: each row becomes a small card, label above value, so nothing
+          needs sideways scrolling (Clear Horizon plan, section 16). */}
+      <ul className="sm:hidden divide-y divide-line">
+        {loading ? (
+          <li className="px-4 py-6 text-sm text-muted" role="status">
+            Loading…
+          </li>
+        ) : error ? (
+          <li className="flex items-center gap-2 px-4 py-6 text-sm text-critical">
+            <Icon name="alertTriangle" className="w-4 h-4 shrink-0" />
+            {error}
+          </li>
+        ) : rows.length === 0 ? (
+          <li className="px-4 py-8 text-center text-sm text-muted">{emptyMessage}</li>
+        ) : (
+          rows.map((row) => (
+            <li key={getRowKey(row)} className="space-y-2 px-4 py-4">
+              {columns.map((col) => {
+                const label = col.headerRender ? null : col.label;
+                return (
+                  <div key={col.key} className="flex items-start justify-between gap-4 text-sm">
+                    {label ? <span className="shrink-0 text-muted">{label}</span> : <span className="sr-only">{col.key}</span>}
+                    <span className={`min-w-0 ${label ? "text-right" : ""}`}>{col.render(row)}</span>
+                  </div>
+                );
+              })}
+            </li>
+          ))
+        )}
+      </ul>
+      <table className={`hidden sm:table w-full text-sm ${minWidthClassName}`}>
         {caption && <caption className="sr-only">{caption}</caption>}
-        <thead className="text-muted text-2xs uppercase tracking-wider border-b border-line">
+        <thead className="text-muted text-sm border-b border-line">
           <tr>
             {columns.map((col) => (
               <th

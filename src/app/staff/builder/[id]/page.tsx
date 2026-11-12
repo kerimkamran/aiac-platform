@@ -26,6 +26,7 @@ import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { InlineFormError } from "@/components/InlineFormError";
 import { LEVELS, isLevelKey } from "@/lib/levels";
+import { buttonClass } from "@/components/ui/Button";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -164,7 +165,7 @@ export default async function BuilderDetailPage({
           />
         )}
         {assessment.status === "published" && (
-          <Link href="/staff/people" className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-accent-dark transition-colors">
+          <Link href="/staff/people" className={buttonClass({ size: "md" })}>
             Invite candidates
           </Link>
         )}
@@ -209,7 +210,7 @@ export default async function BuilderDetailPage({
                 defaultValue={assessment.time_limit_minutes}
                 className="w-32 bg-background border border-line rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
-              <button className="ml-auto bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+              <button className={buttonClass({ size: "sm", className: "ml-auto" })}>
                 Save changes
               </button>
             </div>
@@ -241,7 +242,7 @@ export default async function BuilderDetailPage({
             </button>
           </form>
         ))}
-        <p className="basis-full text-2xs text-muted">
+        <p className="basis-full text-xs text-muted">
           A translation keeps the same questions, options and correct answer, so candidates for the same vacancy get comparable tests. It is a new draft and needs its own review.
         </p>
       </Card>
@@ -253,23 +254,23 @@ export default async function BuilderDetailPage({
         </p>
         <dl className="grid sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
           <div>
-            <dt className="text-2xs font-semibold text-muted">Job title / vacancy</dt>
+            <dt className="text-xs font-semibold text-muted">Job title / vacancy</dt>
             <dd className="font-medium text-foreground">{brief.vacancy_title || "Not set"}</dd>
           </div>
           <div>
-            <dt className="text-2xs font-semibold text-muted">Level</dt>
+            <dt className="text-xs font-semibold text-muted">Level</dt>
             <dd className="font-medium text-foreground">
               {briefLevel ? `${LEVELS[briefLevel].label} · pass mark ${LEVELS[briefLevel].passMark}%` : "Not set"}
             </dd>
           </div>
           <div>
-            <dt className="text-2xs font-semibold text-muted">Purpose and language</dt>
+            <dt className="text-xs font-semibold text-muted">Purpose and language</dt>
             <dd className="font-medium text-foreground capitalize">
               {purpose} · {brief.content_language === "az" ? "Azərbaycan dili" : brief.content_language === "ru" ? "Русский" : "English"}
             </dd>
           </div>
           <div>
-            <dt className="text-2xs font-semibold text-muted">Generated with</dt>
+            <dt className="text-xs font-semibold text-muted">Generated with</dt>
             <dd className="font-medium text-foreground">
               {assessment.mode === "manual" || !assessment.generated_at
                 ? "Written by hand or created empty"
@@ -319,7 +320,7 @@ export default async function BuilderDetailPage({
                   </p>
                   <div className="flex items-center gap-2">
                     {comp && (
-                      <span className="text-2xs font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-full">
+                      <span className="text-xs font-semibold text-accent-dark bg-accent-soft px-2.5 py-1 rounded-full">
                         {comp.name}
                       </span>
                     )}
@@ -352,7 +353,7 @@ export default async function BuilderDetailPage({
                       </form>
                     </div>
                     <form action={updateSectionTarget.bind(null, section.id, id)} className="flex items-center gap-1.5">
-                      <label className="text-2xs font-semibold text-muted" htmlFor={`target-${section.id}`}>
+                      <label className="text-xs font-semibold text-muted" htmlFor={`target-${section.id}`}>
                         Target
                       </label>
                       <input
@@ -365,7 +366,7 @@ export default async function BuilderDetailPage({
                         placeholder="—"
                         className="w-14 bg-surface border border-line rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-accent"
                       />
-                      <button className="text-2xs font-semibold text-accent-dark hover:underline">Set</button>
+                      <button className="text-xs font-semibold text-accent-dark hover:underline">Set</button>
                     </form>
                     <form action={deleteSection.bind(null, section.id, id)}>
                       <ConfirmSubmitButton
@@ -389,7 +390,7 @@ export default async function BuilderDetailPage({
                           {q.prompt}
                         </p>
                         <div className="flex items-center gap-1.5 shrink-0">
-                          <span className="inline-flex items-center gap-1 text-2xs font-semibold text-muted bg-background ring-1 ring-inset ring-line px-2 py-1 rounded-full">
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-muted bg-background ring-1 ring-inset ring-line px-2 py-1 rounded-full">
                             <Icon name={q.question_type === "mcq" ? "checkCircle" : "file"} className="w-3 h-3" />
                             {q.question_type === "mcq" ? "MCQ" : "Open"} · w{q.weight}
                           </span>
@@ -436,12 +437,12 @@ export default async function BuilderDetailPage({
                         </ul>
                       )}
                       {locked ? (
-                        <p className="text-2xs text-muted mt-2">Locked: candidates have started this assessment.</p>
+                        <p className="text-xs text-muted mt-2">Locked: candidates have started this assessment.</p>
                       ) : (
                         <details className="mt-3">
                           <summary className="cursor-pointer text-xs font-semibold text-accent-dark list-none">Edit or regenerate</summary>
                           <form action={updateQuestion.bind(null, q.id, id)} className="mt-3 space-y-3 bg-background rounded-xl p-4 border border-line">
-                            <label className="block text-2xs font-semibold text-muted" htmlFor={`prompt-${q.id}`}>
+                            <label className="block text-xs font-semibold text-muted" htmlFor={`prompt-${q.id}`}>
                               Question
                             </label>
                             <textarea
@@ -453,7 +454,7 @@ export default async function BuilderDetailPage({
                             />
                             {q.question_type === "mcq" && (
                               <fieldset className="space-y-2">
-                                <legend className="text-2xs font-semibold text-muted mb-1">Options. Mark the one correct answer.</legend>
+                                <legend className="text-xs font-semibold text-muted mb-1">Options. Mark the one correct answer.</legend>
                                 {[0, 1, 2, 3].map((i) => {
                                   const o = (q.options || [])[i];
                                   const letter = String.fromCharCode(65 + i);
@@ -480,12 +481,12 @@ export default async function BuilderDetailPage({
                                 })}
                               </fieldset>
                             )}
-                            <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+                            <button className={buttonClass({ size: "sm" })}>
                               Save question
                             </button>
                           </form>
                           <form action={regenerateOneQuestion.bind(null, q.id, id)} className="mt-3 flex flex-wrap items-end gap-2">
-                            <label className="flex-1 min-w-[12rem] text-2xs font-semibold text-muted">
+                            <label className="flex-1 min-w-[12rem] text-xs font-semibold text-muted">
                               Replace with a new question (optional note)
                               <input
                                 name="note"
@@ -550,7 +551,7 @@ export default async function BuilderDetailPage({
                         <input name="weight" type="number" min={1} defaultValue={1} className="w-16 bg-surface border border-line rounded-lg px-2 py-1.5" />
                       </label>
                     </div>
-                    <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2 rounded-xl hover:bg-brand transition-colors">
+                    <button className={buttonClass({ size: "sm" })}>
                       Add question
                     </button>
                   </form>
@@ -575,7 +576,7 @@ export default async function BuilderDetailPage({
                 className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <CompetencySelect name="competency_id" competencies={compList} required placeholder="Map to a competency…" />
-              <button className="w-full bg-brand-deep text-white rounded-xl py-2.5 text-sm font-semibold hover:bg-brand transition-colors">
+              <button className={buttonClass({ size: "md", block: true })}>
                 Add section
               </button>
             </form>
@@ -654,7 +655,7 @@ export default async function BuilderDetailPage({
               <option value="local">Candidate&apos;s device only (not uploaded)</option>
             </select>
           </label>
-          <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+          <button className={buttonClass({ size: "md" })}>
             Save
           </button>
         </form>

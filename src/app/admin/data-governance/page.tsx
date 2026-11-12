@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/authz";
 import { Card, Icon, PageHeader } from "@/components/ui";
 import { saveSettings } from "../actions";
+import { buttonClass } from "@/components/ui/Button";
 
 type DataSettings = { retention_days: number; auto_anonymize: boolean };
 
@@ -33,9 +34,9 @@ export default async function AdminDataGovernancePage() {
               Retention policy
             </p>
             <div>
-              <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="retention_days">Retain candidate data for (days)</label>
+              <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="retention_days">Retain candidate data for (days)</label>
               <input id="retention_days" name="retention_days" type="number" min={30} defaultValue={settings.retention_days} className={input} />
-              <p className="text-2xs text-muted mt-1">
+              <p className="text-xs text-muted mt-1">
                 Applies to candidate responses, recordings, and reports. A pg_cron job template in
                 <code className="text-accent-dark"> supabase/migrations/0004_admin.sql</code> enforces this automatically, always skipping legal holds.
               </p>
@@ -44,7 +45,7 @@ export default async function AdminDataGovernancePage() {
               <input type="checkbox" name="auto_anonymize" defaultChecked={settings.auto_anonymize} className="w-4 h-4 accent-[color:var(--brand)]" />
               Auto-anonymize (instead of delete) when retention expires
             </label>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save policy</button>
+            <button className={buttonClass({ size: "md" })}>Save policy</button>
           </form>
         </Card>
 
@@ -56,7 +57,7 @@ export default async function AdminDataGovernancePage() {
                 {(held || []).map((h) => (
                   <Link key={h.id} href={`/admin/users/${h.id}`} className="flex items-center justify-between text-sm border border-line rounded-xl px-3.5 py-2.5 hover:border-accent transition-colors">
                     <span className="font-semibold text-foreground">{h.full_name}</span>
-                    <span className="text-2xs font-bold text-warning bg-warning-soft px-2 py-0.5 rounded-full ring-1 ring-inset ring-warning/30">HELD</span>
+                    <span className="text-xs font-bold text-warning bg-warning-soft px-2 py-0.5 rounded-full ring-1 ring-inset ring-warning/30">HELD</span>
                   </Link>
                 ))}
               </div>

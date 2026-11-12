@@ -8,6 +8,7 @@ import { PrintButton } from "@/components/print-button";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
+import { buttonClass } from "@/components/ui/Button";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -133,7 +134,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <div className="flex items-center gap-4">
           <Avatar name={candidate?.full_name || "?"} className="w-14 h-14 text-lg" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground [font-family:var(--font-display)]">
+            <h1 className="text-2xl font-bold text-foreground">
               {candidate?.full_name}
             </h1>
             <p className="text-sm text-muted">{candidate?.email}</p>
@@ -146,7 +147,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <div className="flex items-center gap-2 no-print">
           <a
             href={`/report/${id}/pdf`}
-            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className={buttonClass({ size: "md" })}
           >
             <Icon name="download" className="w-4 h-4" />
             Download PDF
@@ -193,7 +194,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-2.5">
                     <div>
                       {r.questions?.competencies?.name && (
-                        <p className="text-2xs font-bold uppercase tracking-wider text-accent-dark mb-1">
+                        <p className="text-sm font-semibold text-accent-dark mb-1">
                           {r.questions.competencies.name}
                         </p>
                       )}
@@ -204,7 +205,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <span className="flex items-center gap-2 shrink-0">
                       {r.needs_review && (
                         <span
-                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
+                          className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
                           title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
                         >
                           <Icon name="alertTriangle" className="w-3 h-3" />
@@ -252,14 +253,14 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
               Competency radar card further down. */}
           <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
             <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
-              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted">Overall Role Fit</p>
+              <p className="text-sm font-semibold text-muted">Overall role fit</p>
               <ScoreRing score={Math.round(ca.overall_score)} size={128} label={bandFor(ca.overall_score).label} />
-              <p className="text-2xs text-muted text-center max-w-44 mt-1">
+              <p className="text-xs text-muted text-center max-w-44 mt-1">
                 Weighted average across mapped competencies · AI-assisted, human-confirmed
               </p>
             </Card>
             <Card className="p-7">
-              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-4">Top competencies</p>
+              <p className="text-sm font-semibold text-muted mb-4">Top competencies</p>
               {topCompetencies.length > 0 ? (
                 <div className="space-y-3.5">
                   {topCompetencies.map((s) => {
@@ -303,7 +304,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                         <div className="flex items-center justify-between text-xs mb-1.5">
                           <span className="font-medium text-foreground">{s.name}</span>
                           <span className="flex items-center gap-2.5">
-                            <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
                               {s.level}
                             </span>
                             <span className="font-bold tabular-nums w-8 text-right">{Math.round(s.score)}</span>
@@ -372,7 +373,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           <ConfirmSubmitButton
             confirmMessage="Submit your decision for this candidate?"
             icon="send"
-            className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className={buttonClass({ size: "md" })}
           >
             Submit decision
           </ConfirmSubmitButton>
@@ -380,7 +381,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
 
         {reviews && reviews.length > 0 && (
           <div className="mt-6 space-y-3 border-t border-line pt-5">
-            <p className="text-2xs font-bold uppercase tracking-wider text-muted">Decision history</p>
+            <p className="text-sm font-semibold text-muted">Decision history</p>
             {(reviews as unknown as { decision: string; comment: string; created_at: string; reviewer: { full_name: string } | null }[]).map(
               (r, i) => (
                 <div key={i} className="flex items-start gap-3 text-sm">

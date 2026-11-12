@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { NavShell } from "@/components/NavShell";
+import { AppShell, type NavLink } from "@/components/AppShell";
+import { homeFor } from "@/lib/home";
 
 export default async function CandidateLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -19,38 +20,42 @@ export default async function CandidateLayout({ children }: { children: React.Re
   if (!profile) redirect("/login");
   if (profile.status === "deactivated") {
     await supabase.auth.signOut();
-    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+    redirect("/login?error=deactivated");
   }
-  if (profile.role !== "candidate") {
-    // Dual audience: internal employees (any role) may take promotion/development
-    // assessments they were invited to; without invitations, back to the workspace.
+  const isInternal = profile.role !== "candidate";
+  if (isInternal) {
+    // Dual audience: internal employees (any role) may take promotion and
+    // development assessments they were invited to; without invitations, back
+    // to their own home.
     const { count } = await supabase
       .from("candidate_assessments")
       .select("id", { count: "exact", head: true })
       .eq("candidate_id", user.id);
-    if ((count ?? 0) === 0) redirect("/staff");
+    if ((count ?? 0) === 0) redirect(homeFor(profile.role));
   }
 
   // Anyone who is set as someone else's manager (profiles.manager_id) may have
-  // promotion sign-off requests waiting -- surface the nav link only then,
-  // since most people will never be a manager on this system.
+  // promotion sign-off requests waiting. Show the link only then.
   const { count: directReportCount } = await supabase
     .from("profiles")
     .select("id", { count: "exact", head: true })
     .eq("manager_id", user.id);
 
-  const links = [
+  const links: NavLink[] = [
     { href: "/candidate", label: "Home", icon: "home", exact: true },
-    { href: "/candidate/assessments", label: "My Assessments", icon: "clipboard" },
-    { href: "/candidate/results", label: "My Results", icon: "award" },
+    { href: "/candidate/assessments", label: "My assessments", icon: "clipboard" },
+    { href: "/candidate/results", label: "Results", icon: "award" },
   ];
   if ((directReportCount ?? 0) > 0) {
     links.push({ href: "/candidate/signoffs", label: "Sign-off requests", icon: "checkCircle" });
   }
 
+  // Internal employees who are also candidates get a way back to their workspace.
+  const switchLinks: NavLink[] = isInternal ? [{ href: homeFor(profile.role), label: "Back to workspace", icon: "arrowLeft" }] : [];
+
   return (
-    <NavShell role={profile.role} name={profile.full_name} links={links}>
+    <AppShell role={profile.role} name={profile.full_name} homeHref="/candidate" links={links} switchLinks={switchLinks} defaultCanvas="cream">
       {children}
-    </NavShell>
+    </AppShell>
   );
 }

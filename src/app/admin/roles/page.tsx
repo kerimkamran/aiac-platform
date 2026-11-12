@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, PageHeader } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { saveRoleMatrix } from "../actions";
+import { buttonClass } from "@/components/ui/Button";
 
 const TOASTS: ToastSpec[] = [
   { param: "ok", variant: "success" },
@@ -40,7 +41,7 @@ export default async function AdminRolesPage({ searchParams }: { searchParams: P
             aria-selected={role === r}
             href={`/admin/roles?role=${r}`}
             className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors ${
-              role === r ? "bg-brand-deep text-white" : "bg-surface border border-line text-muted hover:text-foreground"
+              role === r ? "bg-brand text-on-primary" : "bg-surface border border-line text-muted hover:text-foreground"
             }`}
           >
             {r.replace(/_/g, " ")}
@@ -53,7 +54,7 @@ export default async function AdminRolesPage({ searchParams }: { searchParams: P
           <input type="hidden" name="role" value={role} />
           <table className="w-full text-sm min-w-[620px]">
             <thead>
-              <tr className="text-muted text-2xs uppercase tracking-wider border-b border-line">
+              <tr className="text-muted text-sm border-b border-line">
                 <th className="text-left px-3 py-3 font-semibold">Module</th>
                 {actions.map((a) => (
                   <th key={a} className="px-3 py-3 font-semibold text-center">{a}</th>
@@ -88,7 +89,7 @@ export default async function AdminRolesPage({ searchParams }: { searchParams: P
             <p className="text-xs text-muted max-w-md">
               Changes apply immediately to every user with the <span className="font-semibold">{role.replace(/_/g, " ")}</span> role and are audited.
             </p>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">
+            <button className={buttonClass({ size: "md" })}>
               Save matrix
             </button>
           </div>

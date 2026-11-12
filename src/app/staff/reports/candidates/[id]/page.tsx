@@ -1,13 +1,15 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime } from "./actions";
+import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { assignDecisionMaker, unassignDecisionMaker } from "../../../people/actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
+import { buttonClass } from "@/components/ui/Button";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -203,6 +205,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
 
   const submitReviewWithId = submitReview.bind(null, id);
 
+  // Extra time (migration 0018): read on its own, so a database that has not
+  // had the migration yet just shows "none" instead of breaking this page.
+  const { data: extraRow } = await supabase.from("candidate_assessments").select("extra_minutes").eq("id", id).maybeSingle();
+  const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
+  const { data: limitRow } = await supabase.from("assessments").select("time_limit_minutes").eq("id", ca.assessment_id).maybeSingle();
+  const limitMinutes = (limitRow as { time_limit_minutes?: number } | null)?.time_limit_minutes ?? 60;
+
   return (
     <div className="p-6 lg:p-10 max-w-5xl print-page">
       <Link
@@ -218,7 +227,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <div className="flex items-center gap-4">
           <Avatar name={candidate?.full_name || "?"} className="w-14 h-14 text-lg" />
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground [font-family:var(--font-display)]">
+            <h1 className="text-2xl font-bold text-foreground">
               {candidate?.full_name}
             </h1>
             <p className="text-sm text-muted">{candidate?.email}</p>
@@ -231,7 +240,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <div className="flex items-center gap-2 no-print">
           <a
             href={`/report/${id}/pdf`}
-            className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+            className={buttonClass({ size: "md" })}
           >
             <Icon name="download" className="w-4 h-4" />
             Download PDF
@@ -287,7 +296,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-2.5">
                     <div>
                       {r.questions?.competencies?.name && (
-                        <p className="text-2xs font-bold uppercase tracking-wider text-accent-dark mb-1">
+                        <p className="text-sm font-semibold text-accent-dark mb-1">
                           {r.questions.competencies.name}
                         </p>
                       )}
@@ -298,7 +307,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <span className="flex items-center gap-2 shrink-0">
                       {r.needs_review && (
                         <span
-                          className="inline-flex items-center gap-1 text-2xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
+                          className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
                           title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
                         >
                           <Icon name="alertTriangle" className="w-3 h-3" />
@@ -401,14 +410,14 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
               see the Competency radar card further down for why. */}
           <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
             <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
-              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted">Overall Role Fit</p>
+              <p className="text-sm font-semibold text-muted">Overall role fit</p>
               <ScoreRing score={Math.round(ca.overall_score)} size={128} label={bandFor(ca.overall_score).label} />
-              <p className="text-2xs text-muted text-center max-w-44 mt-1">
+              <p className="text-xs text-muted text-center max-w-44 mt-1">
                 Weighted average across mapped competencies · AI-assisted, human-confirmed
               </p>
             </Card>
             <Card className="p-7">
-              <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-4">Top competencies</p>
+              <p className="text-sm font-semibold text-muted mb-4">Top competencies</p>
               {topCompetencies.length > 0 ? (
                 <div className="space-y-3.5">
                   {topCompetencies.map((s) => {
@@ -474,7 +483,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                           <span className="flex items-center gap-2.5">
                             {barState && (
                               <span
-                                className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+                                className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                                   barState === "Below bar"
                                     ? "bg-critical-soft text-critical ring-critical/30"
                                     : barState === "Exceeds bar"
@@ -486,7 +495,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                                 {barState} · {target}
                               </span>
                             )}
-                            <span className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
+                            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
                               {s.level}
                             </span>
                             <span className="font-bold tabular-nums w-8 text-right">{Math.round(s.score)}</span>
@@ -537,6 +546,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       )}
 
       {/* ---------- The human decision ---------- */}
+      {["invited", "in_progress"].includes(ca.status) && (
+        <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
+      )}
+
       {/* Decision makers */}
       <Card className="p-6 mb-6 no-print">
         <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
@@ -577,7 +590,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 </option>
               ))}
             </select>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors shrink-0">
+            <button className={buttonClass({ size: "md", className: "shrink-0" })}>
               Assign
             </button>
           </form>
@@ -608,7 +621,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                 requirement; your decision above can still be submitted either way.
               </p>
               <form action={requestSignoffWithId}>
-                <button className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">
+                <button className={buttonClass({ size: "md" })}>
                   <Icon name="send" className="w-4 h-4" />
                   Request sign-off from {managerProfile.full_name}
                 </button>
@@ -663,7 +676,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             placeholder="Reviewer notes — what stood out, what to probe in interview…"
             className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+          <button className={buttonClass({ size: "md" })}>
             <Icon name="send" className="w-4 h-4" />
             Submit decision
           </button>
@@ -680,7 +693,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           const diverges = reviewRows.length >= 2 && distinctDecisions.length > 1;
           return (
             <div className="mt-6 space-y-3 border-t border-line pt-5">
-              <p className="text-2xs font-bold uppercase tracking-wider text-muted">
+              <p className="text-sm font-semibold text-muted">
                 {reviewRows.length >= 2 ? "Reviewer calibration" : "Decision history"}
               </p>
               {diverges && (
@@ -735,7 +748,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
             </div>
             {!ca.feedback_released_at && (
               <form action={releaseFeedback.bind(null, id)}>
-                <button className="inline-flex items-center gap-2 bg-brand-deep text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-brand transition-colors">
+                <button className={buttonClass({ size: "md" })}>
                   <Icon name="send" className="w-4 h-4" />
                   Release feedback
                 </button>

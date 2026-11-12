@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/authz";
 import { Card, Icon, PageHeader } from "@/components/ui";
 import { saveSettings } from "../actions";
+import { buttonClass } from "@/components/ui/Button";
 
 type SecuritySettings = { session_timeout_minutes: number; ip_allowlist: string[]; mfa_required_roles: string[] };
 
@@ -32,16 +33,16 @@ export default async function AdminSecurityPage() {
               Access policy
             </p>
             <div>
-              <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="session_timeout_minutes">Session timeout (minutes)</label>
+              <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="session_timeout_minutes">Session timeout (minutes)</label>
               <input id="session_timeout_minutes" name="session_timeout_minutes" type="number" min={15} defaultValue={settings.session_timeout_minutes} className={input} />
-              <p className="text-2xs text-muted mt-1">Idle sessions beyond this are signed out on their next request.</p>
+              <p className="text-xs text-muted mt-1">Idle sessions beyond this are signed out on their next request.</p>
             </div>
             <div>
-              <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="ip_allowlist">IP allowlist for staff/admin (one per line, empty = no restriction)</label>
+              <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="ip_allowlist">IP allowlist for staff/admin (one per line, empty = no restriction)</label>
               <textarea id="ip_allowlist" name="ip_allowlist" rows={3} defaultValue={settings.ip_allowlist.join("\n")} className={input} placeholder="203.0.113.0&#10;198.51.100.14" />
             </div>
             <div>
-              <p className="text-2xs font-semibold text-muted mb-2">Require MFA for roles</p>
+              <p className="text-xs font-semibold text-muted mb-2">Require MFA for roles</p>
               <div className="flex flex-wrap gap-3">
                 {["system_admin", "org_admin", "hr_admin", "recruiter"].map((r) => (
                   <label key={r} className="inline-flex items-center gap-2 text-sm cursor-pointer">
@@ -51,7 +52,7 @@ export default async function AdminSecurityPage() {
                 ))}
               </div>
             </div>
-            <button className="bg-brand-deep text-white text-sm font-semibold px-5 py-2.5 rounded-xl hover:bg-brand transition-colors">Save security settings</button>
+            <button className={buttonClass({ size: "md" })}>Save security settings</button>
           </form>
         </Card>
 

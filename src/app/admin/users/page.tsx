@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Avatar, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { DataTable, DataTablePagination, type DataTableColumn } from "@/components/DataTable";
+import { buttonClass } from "@/components/ui/Button";
 
 const TOASTS: ToastSpec[] = [
   { param: "ok", variant: "success" },
@@ -65,7 +66,7 @@ export default async function AdminUsersPage({
             <p className="font-semibold text-foreground truncate flex items-center gap-2">
               {u.full_name}
               {u.is_employee && (
-                <span className="text-2xs font-bold uppercase tracking-wider text-accent-dark bg-brand-50 px-1.5 py-0.5 rounded">Employee</span>
+                <span className="text-sm font-semibold text-accent-dark bg-brand-50 px-1.5 py-0.5 rounded">Employee</span>
               )}
             </p>
             <p className="text-xs text-muted truncate">{u.email}</p>
@@ -123,7 +124,7 @@ export default async function AdminUsersPage({
         </a>
         <Link
           href="/staff/people"
-          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+          className={buttonClass({ size: "md" })}
         >
           <Icon name="plus" className="w-4 h-4" />
           Invite / bulk import
@@ -160,7 +161,7 @@ export default async function AdminUsersPage({
           <option value="employee">Internal employees</option>
           <option value="external">External candidates</option>
         </select>
-        <button className="bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors">Filter</button>
+        <button className={buttonClass({ size: "md" })}>Filter</button>
       </form>
 
       <DataTable

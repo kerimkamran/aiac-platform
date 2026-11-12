@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Card, EmptyState, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { decideManagerSignoff } from "./actions";
+import { buttonClass } from "@/components/ui/Button";
 
 type Row = {
   id: string;
@@ -65,7 +66,7 @@ export default async function SignoffsPage() {
         <>
           {pending.length > 0 && (
             <div className="space-y-4 mb-8">
-              <p className="text-2xs font-bold uppercase tracking-wider text-muted">Awaiting your response</p>
+              <p className="text-sm font-semibold text-muted">Awaiting your response</p>
               {pending.map((r) => {
                 const meta = caMeta.get(r.candidate_assessment_id);
                 const decideWithId = decideManagerSignoff.bind(null, r.id);
@@ -88,7 +89,7 @@ export default async function SignoffsPage() {
                             "use server";
                             await decideWithId("approved", formData);
                           }}
-                          className="inline-flex items-center gap-2 bg-brand-deep text-white text-sm font-semibold px-4 py-2.5 rounded-xl hover:bg-brand transition-colors"
+                          className={buttonClass({ size: "md" })}
                         >
                           <Icon name="check" className="w-4 h-4" />
                           Approve
@@ -113,7 +114,7 @@ export default async function SignoffsPage() {
 
           {decided.length > 0 && (
             <div className="space-y-3">
-              <p className="text-2xs font-bold uppercase tracking-wider text-muted">Previously decided</p>
+              <p className="text-sm font-semibold text-muted">Previously decided</p>
               {decided.map((r) => {
                 const meta = caMeta.get(r.candidate_assessment_id);
                 return (

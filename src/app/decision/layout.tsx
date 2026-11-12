@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { NavShell, type NavLink } from "@/components/NavShell";
+import { AppShell } from "@/components/AppShell";
+import { homeFor } from "@/lib/home";
 
 export default async function DecisionLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -15,16 +16,14 @@ export default async function DecisionLayout({ children }: { children: React.Rea
   if (!profile) redirect("/login");
   if (profile.status === "deactivated") {
     await supabase.auth.signOut();
-    redirect("/login?error=" + encodeURIComponent("This account has been deactivated. Contact your administrator."));
+    redirect("/login?error=deactivated");
   }
-  if (profile.role === "candidate") redirect("/candidate");
-  if (profile.role !== "decision_maker") redirect("/staff");
+  if (profile.role !== "decision_maker") redirect(homeFor(profile.role));
 
-  const links: NavLink[] = [{ href: "/decision", label: "Assigned candidates", icon: "users", exact: true }];
-
+  // Decision makers have no navigation: the deck is the whole product for them.
   return (
-    <NavShell role={profile.role} name={profile.full_name} links={links}>
+    <AppShell role={profile.role} name={profile.full_name} homeHref="/decision" links={[]} showSearch={false}>
       {children}
-    </NavShell>
+    </AppShell>
   );
 }

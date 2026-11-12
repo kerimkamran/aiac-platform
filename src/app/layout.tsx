@@ -1,25 +1,31 @@
 import type { Metadata } from "next";
-import { Inter, Onest } from "next/font/google";
+import { Geist_Mono, Inter } from "next/font/google";
 import { headers } from "next/headers";
+import { getLang } from "@/i18n/server";
 import "./globals.css";
 
-// Node Grid type system (plan v2, section 4.2). Onest carries headings and
-// large numbers; Inter carries everything else. Manrope was the first choice
-// but has no capital Ə (U+018F), which Azerbaijani names need, so the plan's
-// fallback applies. Both load the Latin-extended and Cyrillic subsets so
-// Azerbaijani (ə ğ ı ş) and Russian render correctly.
+// Clear Horizon type system (design plan, section 6). Inter is a variable font
+// with the optical-size axis, so large sizes automatically use the tighter
+// Inter Display cut. Geist Mono carries the exam timer, figure labels and IDs.
+// Both load the Latin, Latin-extended and Cyrillic subsets, so Azerbaijani
+// (Ə ə İ ı ş ç ğ) and Russian render correctly. Onest is retired; Manrope
+// cannot be used because it has no capital Ə.
 const inter = Inter({
   subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-inter",
-  weight: ["400", "500", "600", "700"],
+  axes: ["opsz"],
+  display: "swap",
 });
-const onest = Onest({
+const geistMono = Geist_Mono({
   subsets: ["latin", "latin-ext", "cyrillic"],
-  variable: "--font-onest",
-  weight: ["600", "700", "800"],
+  variable: "--font-geist-mono",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
+  // The public pages stay out of search engines until Azerconnect Comms and
+  // Legal approve them (design plan, section 20).
+  robots: { index: false, follow: false },
   title: {
     default: "Vantage — Competency Intelligence by Azerconnect Group",
     template: "%s · Vantage",
@@ -42,9 +48,10 @@ export default async function RootLayout({
   // paint so the saved theme and canvas are applied with no flash. middleware.ts
   // mints a per-request nonce and only allows a script carrying it.
   const nonce = (await headers()).get("x-nonce") || undefined;
+  const lang = await getLang();
 
   return (
-    <html lang="en" className={`h-full antialiased ${inter.variable} ${onest.variable}`}>
+    <html lang={lang} className={`h-full antialiased ${inter.variable} ${geistMono.variable}`}>
       <head>
         <script
           nonce={nonce}
@@ -57,9 +64,8 @@ export default async function RootLayout({
     if (theme !== "light" && theme !== "dark") theme = "system";
     var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     if (dark) document.documentElement.classList.add("dark");
-    var canvas = saved && saved.canvas ? saved.canvas : "white";
-    if (canvas !== "cream" && canvas !== "grey") canvas = "white";
-    if (canvas !== "white") document.documentElement.setAttribute("data-canvas", canvas);
+    var canvas = saved && saved.canvas ? saved.canvas : null;
+    if (canvas === "white" || canvas === "cream" || canvas === "grey") document.documentElement.setAttribute("data-canvas", canvas);
   } catch (e) {}
 })();`,
           }}

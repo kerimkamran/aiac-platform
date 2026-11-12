@@ -44,7 +44,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div
               key={t.id}
               role="status"
-              className={`anim-toast-in pointer-events-auto relative overflow-hidden w-full sm:w-96 bg-surface border border-line rounded-2xl shadow-xl ring-1 ${meta.ring} px-4 pt-3.5 pb-4 flex items-start gap-3`}
+              className={`anim-toast-in pointer-events-auto relative overflow-hidden w-full sm:w-96 bg-surface border border-line rounded-card shadow-xl ring-1 ${meta.ring} px-4 pt-3.5 pb-4 flex items-start gap-3`}
             >
               <span className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${meta.iconWrap}`}>
                 <Icon name={meta.icon} className="w-4 h-4" />

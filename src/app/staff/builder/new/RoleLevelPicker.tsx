@@ -21,10 +21,10 @@ export function RoleLevelPicker({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 space-y-5">
+    <section className="rounded-card border border-line bg-surface p-5 space-y-5">
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="font-bold text-foreground">1 · Who is it for?</h2>
-        <span className="text-2xs font-semibold text-muted">Required</span>
+        <span className="text-xs font-semibold text-muted">Required</span>
       </header>
 
       <div className="space-y-2">
@@ -53,7 +53,7 @@ export function RoleLevelPicker({
                 aria-pressed={on}
                 onClick={() => toggleLevel(l)}
                 className={`text-sm rounded-full px-3.5 py-1.5 ring-1 ring-inset transition-colors ${
-                  on ? "bg-brand-deep text-white ring-brand-deep" : "bg-canvas text-foreground ring-line hover:ring-accent"
+                  on ? "bg-brand text-on-primary ring-brand-deep" : "bg-canvas text-foreground ring-line hover:ring-accent"
                 }`}
               >
                 {LEVELS[l].label}

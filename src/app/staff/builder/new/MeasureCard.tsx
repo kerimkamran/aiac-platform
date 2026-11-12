@@ -85,10 +85,10 @@ export function MeasureCard({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 space-y-5">
+    <section className="rounded-card border border-line bg-surface p-5 space-y-5">
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="font-bold text-foreground">3 · What to measure</h2>
-        <span className="text-2xs font-semibold text-muted">
+        <span className="text-xs font-semibold text-muted">
           {competencyIds.length} of {MAX_COMPETENCIES} competencies
         </span>
       </header>
@@ -117,7 +117,7 @@ export function MeasureCard({
                     />
                     <span>
                       <span className="font-medium text-foreground">{c.name}</span>
-                      {c.description && <span className="block text-2xs text-muted line-clamp-2">{c.description}</span>}
+                      {c.description && <span className="block text-xs text-muted line-clamp-2">{c.description}</span>}
                     </span>
                   </label>
                 );
@@ -130,7 +130,7 @@ export function MeasureCard({
             Leadership competencies are only used for Manager, Director and C-level drafts. They will be left out of the Entry and Senior drafts.
           </p>
         )}
-        {atLimit && <p className="text-2xs text-muted">Up to {MAX_COMPETENCIES} competencies per draft keeps each assessment focused.</p>}
+        {atLimit && <p className="text-xs text-muted">Up to {MAX_COMPETENCIES} competencies per draft keeps each assessment focused.</p>}
       </div>
 
       <div className="grid sm:grid-cols-2 gap-5">
@@ -216,7 +216,7 @@ export function MeasureCard({
               placeholder="Leave blank to use the job title and level"
               className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
-            <p className="text-2xs text-muted">
+            <p className="text-xs text-muted">
               {draftCount > 1
                 ? "Applies only when one draft is created. A batch keeps the job title and level as titles."
                 : "Used as the draft's title."}
@@ -240,7 +240,7 @@ export function MeasureCard({
               </option>
             ))}
           </select>
-          <p className="text-2xs text-muted">
+          <p className="text-xs text-muted">
             Only engines approved in AI Governance receive job descriptions and reference files. Others get the competencies and level only.
           </p>
           </div>

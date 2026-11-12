@@ -4,6 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import Link from "next/link";
 import { Icon } from "@/components/ui";
 import { SwipeToConfirm } from "@/components/SwipeToConfirm";
+import { ProgressHorizon } from "@/components/horizon/ProgressHorizon";
+import { LOW_TIME_SECONDS, formatClock } from "@/lib/exam-time";
 
 export type RunnerSection = {
   id: string;
@@ -18,6 +20,11 @@ type Step = { sectionTitle: string; sectionIndex: number; q: RunnerSection["ques
 // candidate assessment id so two open assessments never mix answers.
 type Draft = { answers: Record<string, string>; flagged: string[] };
 const EMPTY_DRAFT: Draft = { answers: {}, flagged: [] };
+
+// Candidates may hide the countdown (it can raise anxiety). It always comes
+// back, in amber, when five minutes remain, with one announcement for screen
+// readers. The deadline and the automatic submit are not affected.
+const TIMER_HIDDEN_KEY = "vantage-timer-hidden";
 
 function draftKey(caId: string) {
   return `aiac-exam-${caId}`;
@@ -76,6 +83,8 @@ export function AssessmentRunner({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [idx, setIdx] = useState(0);
   const [reviewing, setReviewing] = useState(false);
+  const [timerHidden, setTimerHidden] = useState(false);
+  const [showGrid, setShowGrid] = useState(false);
   // Null until mounted, so the server and first client render agree and the
   // countdown never shows a stale value during hydration.
   const [nowMs, setNowMs] = useState<number | null>(null);
@@ -90,6 +99,21 @@ export function AssessmentRunner({
     setDraft(readDraft(caId));
     setRestored(true);
   }, [caId]);
+
+  useEffect(() => {
+    try {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore of the timer preference
+      setTimerHidden(localStorage.getItem(TIMER_HIDDEN_KEY) === "1");
+    } catch {}
+  }, []);
+  const toggleTimer = useCallback(() => {
+    setTimerHidden((h) => {
+      try {
+        localStorage.setItem(TIMER_HIDDEN_KEY, h ? "0" : "1");
+      } catch {}
+      return !h;
+    });
+  }, []);
 
   useEffect(() => {
     if (!restored) return;
@@ -187,11 +211,10 @@ export function AssessmentRunner({
   }, [deadlineMs, doSubmit, restored]);
 
   const secondsLeft = nowMs === null ? null : Math.max(0, Math.round((deadlineMs - nowMs) / 1000));
-  const low = secondsLeft !== null && secondsLeft < 300;
-  const timeLabel =
-    secondsLeft === null
-      ? "--:--"
-      : `${Math.floor(secondsLeft / 60)}:${String(secondsLeft % 60).padStart(2, "0")}`;
+  const low = secondsLeft !== null && secondsLeft < LOW_TIME_SECONDS;
+  const timeLabel = secondsLeft === null ? "--:--" : formatClock(secondsLeft);
+  // Hidden only while there is plenty of time; low time always shows it.
+  const timerShown = !timerHidden || low;
 
   const answered = steps.filter((s) => (answers[s.q.id] || "").trim().length > 0).length;
   const flaggedCount = steps.filter((s) => flaggedSet.has(s.q.id)).length;
@@ -292,16 +315,32 @@ export function AssessmentRunner({
               {savedLabel}
             </p>
           </div>
-          <span
-            className={`inline-flex shrink-0 items-center gap-2 rounded-full px-3.5 py-2 text-sm font-bold tabular-nums ring-1 ring-inset ${
-              // Amber under five minutes, never red: running low is not a failure,
-              // and the countdown always submits safely at zero.
-              low ? "bg-warning-soft text-warning ring-warning/40" : "bg-surface text-foreground ring-line"
-            }`}
-          >
-            <Icon name="timer" className="h-4 w-4" />
-            <span aria-label={secondsLeft === null ? undefined : `${Math.ceil(secondsLeft / 60)} minutes remaining`}>{timeLabel}</span>
-          </span>
+          {timerShown ? (
+            <span
+              className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-timer ring-1 ring-inset ${
+                // Amber under five minutes, never red: running low is not a failure,
+                // and the countdown always submits safely at zero.
+                low ? "bg-warning-soft text-warning ring-warning/40" : "bg-surface text-foreground ring-line"
+              }`}
+            >
+              <Icon name="timer" className="h-4 w-4" />
+              <span aria-label={secondsLeft === null ? undefined : `${Math.ceil(secondsLeft / 60)} minutes remaining`}>{timeLabel}</span>
+            </span>
+          ) : null}
+          {!low && (
+            <button
+              type="button"
+              onClick={toggleTimer}
+              aria-pressed={timerHidden}
+              className="press shrink-0 inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              <Icon name={timerHidden ? "eye" : "eyeOff"} className="h-4 w-4" />
+              {timerHidden ? "Show timer" : "Hide timer"}
+            </button>
+          )}
+          <p className="sr-only" role="status">
+            {low ? "Less than 5 minutes remaining." : ""}
+          </p>
           <Link
             href="/candidate/assessments"
             className="shrink-0 rounded-xl px-3 py-2.5 text-sm font-semibold text-accent-dark hover:bg-accent-soft"
@@ -310,48 +349,58 @@ export function AssessmentRunner({
           </Link>
         </div>
 
-        <nav aria-label="Questions" className="mx-auto max-w-[1040px] overflow-x-auto px-4 pb-2 sm:px-6">
-          <ol className="flex min-w-max items-center gap-1">
-            {steps.map((s, i) => {
-              const isAnswered = (answers[s.q.id] || "").trim().length > 0;
-              const isFlagged = flaggedSet.has(s.q.id);
-              const isCurrent = !reviewing && i === idx;
-              return (
-                <li key={s.q.id}>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setReviewing(false);
-                      setIdx(i);
-                    }}
-                    aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
-                    aria-current={isCurrent ? "step" : undefined}
-                    className="relative grid h-11 w-11 place-items-center"
-                  >
-                    <span
-                      className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold tabular-nums transition-colors ${
-                        isAnswered
-                          ? "bg-brand text-white"
-                          : "bg-surface text-muted ring-1 ring-inset ring-line"
-                      } ${isCurrent ? "ring-2 ring-accent ring-offset-2 ring-offset-background" : ""}`}
-                    >
-                      {i + 1}
-                    </span>
-                    {isFlagged && (
-                      <span aria-hidden className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-warning ring-2 ring-background" />
-                    )}
-                  </button>
-                </li>
-              );
-            })}
-          </ol>
-        </nav>
+        <div className="mx-auto max-w-[1040px] px-4 pb-3 sm:px-6">
+          <div className="flex items-end justify-between gap-4">
+            <ProgressHorizon total={total} answered={answered} current={reviewing ? total - 1 : idx} className="min-w-0 flex-1" />
+            <button
+              type="button"
+              onClick={() => setShowGrid((g) => !g)}
+              aria-expanded={showGrid}
+              aria-controls="question-grid"
+              className="press shrink-0 inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              All questions
+              <Icon name={showGrid ? "chevronUp" : "chevronDown"} className="h-4 w-4" />
+            </button>
+          </div>
+          {showGrid && (
+            <nav id="question-grid" aria-label="Questions" className="mt-2">
+              <ol className="grid grid-cols-8 gap-1.5 sm:grid-cols-12">
+                {steps.map((s, i) => {
+                  const isAnswered = (answers[s.q.id] || "").trim().length > 0;
+                  const isFlagged = flaggedSet.has(s.q.id);
+                  const isCurrent = !reviewing && i === idx;
+                  return (
+                    <li key={s.q.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setReviewing(false);
+                          setIdx(i);
+                          setShowGrid(false);
+                        }}
+                        aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
+                        aria-current={isCurrent ? "step" : undefined}
+                        className={`relative grid min-h-11 w-full place-items-center rounded-md text-sm font-semibold tabular-nums ${
+                          isAnswered ? "bg-brand text-on-primary" : "bg-surface text-foreground ring-1 ring-inset ring-line-control"
+                        } ${isCurrent ? "outline-2 outline-offset-2 outline-focus" : ""}`}
+                      >
+                        {i + 1}
+                        {isFlagged && <span aria-hidden className="absolute right-1 top-1 h-2 w-2 rounded-full bg-warning" />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ol>
+            </nav>
+          )}
+        </div>
       </header>
 
       {reviewing ? (
         /* ---------- Review: every question on one grid, then one submit ---------- */
         <main className="mx-auto max-w-[680px] px-5 pb-16 pt-10 sm:pt-14">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground [font-family:var(--font-display)]">Review your answers</h2>
+          <h2 className="text-2xl font-bold text-foreground">Review your answers</h2>
           <p className="mt-2 text-base text-muted">
             {answered} of {total} answered
             {flaggedCount > 0 ? `, ${flaggedCount} flagged` : ""}. Select a question to go back to it. Once you submit, your
@@ -373,8 +422,8 @@ export function AssessmentRunner({
                     aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
                     className={`relative grid h-11 w-full place-items-center rounded-xl text-sm font-bold tabular-nums transition-colors ${
                       isAnswered
-                        ? "bg-brand text-white hover:bg-brand-hover"
-                        : "bg-surface text-foreground ring-1 ring-inset ring-line-strong hover:ring-accent"
+                        ? "bg-brand text-on-primary"
+                        : "bg-surface text-foreground ring-1 ring-inset ring-line-control hover:bg-surface-sunken"
                     }`}
                   >
                     {i + 1}
@@ -469,7 +518,7 @@ export function AssessmentRunner({
                   return (
                     <label
                       key={opt.key}
-                      className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-2xl border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-accent ${
+                      className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-card border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-accent ${
                         selected
                           ? "border-brand bg-accent-soft ring-1 ring-brand"
                           : "border-line bg-surface hover:border-line-strong"
@@ -486,7 +535,7 @@ export function AssessmentRunner({
                       <span
                         aria-hidden
                         className={`grid h-9 w-9 shrink-0 place-items-center rounded-full text-sm font-bold ${
-                          selected ? "bg-brand text-white" : "bg-background text-foreground ring-1 ring-inset ring-line"
+                          selected ? "bg-brand text-on-primary" : "bg-background text-foreground ring-1 ring-inset ring-line"
                         }`}
                       >
                         {opt.key}
@@ -509,7 +558,7 @@ export function AssessmentRunner({
                   onChange={(e) => set(current.q.id, e.target.value)}
                   rows={9}
                   placeholder="Describe a specific situation, the action you took, and the result…"
-                  className="w-full resize-y rounded-2xl border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent"
+                  className="w-full resize-y rounded-card border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent"
                 />
                 <p className="mt-2 text-sm tabular-nums text-muted">
                   {(answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length} words. Aim for a concrete
@@ -534,7 +583,7 @@ export function AssessmentRunner({
               <button
                 type="button"
                 onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-deep px-6 text-sm font-semibold text-white transition-colors hover:bg-brand"
+                className="inline-flex min-h-12 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-brand-hover"
               >
                 Next
                 <Icon name="arrowRight" className="h-4 w-4" />
@@ -543,7 +592,7 @@ export function AssessmentRunner({
               <button
                 type="button"
                 onClick={() => setReviewing(true)}
-                className="inline-flex min-h-12 items-center gap-2 rounded-full bg-brand-deep px-6 text-sm font-semibold text-white transition-colors hover:bg-brand"
+                className="inline-flex min-h-12 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-brand-hover"
               >
                 Review answers
                 <Icon name="checkCircle" className="h-4 w-4" />
