@@ -400,7 +400,7 @@ export function AssessmentRunner({
       {reviewing ? (
         /* ---------- Review: every question on one grid, then one submit ---------- */
         <main className="mx-auto max-w-[680px] px-5 pb-16 pt-10 sm:pt-14">
-          <h2 className="text-2xl font-bold tracking-tight text-foreground [font-family:var(--font-display)]">Review your answers</h2>
+          <h2 className="text-2xl font-bold text-foreground">Review your answers</h2>
           <p className="mt-2 text-base text-muted">
             {answered} of {total} answered
             {flaggedCount > 0 ? `, ${flaggedCount} flagged` : ""}. Select a question to go back to it. Once you submit, your
@@ -422,8 +422,8 @@ export function AssessmentRunner({
                     aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
                     className={`relative grid h-11 w-full place-items-center rounded-xl text-sm font-bold tabular-nums transition-colors ${
                       isAnswered
-                        ? "bg-brand text-on-primary hover:bg-brand-hover"
-                        : "bg-surface text-foreground ring-1 ring-inset ring-line-strong hover:ring-accent"
+                        ? "bg-brand text-on-primary"
+                        : "bg-surface text-foreground ring-1 ring-inset ring-line-control hover:bg-surface-sunken"
                     }`}
                   >
                     {i + 1}
@@ -518,7 +518,7 @@ export function AssessmentRunner({
                   return (
                     <label
                       key={opt.key}
-                      className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-2xl border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-accent ${
+                      className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-card border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-accent ${
                         selected
                           ? "border-brand bg-accent-soft ring-1 ring-brand"
                           : "border-line bg-surface hover:border-line-strong"
@@ -558,7 +558,7 @@ export function AssessmentRunner({
                   onChange={(e) => set(current.q.id, e.target.value)}
                   rows={9}
                   placeholder="Describe a specific situation, the action you took, and the result…"
-                  className="w-full resize-y rounded-2xl border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent"
+                  className="w-full resize-y rounded-card border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent"
                 />
                 <p className="mt-2 text-sm tabular-nums text-muted">
                   {(answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length} words. Aim for a concrete

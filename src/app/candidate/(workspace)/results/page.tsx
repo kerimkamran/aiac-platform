@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Card, EmptyState, Icon, PageHeader, ScoreRing, bandFor } from "@/components/ui";
 import { GrowthHub } from "./GrowthHub";
 import { normalizePurpose } from "@/lib/purpose";
+import { buttonClass } from "@/components/ui/Button";
 
 export default async function CandidateResultsPage() {
   const supabase = await createClient();
@@ -96,7 +97,7 @@ export default async function CandidateResultsPage() {
                   <ScoreRing score={Math.round(r.overall_score!)} size={84} label={bandFor(r.overall_score!).label} />
                   <Link
                     href={`/candidate/results/${r.id}`}
-                    className="inline-flex items-center gap-2 text-sm bg-brand text-on-primary px-4 py-2.5 rounded-md font-semibold hover:bg-brand-hover transition-colors"
+                    className={buttonClass({ size: "md" })}
                   >
                     Full profile
                     <Icon name="arrowRight" className="w-4 h-4" />

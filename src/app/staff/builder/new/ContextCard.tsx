@@ -97,10 +97,10 @@ export function ContextCard({
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 space-y-5">
+    <section className="rounded-card border border-line bg-surface p-5 space-y-5">
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="font-bold text-foreground">2 · Help the AI understand the role</h2>
-        <span className="text-2xs font-semibold text-muted">Optional</span>
+        <span className="text-xs font-semibold text-muted">Optional</span>
       </header>
 
       {notice && (
@@ -119,7 +119,7 @@ export function ContextCard({
               key={s}
               type="button"
               onClick={() => addStarter(s)}
-              className="text-2xs font-semibold rounded-full px-2.5 py-1 ring-1 ring-inset ring-line hover:ring-accent"
+              className="text-xs font-semibold rounded-full px-2.5 py-1 ring-1 ring-inset ring-line hover:ring-accent"
             >
               + {s}
             </button>
@@ -134,7 +134,7 @@ export function ContextCard({
           placeholder="e.g. Focus on enterprise B2B clients; include a pricing conflict."
           className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
-        <p className="text-2xs text-muted">
+        <p className="text-xs text-muted">
           {instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_CHARS.toLocaleString()} characters
         </p>
       </div>
@@ -158,7 +158,7 @@ export function ContextCard({
             placeholder="Paste the job description, or upload one."
             className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <p className="text-2xs text-muted">{ctx.jobDescription.length.toLocaleString()} / {JD_MAX_CHARS.toLocaleString()} characters</p>
+          <p className="text-xs text-muted">{ctx.jobDescription.length.toLocaleString()} / {JD_MAX_CHARS.toLocaleString()} characters</p>
         </div>
 
         <div className="space-y-2">
@@ -173,7 +173,7 @@ export function ContextCard({
             placeholder="e.g. Must handle the top-10 accounts; quarterly targets."
             className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
-          <p className="text-2xs text-muted">{ctx.notes.length.toLocaleString()} / {NOTES_MAX_CHARS.toLocaleString()} characters</p>
+          <p className="text-xs text-muted">{ctx.notes.length.toLocaleString()} / {NOTES_MAX_CHARS.toLocaleString()} characters</p>
         </div>
 
         <div className="space-y-2">
@@ -185,7 +185,7 @@ export function ContextCard({
                 <button
                   type="button"
                   onClick={() => patchCtx({ files: ctx.files.filter((_, j) => j !== i) })}
-                  className="text-2xs font-semibold text-muted hover:text-critical"
+                  className="text-xs font-semibold text-muted hover:text-critical"
                 >
                   Remove
                 </button>
@@ -228,7 +228,7 @@ export function ContextCard({
           <div className="h-1.5 rounded-full bg-line overflow-hidden" aria-hidden>
             <div className="h-full bg-accent" style={{ width: `${pct}%` }} />
           </div>
-          <p className="text-2xs text-muted mt-1">
+          <p className="text-xs text-muted mt-1">
             Context used {pct}% · Emails and phone numbers are removed before anything is sent.
           </p>
         </div>
@@ -237,7 +237,7 @@ export function ContextCard({
         </a>
       </div>
 
-      <p className="text-2xs text-muted">
+      <p className="text-xs text-muted">
         Your instructions shape the scenarios. They can&apos;t change what is measured, the answer keys, or the fairness rules.
       </p>
 

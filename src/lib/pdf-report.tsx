@@ -34,7 +34,7 @@ const styles = StyleSheet.create({
   h1: { fontSize: 18, fontFamily: "Inter", fontWeight: 700, color: INK, marginBottom: 2 },
   subtitle: { fontSize: 10, color: MUTED, marginBottom: 16 },
   metaRow: { flexDirection: "row", gap: 24, marginBottom: 20 },
-  metaLabel: { fontSize: 7, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 2 },
+  metaLabel: { fontSize: 7, color: MUTED, marginBottom: 2 },
   metaValue: { fontSize: 10, fontFamily: "Inter", fontWeight: 700 },
   sectionTitle: { fontSize: 12, fontFamily: "Inter", fontWeight: 700, color: INK, marginTop: 18, marginBottom: 10, borderBottom: `1 solid ${LINE}`, paddingBottom: 6 },
   scoreCard: { flexDirection: "row", gap: 16, marginBottom: 8 },
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
   execRecBadge: { fontSize: 7.5, fontFamily: "Inter", fontWeight: 700, paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, color: PALETTE.white },
   execHeadline: { fontSize: 9, color: INK, lineHeight: 1.5, marginBottom: 8 },
   execCols: { flexDirection: "row", gap: 16, marginBottom: 6 },
-  execColTitle: { fontSize: 7, fontFamily: "Inter", fontWeight: 700, color: MUTED, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 },
+  execColTitle: { fontSize: 7, fontFamily: "Inter", fontWeight: 700, color: MUTED, marginBottom: 4 },
   execLine: { fontSize: 8, color: MUTED, marginBottom: 2 },
   execComparison: { fontSize: 7.5, color: MUTED, borderTop: `1 solid ${LINE}`, paddingTop: 6, marginTop: 4 },
 });
@@ -226,7 +226,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         <View style={styles.scoreCard}>
           <View style={styles.scoreBig}>
             <Text style={styles.scoreBigNum}>{data.overallScore !== null ? Math.round(data.overallScore) : "—"}</Text>
-            <Text style={styles.scoreBigLabel}>Overall Role Fit{"\n"}(out of 100)</Text>
+            <Text style={styles.scoreBigLabel}>Overall role fit{"\n"}(out of 100)</Text>
           </View>
           <View style={styles.scoreSummary}>
             <Text style={{ fontSize: 10, fontFamily: "Inter", fontWeight: 700, color: band?.color || MUTED, marginBottom: 4 }}>

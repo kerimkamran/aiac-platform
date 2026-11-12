@@ -47,14 +47,14 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
           <Icon name="arrowLeft" className="w-4 h-4" />
           Back to builder
         </Link>
-        <span className="inline-flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider text-accent-dark bg-accent-soft px-3 py-1.5 rounded-full">
+        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-dark bg-accent-soft px-3 py-1.5 rounded-full">
           <Icon name="eye" className="w-3.5 h-3.5" />
           Candidate preview — nothing is saved
         </span>
       </div>
 
       <Card className="p-8 mb-5">
-        <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-2">Ready to begin</p>
+        <p className="text-sm font-semibold text-muted mb-2">Ready to begin</p>
         <h1 className="text-xl font-bold text-foreground mb-2">{assessment.title}</h1>
         {assessment.description && <p className="text-sm text-muted mb-4">{assessment.description}</p>}
         <span className="inline-flex items-center gap-1.5 text-xs text-muted font-semibold">
@@ -67,7 +67,7 @@ export default async function AssessmentPreviewPage({ params }: { params: Promis
         const qs = ((s.questions || []) as unknown as Q[]).sort((a, b) => a.sequence - b.sequence);
         return (
           <Card key={s.id} className="p-6 mb-5">
-            <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-4">
+            <p className="text-sm font-semibold text-muted mb-4">
               Section {si + 1} · {s.title}
             </p>
             <div className="space-y-6">

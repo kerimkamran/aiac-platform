@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
-import { HEADER_FILL, HEADER_FONT } from "@/lib/excel-style";
+import { HEADER_FILL, HEADER_FONT, brandWorksheet } from "@/lib/excel-style";
 
 export const runtime = "nodejs";
 
@@ -122,7 +122,7 @@ export async function GET(req: Request) {
     { header: "Assessment", key: "assessment", width: 26 },
     { header: "Vacancy", key: "vacancy", width: 22 },
     { header: "Status", key: "status", width: 16 },
-    { header: "Overall Role Fit", key: "overall", width: 16 },
+    { header: "Overall role fit", key: "overall", width: 16 },
     { header: "Core Avg", key: "core", width: 12 },
     { header: "Leadership Avg", key: "leadership", width: 14 },
     { header: "Functional Avg", key: "functional", width: 14 },
@@ -136,6 +136,7 @@ export async function GET(req: Request) {
 
   sheet.getRow(1).font = HEADER_FONT;
   sheet.getRow(1).fill = HEADER_FILL;
+  brandWorksheet(sheet);
   sheet.getRow(1).height = 22;
 
   for (const r of list) {

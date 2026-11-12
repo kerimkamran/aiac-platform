@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { nowMs } from "@/lib/time";
+import { buttonClass } from "@/components/ui/Button";
 
 export type CandidateExportRow = {
   id: string;
@@ -89,7 +90,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
           <StatusBadge status={r.status} />
           {r.due_at && ["invited", "in_progress"].includes(r.status) && (
             <span
-              className={`text-2xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
+              className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
                 new Date(r.due_at).getTime() < nowMs()
                   ? "bg-critical-soft text-critical ring-critical/30"
                   : "bg-line-soft text-muted ring-line"
@@ -144,7 +145,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
           </a>
           <a
             href={exportBase}
-            className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-3.5 py-2 rounded-md hover:bg-brand-hover transition-colors"
+            className={buttonClass({ size: "sm" })}
           >
             <Icon name="download" className="w-4 h-4" />
             Export all (filtered)

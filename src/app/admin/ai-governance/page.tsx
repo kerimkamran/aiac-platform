@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSettings } from "@/lib/authz";
 import { Avatar, Card, Icon, PageHeader } from "@/components/ui";
 import { saveSettings, setEngineContextConsent } from "../actions";
+import { buttonClass } from "@/components/ui/Button";
 
 type AiSettings = { scoring_enabled: boolean; allowed_roles: string[]; monthly_quota: number; model: string };
 
@@ -51,7 +52,7 @@ export default async function AdminAiGovernancePage() {
               AI features enabled (scoring assistance & assessment generation)
             </label>
             <div>
-              <p className="text-2xs font-semibold text-muted mb-2">Roles allowed to trigger AI generation</p>
+              <p className="text-xs font-semibold text-muted mb-2">Roles allowed to trigger AI generation</p>
               <div className="flex flex-wrap gap-3">
                 {["system_admin", "org_admin", "hr_admin", "recruiter"].map((r) => (
                   <label key={r} className="inline-flex items-center gap-2 text-sm cursor-pointer">
@@ -63,7 +64,7 @@ export default async function AdminAiGovernancePage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="model">Default model</label>
+                <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="model">Default model</label>
                 <select id="model" name="model" defaultValue={settings.model} className={input}>
                   {(engines || []).map((e) => (
                     <option key={e.key} value={e.key}>{e.display_name}{e.enabled ? "" : " (disabled)"}</option>
@@ -72,11 +73,11 @@ export default async function AdminAiGovernancePage() {
                 </select>
               </div>
               <div>
-                <label className="block text-2xs font-semibold text-muted mb-1.5" htmlFor="monthly_quota">Monthly AI action quota</label>
+                <label className="block text-xs font-semibold text-muted mb-1.5" htmlFor="monthly_quota">Monthly AI action quota</label>
                 <input id="monthly_quota" name="monthly_quota" type="number" min={0} defaultValue={settings.monthly_quota} className={input} />
               </div>
             </div>
-            <button className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Save AI policy</button>
+            <button className={buttonClass({ size: "md" })}>Save AI policy</button>
           </form>
         </Card>
 
@@ -99,7 +100,7 @@ export default async function AdminAiGovernancePage() {
                     <form action={save} className="flex flex-wrap items-center justify-between gap-3">
                       <div className="text-sm">
                         <p className="font-semibold text-foreground">{e.display_name}</p>
-                        <p className="text-2xs text-muted">
+                        <p className="text-xs text-muted">
                           {!e.api_key_secret_id ? "No API key" : e.enabled ? "On" : "Switched off"}
                         </p>
                       </div>
@@ -138,7 +139,7 @@ export default async function AdminAiGovernancePage() {
                 const actor = e.actor as unknown as { full_name: string } | null;
                 return (
                   <div key={e.id} className="flex items-center gap-2.5 text-xs">
-                    <Avatar name={actor?.full_name || "?"} className="w-6 h-6 text-2xs" />
+                    <Avatar name={actor?.full_name || "?"} className="w-6 h-6 text-xs" />
                     <span className="font-medium text-foreground">{actor?.full_name || "System"}</span>
                     <span className="text-muted">{e.action.replace(/_/g, " ")}</span>
                     <span className="text-muted ml-auto whitespace-nowrap">{new Date(e.created_at).toLocaleString()}</span>

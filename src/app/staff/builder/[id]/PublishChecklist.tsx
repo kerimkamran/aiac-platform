@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { PublishCheck } from "@/lib/publish-checks";
+import { buttonClass } from "@/components/ui/Button";
 
 // Replaces the swipe-to-confirm slider. The checklist shows what blocks
 // publishing and what is only a warning, and AI drafts need the review tick
@@ -27,14 +28,14 @@ export function PublishChecklist({
       <button
         type="button"
         onClick={() => dialogRef.current?.showModal()}
-        className="inline-flex items-center gap-2 bg-brand text-on-primary text-sm font-semibold px-4 py-2.5 rounded-md hover:bg-brand-hover transition-colors"
+        className={buttonClass({ size: "md" })}
       >
         Publish…
       </button>
       <dialog
         ref={dialogRef}
         aria-labelledby="publish-checklist-title"
-        className="rounded-2xl border border-line bg-surface p-0 text-foreground w-[min(34rem,calc(100vw-2rem))] backdrop:bg-black/40"
+        className="rounded-card border border-line bg-surface p-0 text-foreground w-[min(34rem,calc(100vw-2rem))] backdrop:bg-black/40"
       >
         <form action={action} className="p-6 space-y-5">
           <h2 id="publish-checklist-title" className="font-bold text-lg">
@@ -45,7 +46,7 @@ export function PublishChecklist({
               <li key={c.label} className="flex items-start gap-2.5 text-sm">
                 <span
                   aria-hidden
-                  className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-2xs font-bold ${
+                  className={`mt-0.5 w-4 h-4 rounded-full flex items-center justify-center text-xs font-bold ${
                     c.ok ? "bg-good text-on-good" : c.blocking ? "bg-critical text-on-critical" : "bg-warning text-on-warning"
                   }`}
                 >
@@ -53,7 +54,7 @@ export function PublishChecklist({
                 </span>
                 <span>
                   {c.label}
-                  {!c.ok && <span className="block text-2xs text-muted">{c.blocking ? "Blocks publishing." : "Warning only."}</span>}
+                  {!c.ok && <span className="block text-xs text-muted">{c.blocking ? "Blocks publishing." : "Warning only."}</span>}
                 </span>
               </li>
             ))}
@@ -84,7 +85,7 @@ export function PublishChecklist({
             <button
               type="submit"
               disabled={!canPublish}
-              className="text-sm font-semibold bg-brand text-on-primary rounded-md px-5 py-2 hover:bg-brand-hover disabled:opacity-50"
+              className={buttonClass({ size: "sm", className: "disabled:opacity-50" })}
             >
               Publish
             </button>

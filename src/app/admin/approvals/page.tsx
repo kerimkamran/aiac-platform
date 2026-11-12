@@ -3,6 +3,7 @@ import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { createApprovalRequest, decideApproval } from "../actions";
+import { buttonClass } from "@/components/ui/Button";
 
 const TOASTS: ToastSpec[] = [
   { param: "ok", variant: "success" },
@@ -59,7 +60,7 @@ export default async function AdminApprovalsPage() {
                         icon="check"
                         tone="accent"
                         confirmMessage="Approve this request and execute it immediately?"
-                        className="inline-flex items-center gap-1.5 bg-brand text-on-primary text-xs font-bold px-3.5 py-2 rounded-md hover:bg-brand-hover transition-colors"
+                        className={buttonClass({ size: "sm" })}
                       >
                         Approve & execute
                       </ConfirmSubmitButton>
@@ -107,7 +108,7 @@ export default async function AdminApprovalsPage() {
             <ConfirmSubmitButton
               confirmMessage="Submit this request for approval?"
               tone="brand"
-              className="w-full bg-brand text-on-primary rounded-md py-2.5 text-sm font-semibold hover:bg-brand-hover transition-colors"
+              className={buttonClass({ size: "md", block: true })}
             >
               Submit for approval
             </ConfirmSubmitButton>

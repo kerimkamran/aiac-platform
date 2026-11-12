@@ -20,7 +20,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2.5">
       <VantageMark className="w-8 h-8 shrink-0" />
-      <span className="text-lg font-semibold tracking-tight text-foreground">Vantage</span>
+      <span className="text-lg font-semibold text-foreground">Vantage</span>
       {!compact && (
         <span className="hidden sm:inline-flex items-center gap-3 text-sm text-muted whitespace-nowrap">
           <span aria-hidden className="h-4 w-px bg-line" />
@@ -174,7 +174,7 @@ export function StatCard({
   return (
     <div className={emphasis ? "sm:col-span-2" : ""}>
       <p className="text-sm text-muted font-medium mb-1.5">{label}</p>
-      <p className={`font-semibold tabular-nums tracking-tight text-3xl ${emphasis ? "text-accent-dark" : "text-foreground"}`}>
+      <p className={`font-semibold tabular-nums text-3xl ${emphasis ? "text-accent-dark" : "text-foreground"}`}>
         {value}
       </p>
       {hint && <p className="text-sm text-muted mt-1">{hint}</p>}
@@ -336,14 +336,14 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
           <Icon name="sparkles" className="w-4 h-4 text-accent-dark" />
           Executive summary
         </p>
-        <span className={`text-2xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset ${RECOMMENDATION_TONE_CLS[summary.recommendationTone]}`}>
+        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset ${RECOMMENDATION_TONE_CLS[summary.recommendationTone]}`}>
           {summary.recommendationLabel}
         </span>
       </div>
       <p className="text-sm text-foreground leading-relaxed mb-4">{summary.headline}</p>
       <div className="grid sm:grid-cols-2 gap-4 mb-3">
         <div>
-          <p className="text-2xs font-bold uppercase tracking-[0.14em] text-muted mb-2">Strengths</p>
+          <p className="text-sm font-semibold text-muted mb-2">Strengths</p>
           {summary.strengths.length > 0 ? (
             <ul className="space-y-1.5">
               {summary.strengths.map((s, i) => (
@@ -358,7 +358,7 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
           )}
         </div>
         <div>
-          <p className="text-2xs font-bold uppercase tracking-[0.14em] text-muted mb-2">Development areas</p>
+          <p className="text-sm font-semibold text-muted mb-2">Development areas</p>
           {summary.developmentAreas.length > 0 ? (
             <ul className="space-y-1.5">
               {summary.developmentAreas.map((s, i) => (
@@ -374,9 +374,9 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
         </div>
       </div>
       {summary.comparisonSentence && (
-        <p className="text-2xs text-muted border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
+        <p className="text-xs text-muted border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
       )}
-      <p className="text-2xs text-muted/80 mt-3 italic">
+      <p className="text-xs text-muted/80 mt-3 italic">
         AI-assisted synthesis, human review required — not a sole basis for a hiring decision.
       </p>
     </Card>
@@ -398,7 +398,7 @@ export function BenchmarkCard({
   const deltaPositive = (benchmark.delta ?? 0) >= 0;
   return (
     <Card className="p-6 mb-6">
-      <p className="text-2xs font-bold uppercase tracking-[0.16em] text-muted mb-3">Benchmark vs. other candidates</p>
+      <p className="text-sm font-semibold text-muted mb-3">Benchmark vs. other candidates</p>
       <div className="flex flex-wrap items-center gap-4">
         <p className="text-2xl font-bold text-accent-dark tabular-nums shrink-0">
           {benchmark.percentile}
@@ -422,9 +422,9 @@ export function BenchmarkCard({
           </p>
         </div>
         <div className="text-right shrink-0">
-          <p className="text-2xs font-bold uppercase tracking-wider text-muted">Peer avg</p>
+          <p className="text-sm font-semibold text-muted">Peer avg</p>
           <p className="text-sm font-bold text-foreground tabular-nums">{benchmark.peerAvg}</p>
-          <p className={`text-2xs font-semibold ${deltaPositive ? "text-good" : "text-critical"}`}>
+          <p className={`text-xs font-semibold ${deltaPositive ? "text-good" : "text-critical"}`}>
             {deltaPositive ? "+" : ""}
             {benchmark.delta}
           </p>

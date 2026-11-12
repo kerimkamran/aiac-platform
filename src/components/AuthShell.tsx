@@ -27,7 +27,7 @@ export async function AuthShell({
         <div className="relative h-full flex lg:flex-col lg:justify-between px-5 sm:px-8 lg:p-12 items-center lg:items-stretch">
           <Link href="/" className="flex items-center gap-3 rounded-md" aria-label={t.common.appName}>
             <VantageMark className="w-9 h-9" />
-            <span className="text-xl font-semibold tracking-tight text-on-panel">{t.common.appName}</span>
+            <span className="text-xl font-semibold text-on-panel">{t.common.appName}</span>
             <span className="hidden sm:inline text-sm text-on-panel-muted pl-3 border-l border-panel-line/60">{t.common.company}</span>
           </Link>
           <div className="hidden lg:block max-w-sm">

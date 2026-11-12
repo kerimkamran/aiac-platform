@@ -86,7 +86,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
       <div className="grid sm:grid-cols-2 gap-4">
         {improved.length > 0 && (
           <div>
-            <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Most improved</p>
+            <p className="text-sm font-semibold text-muted mb-2">Most improved</p>
             <div className="space-y-1.5">
               {improved.map((m) => (
                 <div key={m.name} className="flex items-center justify-between text-xs bg-good-soft border border-good/40 rounded-lg px-3 py-2">
@@ -99,7 +99,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
         )}
         {growthAreas.length > 0 && (
           <div>
-            <p className="text-2xs font-bold uppercase tracking-wider text-muted mb-2">Keep developing</p>
+            <p className="text-sm font-semibold text-muted mb-2">Keep developing</p>
             <div className="space-y-1.5">
               {growthAreas.map((m) => (
                 <div key={m.name} className="flex items-center justify-between text-xs bg-warning-soft border border-warning/40 rounded-lg px-3 py-2">

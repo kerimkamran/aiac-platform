@@ -115,14 +115,14 @@ export default async function StaffCandidatesPage({
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 mb-8">
-        <span className="text-2xs text-muted">Export filter:</span>
+        <span className="text-xs text-muted">Export filter:</span>
         <form action="/staff/reports/candidates" className="flex items-center gap-2">
           {status && <input type="hidden" name="status" value={status} />}
           {q && <input type="hidden" name="q" value={q} />}
           <select
             name="department"
             defaultValue={department}
-            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-2xs focus:outline-none focus:ring-1 focus:ring-accent"
+            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All departments / structures</option>
             {departments.map((d) => (
@@ -134,7 +134,7 @@ export default async function StaffCandidatesPage({
           <select
             name="vacancy"
             defaultValue={vacancy}
-            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-2xs focus:outline-none focus:ring-1 focus:ring-accent"
+            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All vacancies / assessments</option>
             {vacancies.map((v) => (
@@ -143,7 +143,7 @@ export default async function StaffCandidatesPage({
               </option>
             ))}
           </select>
-          <button className="bg-foreground text-background text-2xs font-semibold px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
+          <button className="bg-foreground text-background text-xs font-semibold px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
             Apply
           </button>
         </form>

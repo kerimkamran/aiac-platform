@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Card, Icon, PageHeader } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { broadcastNotification } from "../actions";
+import { buttonClass } from "@/components/ui/Button";
 
 const TOASTS: ToastSpec[] = [
   { param: "ok", variant: "success" },
@@ -40,7 +41,7 @@ export default async function AdminNotificationsPage() {
             </select>
             <input name="title" required placeholder="Title" className={input} aria-label="Title" />
             <textarea name="body" rows={3} placeholder="Message…" className={input} aria-label="Message" />
-            <button className="bg-brand text-on-primary text-sm font-semibold px-5 py-2.5 rounded-md hover:bg-brand-hover transition-colors">Send broadcast</button>
+            <button className={buttonClass({ size: "md" })}>Send broadcast</button>
           </form>
         </Card>
 
@@ -57,7 +58,7 @@ export default async function AdminNotificationsPage() {
                     <p className="font-semibold text-foreground">{t.template_key.replace(/_/g, " ")}</p>
                     <p className="text-xs text-muted truncate max-w-56">{t.subject}</p>
                   </div>
-                  <span className="text-2xs text-muted">{t.updated_at ? new Date(t.updated_at).toLocaleDateString() : ""}</span>
+                  <span className="text-xs text-muted">{t.updated_at ? new Date(t.updated_at).toLocaleDateString() : ""}</span>
                 </div>
               ))}
               {(!templates || templates.length === 0) && <p className="text-xs text-muted">No templates yet.</p>}

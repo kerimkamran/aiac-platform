@@ -14,7 +14,7 @@ export async function PublicShell({ children, wide = false }: { children: React.
         <div className="container-page flex h-14 items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-2.5 rounded-md" aria-label={t.common.appName}>
             <VantageMark className="w-8 h-8" />
-            <span className="text-lg font-semibold tracking-tight text-foreground">{t.common.appName}</span>
+            <span className="text-lg font-semibold text-foreground">{t.common.appName}</span>
           </Link>
           <div className="flex items-center gap-1">
             <LanguageSwitcher current={lang} label={t.common.language} />

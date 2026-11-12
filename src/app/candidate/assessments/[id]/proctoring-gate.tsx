@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Icon } from "@/components/ui";
+import { buttonClass } from "@/components/ui/Button";
 import { AssessmentRunner, type RunnerSection } from "./runner";
 
 export function ProctoredAssessmentRunner({
@@ -121,10 +122,10 @@ export function ProctoredAssessmentRunner({
     return (
       <div className="p-6 lg:p-10 max-w-lg mx-auto">
         <Card className="p-8">
-          <div className="w-12 h-12 rounded-2xl bg-accent-soft grid place-items-center mb-5">
+          <div className="w-12 h-12 rounded-card bg-accent-soft grid place-items-center mb-5">
             <Icon name="camera" className="w-6 h-6 text-accent-dark" />
           </div>
-          <h1 className="text-lg font-bold text-foreground mb-2 [font-family:var(--font-display)]">Camera consent required</h1>
+          <h1 className="text-lg font-bold text-foreground mb-2">Camera consent required</h1>
           <p className="text-sm text-muted leading-relaxed mb-2">
             This assessment records video for integrity review by the hiring team.{" "}
             {storageBackend === "supabase"
@@ -139,7 +140,7 @@ export function ProctoredAssessmentRunner({
           <button
             onClick={requestAccess}
             disabled={stage === "requesting"}
-            className="w-full inline-flex items-center justify-center gap-2 bg-brand text-on-primary text-sm font-semibold px-5 py-3 rounded-md hover:bg-brand-hover transition-colors disabled:opacity-60"
+            className={buttonClass({ size: "lg", block: true })}
           >
             <Icon name="camera" className="w-4 h-4" />
             {stage === "requesting" ? "Requesting access…" : "Allow camera & begin"}

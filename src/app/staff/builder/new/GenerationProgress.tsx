@@ -31,10 +31,10 @@ export function GenerationProgress({
   if (combos.length === 0 || Object.keys(jobs).length === 0) return null;
 
   return (
-    <section className="rounded-2xl border border-line bg-surface p-5 space-y-4" aria-live="polite">
+    <section className="rounded-card border border-line bg-surface p-5 space-y-4" aria-live="polite">
       <header className="flex items-baseline justify-between gap-3">
         <h2 className="font-bold text-foreground">Drafts</h2>
-        <span className="text-2xs font-semibold text-muted">{running ? "Working…" : "Finished"}</span>
+        <span className="text-xs font-semibold text-muted">{running ? "Working…" : "Finished"}</span>
       </header>
 
       <ul className="divide-y divide-line">
@@ -52,7 +52,7 @@ export function GenerationProgress({
                 {job.warnings.length > 0 && (
                   <ul className="mt-2 space-y-1">
                     {job.warnings.map((w, i) => (
-                      <li key={i} className="text-2xs text-warning bg-warning-soft rounded-md px-2 py-1">
+                      <li key={i} className="text-xs text-warning bg-warning-soft rounded-md px-2 py-1">
                         {w}
                       </li>
                     ))}

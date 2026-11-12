@@ -13,6 +13,7 @@ import { GenerationProgress } from "./GenerationProgress";
 import type { AssessmentLength, GenerationLanguage, QuestionMix } from "@/lib/generation";
 import type { EngineKey } from "@/lib/ai-engine";
 import { EMPTY_ROLE_CONTEXT, MAX_COMPETENCIES, type CatalogCompetency, type CatalogEngine, type Combo, type Job, type OneOff, type RoleContext } from "./types";
+import { buttonClass } from "@/components/ui/Button";
 
 export type { CatalogCompetency, CatalogEngine } from "./types";
 
@@ -312,7 +313,7 @@ export function NewAssessmentForm({
         levelsIncluded={levels}
       />
 
-      <section className="rounded-2xl border border-line bg-surface p-5 flex flex-wrap items-center justify-between gap-4">
+      <section className="rounded-card border border-line bg-surface p-5 flex flex-wrap items-center justify-between gap-4">
         <div className="text-sm text-muted">
           <p className="font-semibold text-foreground">
             {includedCombos.length} draft{includedCombos.length === 1 ? "" : "s"} ready
@@ -339,7 +340,7 @@ export function NewAssessmentForm({
             type="button"
             onClick={onGenerate}
             disabled={running || includedCombos.length === 0 || !aiPossible}
-            className="text-sm font-semibold bg-brand text-on-primary rounded-md px-5 py-2.5 hover:bg-brand-hover disabled:opacity-50"
+            className={buttonClass({ size: "md", className: "disabled:opacity-50" })}
           >
             {running ? "Generating…" : "Generate"}
           </button>
@@ -351,7 +352,7 @@ export function NewAssessmentForm({
       <GenerationProgress combos={includedCombos} jobTitle={jobTitle.trim()} jobs={jobs} running={running} onRetry={retry} />
 
       {allFinished && doneJobs.length > 1 && (
-        <section className="rounded-2xl border border-line bg-surface p-5">
+        <section className="rounded-card border border-line bg-surface p-5">
           <p className="font-semibold text-foreground mb-3">Drafts ready to review</p>
           <ul className="space-y-2">
             {doneJobs.map(([key, j]) => (
