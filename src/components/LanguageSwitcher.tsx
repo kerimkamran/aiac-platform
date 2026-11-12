@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { LANGS, LANG_COOKIE, LANG_LABEL, LANG_NAME, type Lang } from "@/i18n";
+import { useTransition } from "react";
+import { setLanguage } from "@/i18n/actions";
+import { LANGS, LANG_LABEL, LANG_NAME, type Lang } from "@/i18n";
 
 // EN · AZ · RU switcher (Clear Horizon plan, section 17). It appears only on
 // translated pages. The choice is a cookie, read on the server for the next
@@ -16,11 +18,14 @@ export function LanguageSwitcher({
   tone?: "default" | "panel";
 }) {
   const router = useRouter();
+  const [, start] = useTransition();
 
   function choose(lang: Lang) {
     if (lang === current) return;
-    document.cookie = `${LANG_COOKIE}=${lang}; path=/; max-age=31536000; samesite=lax`;
-    router.refresh();
+    start(async () => {
+      await setLanguage(lang);
+      router.refresh();
+    });
   }
 
   return (

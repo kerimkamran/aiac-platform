@@ -101,7 +101,7 @@ export default async function PeoplePage({
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader
         title="People & Access"
-        subtitle="Manage every account — candidates, staff, and decision makers — with role changes, deactivation, and a full activity log. Accounts are invite-only."
+        subtitle="Manage every account — candidates, staff, and decision makers — with role changes, deactivation, and a full activity log. Accounts are created by invitation only."
       />
 
       <ToastFromParams specs={TOAST_SPECS} />
