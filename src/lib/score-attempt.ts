@@ -211,3 +211,54 @@ export async function scoreAttempt(
 
   return { ok: true, overallScore };
 }
+
+/**
+ * Recalculates the competency scores and the overall score from the answer
+ * scores now stored (after a reviewer changed one). Uses the same weighting as
+ * the first scoring pass. Server-side, with the service-role client.
+ */
+export async function recomputeTotals(db: SupabaseClient, caId: string): Promise<{ ok: boolean; overallScore?: number; error?: string }> {
+  const { data: rows, error } = await db
+    .from("candidate_responses")
+    .select("score, questions(weight, competency_id, assessment_sections(competency_id))")
+    .eq("candidate_assessment_id", caId);
+  if (error || !rows) return { ok: false, error: "The answers could not be read." };
+
+  type Row = {
+    score: number | null;
+    questions: { weight: number | null; competency_id: string | null; assessment_sections: { competency_id: string | null } | null } | null;
+  };
+  const totals = new Map<string, { weighted: number; weight: number }>();
+  let overallWeighted = 0;
+  let overallWeight = 0;
+  for (const r of rows as unknown as Row[]) {
+    if (r.score === null || !r.questions) continue;
+    const w = Number(r.questions.weight) || 1;
+    const compId = r.questions.assessment_sections?.competency_id || r.questions.competency_id;
+    overallWeighted += Number(r.score) * w;
+    overallWeight += w;
+    if (!compId) continue;
+    const t = totals.get(compId) || { weighted: 0, weight: 0 };
+    t.weighted += Number(r.score) * w;
+    t.weight += w;
+    totals.set(compId, t);
+  }
+
+  for (const [competencyId, t] of totals) {
+    const score = t.weight > 0 ? t.weighted / t.weight : 0;
+    const { error: upErr } = await db.from("candidate_competency_scores").upsert(
+      {
+        candidate_assessment_id: caId,
+        competency_id: competencyId,
+        score: Math.round(score * 10) / 10,
+        level: score >= 85 ? "Exceeds" : score >= 70 ? "Fully Meets" : score >= 50 ? "Partially Meets" : "Does Not Meet",
+      },
+      { onConflict: "candidate_assessment_id,competency_id" }
+    );
+    if (upErr) return { ok: false, error: "The totals could not be saved." };
+  }
+  const overallScore = overallWeight > 0 ? Math.round((overallWeighted / overallWeight) * 10) / 10 : 0;
+  const { error: finErr } = await db.from("candidate_assessments").update({ overall_score: overallScore }).eq("id", caId);
+  if (finErr) return { ok: false, error: "The overall score could not be saved." };
+  return { ok: true, overallScore };
+}

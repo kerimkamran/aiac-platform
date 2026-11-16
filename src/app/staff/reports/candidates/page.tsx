@@ -7,7 +7,8 @@ const FILTERS = [
   { key: "", label: "All" },
   { key: "invited", label: "Invited" },
   { key: "in_progress", label: "In progress" },
-  { key: "scored", label: "Awaiting review" },
+  { key: "submitted", label: "Submitted" },
+  { key: "scored", label: "To review" },
   { key: "reviewed", label: "Reviewed" },
 ];
 
@@ -66,24 +67,33 @@ export default async function StaffCandidatesPage({
 
   const exportBase = `/staff/reports/candidates/export${qs({})}`;
 
+  // Answers still waiting for a person to confirm them, counted per attempt.
+  const flagCount = new Map<string, number>();
+  if (list.length > 0) {
+    const { data: flagged } = await supabase
+      .from("candidate_responses")
+      .select("candidate_assessment_id")
+      .eq("needs_review", true)
+      .in("candidate_assessment_id", list.map((r) => r.id));
+    for (const f of (flagged || []) as { candidate_assessment_id: string }[]) {
+      flagCount.set(f.candidate_assessment_id, (flagCount.get(f.candidate_assessment_id) ?? 0) + 1);
+    }
+  }
+
   const exportRows: CandidateExportRow[] = list.map((r) => ({
     id: r.id,
     status: r.status,
     overall_score: r.overall_score,
     due_at: r.due_at,
+    submitted_at: r.submitted_at,
+    flags: flagCount.get(r.id) ?? 0,
     candidate: r.candidate ? { full_name: r.candidate.full_name, email: r.candidate.email } : null,
     assessments: r.assessments ? { title: r.assessments.title } : null,
   }));
 
   return (
     <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-10">
-      <PageHeader title="Reports" subtitle="Every assessment attempt across the organization, with Role Fit scores and review status." />
-
-      <div className="flex items-center gap-1 mb-6 border-b border-line">
-        <span className="px-3.5 py-2.5 text-sm font-semibold text-foreground border-b-2 border-brand -mb-px">
-          Candidates
-        </span>
-      </div>
+      <PageHeader title="Candidates" subtitle="Everyone who has been invited to a test, with their status, score and what is waiting for a person." />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-5 mb-4 pb-4 border-b border-line">
@@ -92,8 +102,9 @@ export default async function StaffCandidatesPage({
             <Link
               key={f.key}
               href={`/staff/reports/candidates${qs({ status: f.key })}`}
-              className={`text-xs pb-1 border-b-2 transition-colors ${
-                status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent hover:text-muted"
+              aria-current={status === f.key ? "page" : undefined}
+              className={`text-sm min-h-11 inline-flex items-center border-b-2 transition-colors ${
+                status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent hover:text-foreground hover:border-line"
               }`}
             >
               {f.label}
@@ -108,14 +119,14 @@ export default async function StaffCandidatesPage({
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search name, email, or assessment"
+            placeholder="Search name, email or test"
             className="w-full bg-surface border border-line rounded-md pl-8 pr-3 py-1.5 text-xs placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </form>
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 mb-8">
-        <span className="text-xs text-muted">Export filter:</span>
+        <span className="text-sm text-muted">Filter by:</span>
         <form action="/staff/reports/candidates" className="flex items-center gap-2">
           {status && <input type="hidden" name="status" value={status} />}
           {q && <input type="hidden" name="q" value={q} />}

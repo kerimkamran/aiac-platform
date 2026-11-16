@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, reviewAnswer } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
@@ -10,6 +10,7 @@ import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFrom
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
 import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -81,7 +82,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_responses")
-      .select("response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options, competencies(name))")
+      .select("id, response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options, competencies(name))")
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_reviews")
@@ -158,6 +159,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   // used by the new summary banner and the per-response badges further down
   // share one source of truth.
   const responseRows = (responses || []) as unknown as {
+    id: string;
     response_text: string | null;
     selected_option: string | null;
     score: number;
@@ -171,6 +173,16 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     } | null;
   }[];
   const needsReviewCount = responseRows.filter((r) => r.needs_review).length;
+
+  // Who confirmed or changed each answer (migration 0023). Read on its own and
+  // tolerant of the columns not existing yet: a failed read shows no history.
+  const { data: reviewRows } = await supabase
+    .from("candidate_responses")
+    .select("id, ai_score, reviewed_at, reviewer_note")
+    .eq("candidate_assessment_id", id);
+  const reviewInfo = new Map(
+    ((reviewRows || []) as unknown as { id: string; ai_score: number | null; reviewed_at: string | null; reviewer_note: string | null }[]).map((r) => [r.id, r])
+  );
 
   // T5.1: the sorted bar list is the primary at-a-glance read of competency
   // performance (per the confirmed radar-demotion decision below); the radar
@@ -341,6 +353,61 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <Icon name="wand" className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-dark" />
                     {r.ai_rationale}
                   </p>
+                  {(() => {
+                    const info = reviewInfo.get(r.id);
+                    return (
+                      <div className="mt-4 pt-4 border-t border-line-soft no-print">
+                        {info?.reviewed_at && (
+                          <p className="text-sm text-muted mb-3">
+                            <span className="font-semibold text-foreground">Confirmed by a reviewer</span> on {new Date(info.reviewed_at).toLocaleDateString()}
+                            {info.ai_score !== null && info.ai_score !== undefined ? ` · changed from ${info.ai_score} to ${r.score}` : ""}
+                            {info.reviewer_note ? ` — “${info.reviewer_note}”` : ""}
+                          </p>
+                        )}
+                        {canDecide && ["scored", "reviewed"].includes(ca.status) && (
+                          <div className="flex flex-wrap items-start gap-3">
+                            <form action={reviewAnswer.bind(null, id, r.id)}>
+                              <input type="hidden" name="mode" value="agree" />
+                              <SubmitButton size="sm" variant="secondary" pendingLabel="Saving…">
+                                Agree with this score
+                              </SubmitButton>
+                            </form>
+                            <details className="min-w-0">
+                              <summary className="cursor-pointer min-h-11 inline-flex items-center text-sm font-semibold text-accent">Change score</summary>
+                              <form action={reviewAnswer.bind(null, id, r.id)} className="mt-2 flex flex-wrap items-end gap-3">
+                                <input type="hidden" name="mode" value="change" />
+                                <label className="text-sm font-semibold text-foreground">
+                                  New score (0 to 100)
+                                  <input
+                                    name="score"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    required
+                                    defaultValue={r.score}
+                                    className="mt-1 block w-28 min-h-12 rounded-md border border-line-control bg-surface px-3 text-base"
+                                  />
+                                </label>
+                                <label className="text-sm font-semibold text-foreground flex-1 min-w-[12rem]">
+                                  Why?
+                                  <input
+                                    name="note"
+                                    required
+                                    minLength={5}
+                                    maxLength={300}
+                                    className="mt-1 block w-full min-h-12 rounded-md border border-line-control bg-surface px-3 text-base font-normal"
+                                  />
+                                </label>
+                                <SubmitButton size="md" pendingLabel="Saving…">
+                                  Save score
+                                </SubmitButton>
+                              </form>
+                            </details>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
