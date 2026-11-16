@@ -13,8 +13,10 @@ const BATCH = 10;
  *
  *  An attempt still "in progress" five minutes after its deadline is submitted
  *  with the answers last saved on the server, marked late, and scored, so it
- *  does not sit open until the candidate happens to come back. Runs every 15
- *  minutes (Vercel Cron, see vercel.json), authorised with CRON_SECRET. */
+ *  does not sit open until the candidate happens to come back. Runs once a day
+ *  (Vercel Cron, see vercel.json; the free Hobby plan allows daily jobs only, so
+ *  change it to every 15 minutes on a Pro plan), authorised with CRON_SECRET.
+ *  The deadline itself is enforced on the server whenever anyone submits. */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
