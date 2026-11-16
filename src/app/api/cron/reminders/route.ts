@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { inviteRedirectUrl } from "@/lib/site-url";
+import { sendSetPasswordEmail } from "@/lib/supabase/mailer";
 
 export const runtime = "nodejs";
 
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   const { data: due, error } = await admin
     .from("candidate_assessments")
-    .select("id, due_at, candidate:profiles!candidate_assessments_candidate_id_fkey(email, full_name)")
+    .select("id, due_at, candidate:profiles!candidate_assessments_candidate_id_fkey(email, full_name, status)")
     .in("status", ["invited", "in_progress"])
     .not("due_at", "is", null)
     .gt("due_at", now.toISOString())
@@ -47,15 +47,15 @@ export async function GET(request: NextRequest) {
   let sent = 0;
   const failures: string[] = [];
   for (const row of due || []) {
-    const candidate = row.candidate as unknown as { email: string; full_name: string } | null;
+    const candidate = row.candidate as unknown as { email: string; full_name: string; status: string } | null;
     if (!candidate?.email) continue;
+    // Never email someone whose account has been deactivated.
+    if (candidate.status !== "active") continue;
 
-    const { error: mailError } = await admin.auth.resetPasswordForEmail(candidate.email, {
-      redirectTo: inviteRedirectUrl(),
-    });
+    const mailError = await sendSetPasswordEmail(candidate.email);
 
     if (mailError) {
-      failures.push(`${candidate.email}: ${mailError.message}`);
+      failures.push(`${candidate.email}: ${mailError}`);
       continue; // leave reminder_sent_at null so the next run retries
     }
 

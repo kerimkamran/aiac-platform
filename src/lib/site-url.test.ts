@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { inviteRedirectUrl, siteUrl } from "./site-url";
+import { inviteRedirectUrl, setPasswordLinkUrl, siteUrl } from "./site-url";
 
 const KEYS = ["NEXT_PUBLIC_SITE_URL", "VERCEL_PROJECT_PRODUCTION_URL", "VERCEL_URL"] as const;
 const saved: Record<string, string | undefined> = {};
@@ -40,5 +40,12 @@ describe("siteUrl", () => {
   it("builds the invite callback path", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://example.com";
     expect(inviteRedirectUrl()).toBe("https://example.com/invite/callback");
+  });
+
+  it("builds a set-password link that is verified on the server", () => {
+    process.env.NEXT_PUBLIC_SITE_URL = "https://example.com/";
+    expect(setPasswordLinkUrl("abcdef0123456789", "recovery")).toBe(
+      "https://example.com/auth/confirm?token_hash=abcdef0123456789&type=recovery"
+    );
   });
 });

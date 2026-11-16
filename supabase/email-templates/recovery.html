@@ -1,6 +1,13 @@
-<!-- Vantage email: Reset your password
-     Paste into Supabase Dashboard > Authentication > Email Templates.
-     {{ .ConfirmationURL }} is filled in by Supabase. -->
+<!-- Vantage email: Set your password
+     Paste into Supabase Dashboard > Authentication > Email Templates > Reset password.
+     Vantage sends this one email for invitations, "Resend invite", reminders
+     and "Forgot password", so the wording has to fit all of them.
+
+     The link goes to /auth/confirm on the app, which checks the token hash
+     on the server. Do not change it back to the ConfirmationURL variable: that link
+     only works in the browser that asked for it, never on the invitee's own
+     phone or laptop. The SiteURL variable is the "Site URL" in Supabase's URL
+     configuration and must be the address people use to reach Vantage. -->
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F6F9;padding:32px 16px;font-family:Inter,Arial,Helvetica,sans-serif;">
   <tr><td align="center">
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#FFFFFF;border:1px solid #D6DDE6;border-radius:12px;">
@@ -11,15 +18,18 @@
         <span style="font-size:14px;color:#4D5B6E;vertical-align:middle;padding-left:8px;">Azerconnect Group</span>
       </td></tr>
       <tr><td style="padding:16px 32px 0 32px;">
-        <h1 style="margin:0;font-size:24px;line-height:32px;font-weight:600;color:#0B1A2E;">Reset your password</h1>
-        <p style="margin:12px 0 0 0;font-size:16px;line-height:24px;color:#4D5B6E;">We received a request to reset your Vantage password. This link works once and expires soon. If you did not ask for it, you can ignore this email.</p>
+        <h1 style="margin:0;font-size:24px;line-height:32px;font-weight:600;color:#0B1A2E;">Set your Vantage password</h1>
+        <p style="margin:12px 0 0 0;font-size:16px;line-height:24px;color:#4D5B6E;">Use the button below to choose a password for your Vantage account. If your HR team has invited you to an assessment, this is how you get in.</p>
+        <p style="margin:12px 0 0 0;font-size:16px;line-height:24px;color:#4D5B6E;">The link works once. If it has expired, select &ldquo;Forgot password?&rdquo; on the <a href="{{ .SiteURL }}/login" style="color:#133E72;">Vantage sign-in page</a> to get a new one.</p>
+        <p style="margin:12px 0 0 0;font-size:16px;line-height:24px;color:#4D5B6E;">Already have a password? You don't need to change it: <a href="{{ .SiteURL }}/login" style="color:#133E72;font-weight:600;">sign in to Vantage</a>. If you have an assessment waiting, check its due date after you sign in.</p>
       </td></tr>
       <tr><td style="padding:24px 32px 8px 32px;">
-        <a href="{{ .ConfirmationURL }}" style="display:inline-block;background:#133E72;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 24px;border-radius:8px;">Choose a new password</a>
+        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery" style="display:inline-block;background:#133E72;color:#FFFFFF;text-decoration:none;font-weight:600;font-size:16px;line-height:24px;padding:12px 24px;border-radius:8px;">Set my password</a>
       </td></tr>
       <tr><td style="padding:16px 32px 28px 32px;font-size:14px;line-height:20px;color:#4D5B6E;">
+        Not expecting this email? You can ignore it.<br><br>
         If the button does not work, copy this link into your browser:<br>
-        <a href="{{ .ConfirmationURL }}" style="color:#1D5AA6;word-break:break-all;">{{ .ConfirmationURL }}</a>
+        <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery" style="color:#1D5AA6;word-break:break-all;">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=recovery</a>
       </td></tr>
     </table>
     <p style="max-width:520px;margin:16px 0 0 0;font-size:13px;line-height:18px;color:#4D5B6E;">Vantage, talent assessment by Azerconnect Group. AI drafts. People decide.</p>

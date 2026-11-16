@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { inviteRedirectUrl } from "@/lib/site-url";
+import { sendSetPasswordEmail } from "@/lib/supabase/mailer";
 
 async function requireAdmin() {
   const supabase = await createClient();
@@ -21,17 +21,15 @@ async function requireAdmin() {
 // Returns a short, admin-facing reason when the invite email could not be
 // queued (e.g. Supabase's shared default mailer rate limit), or null on
 // success. Every caller must check this instead of assuming the email went
-// out -- resetPasswordForEmail() can fail silently (rate limit, provider
-// error) and previously that failure was dropped on the floor, so admins
-// were told "invited by email" even when nothing was sent.
-async function sendInviteEmail(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  email: string
-): Promise<string | null> {
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: inviteRedirectUrl(),
-  });
-  return error ? error.message : null;
+// out -- the send can fail silently (rate limit, provider error) and
+// previously that failure was dropped on the floor, so admins were told
+// "invited by email" even when nothing was sent.
+//
+// The email is sent by a client that is not tied to this admin's browser
+// (see src/lib/supabase/mailer.ts), so the link works on the invitee's own
+// device.
+async function sendInviteEmail(email: string): Promise<string | null> {
+  return sendSetPasswordEmail(email);
 }
 
 // Supabase returns two distinct, unrelated errors here and admins shouldn't
@@ -103,7 +101,7 @@ export async function addCandidate(formData: FormData) {
     }
   }
 
-  const inviteError = await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(email);
 
   revalidatePath("/staff/people");
   revalidatePath("/staff/reports/candidates");
@@ -136,7 +134,7 @@ export async function addDecisionMaker(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent(error.message));
   }
 
-  const inviteError = await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(email);
 
   revalidatePath("/staff/people");
   redirect(
@@ -149,8 +147,8 @@ export async function addDecisionMaker(formData: FormData) {
 
 export async function resendInvite(email: string) {
   "use server";
-  const supabase = await requireAdmin();
-  const inviteError = await sendInviteEmail(supabase, email);
+  await requireAdmin();
+  const inviteError = await sendInviteEmail(email);
   revalidatePath("/staff/people");
   redirect(
     inviteError
@@ -277,7 +275,7 @@ export async function bulkAddCandidates(formData: FormData) {
 
     const wasCreated = provisioned?.[0]?.created as boolean | undefined;
     if (wasCreated) {
-      const inviteError = await sendInviteEmail(supabase, email);
+      const inviteError = await sendInviteEmail(email);
       if (inviteError) inviteFailed.push(email);
       added++;
     } else {
@@ -324,7 +322,7 @@ export async function addStaffMember(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent(error.message));
   }
 
-  const inviteError = await sendInviteEmail(supabase, email);
+  const inviteError = await sendInviteEmail(email);
 
   revalidatePath("/staff/people");
   redirect(
@@ -446,7 +444,7 @@ export async function bulkPeopleAction(formData: FormData) {
       } else if (action === "resend_invite") {
         const { data: row } = await supabase.from("profiles").select("email").eq("id", id).single();
         if (!row?.email) throw new Error("No email on file.");
-        const inviteError = await sendInviteEmail(supabase, row.email);
+        const inviteError = await sendInviteEmail(row.email);
         if (inviteError) throw new Error(inviteError);
       } else if (action === "assign_assessment") {
         const { error } = await supabase

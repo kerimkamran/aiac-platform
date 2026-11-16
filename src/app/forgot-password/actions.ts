@@ -1,21 +1,17 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { inviteRedirectUrl } from "@/lib/site-url";
+import { sendSetPasswordEmail } from "@/lib/supabase/mailer";
 
 export async function requestPasswordReset(formData: FormData) {
-  const email = String(formData.get("email") || "").trim();
+  const email = String(formData.get("email") || "").trim().toLowerCase();
   if (!email) return { error: "Enter your email address." };
 
-  const supabase = await createClient();
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: inviteRedirectUrl(),
-  });
+  const error = await sendSetPasswordEmail(email);
 
   // Deliberately don't leak whether the email exists -- always show the same
   // success state, so this can't be used to enumerate registered accounts.
   if (error) {
-    console.error("resetPasswordForEmail failed:", error.message);
+    console.error("Password reset email failed:", error);
   }
 
   return { ok: true };

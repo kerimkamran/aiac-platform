@@ -40,6 +40,9 @@ Supabase (Auth + Postgres with RLS). Charts are hand-rolled SVG — no chart dep
    file in `supabase/migrations/` in order, then `supabase/seed.sql` (37 competencies, demo accounts,
    two published assessments, pre-scored candidate journeys) in the SQL editor.
 3. `cp .env.example .env.local` and fill in the project URL + anon key.
+   For invitations and password resets to work, also follow the one-time
+   Supabase setup in `supabase/email-templates/README.md` (email template,
+   Site URL, link expiry, SMTP).
 4. `npm install && npm run dev`
 
 ### Demo accounts (password `Demo12345!`)
