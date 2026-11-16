@@ -41,7 +41,7 @@ function InlineFormErrorInner({ field, className }: { field?: string; className?
     const error = searchParams.get("error");
     const errorField = searchParams.get("field");
     const mine = !!error && (field ? errorField === field : !errorField);
-    if (mine) setMessage(decodeURIComponent(error!));
+    if (mine) setMessage(error!);
   }
 
   useEffect(() => {

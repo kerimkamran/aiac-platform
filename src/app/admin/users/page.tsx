@@ -33,7 +33,7 @@ export default async function AdminUsersPage({
   if (role) query = query.eq("role", role);
   if (status) query = query.eq("status", status);
   if (type === "employee") query = query.eq("is_employee", true);
-  if (type === "external") query = query.eq("is_employee", false);
+  if (type === "external") query = query.eq("is_employee", false).eq("role", "candidate");
 
   const sortCol = ["full_name", "email", "role", "last_login_at", "created_at"].includes(sort) ? sort : "created_at";
   const { data: users, count } = await query

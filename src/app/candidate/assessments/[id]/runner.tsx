@@ -294,6 +294,15 @@ export function AssessmentRunner({
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLInputElement && !["radio", "checkbox"].includes(target.type));
       if (isTyping) return;
+      // Leave browser shortcuts alone (Ctrl/Cmd+F, Alt+Left...) and let a
+      // focused button, link or menu keep its own Enter / arrow behaviour.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const onControl =
+        target instanceof HTMLButtonElement ||
+        target instanceof HTMLAnchorElement ||
+        target instanceof HTMLSelectElement ||
+        target?.getAttribute?.("role") === "button";
+      if (onControl && (e.key === "Enter" || e.key === " ")) return;
 
       if (current.q.type === "mcq") {
         const key = e.key.toUpperCase();

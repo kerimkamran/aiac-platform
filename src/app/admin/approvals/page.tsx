@@ -41,7 +41,7 @@ export default async function AdminApprovalsPage() {
                     {r.request_type.replace(/_/g, " ")}
                     <span className="text-muted font-medium"> — {p.full_name || p.email} {p.role ? `as ${p.role.replace(/_/g, " ")}` : ""}</span>
                   </p>
-                  <StatusBadge status={r.status === "pending" ? "in_progress" : r.status === "approved" ? "shortlist" : "reject"} />
+                  <StatusBadge status={r.status} />
                 </div>
                 <p className="text-xs text-muted mb-1.5">
                   Requested by <span className="font-semibold text-foreground">{requester?.full_name}</span> · {new Date(r.created_at).toLocaleString()}

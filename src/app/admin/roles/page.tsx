@@ -13,7 +13,9 @@ const TOASTS: ToastSpec[] = [
 const ROLE_ORDER = ["system_admin", "org_admin", "hr_admin", "recruiter", "assessor", "hiring_manager", "client_user", "candidate"];
 
 export default async function AdminRolesPage({ searchParams }: { searchParams: Promise<{ role?: string }> }) {
-  const { role = "recruiter" } = await searchParams;
+  const { role: roleParam } = await searchParams;
+  // An unknown ?role= falls back to recruiter instead of showing a blank matrix (ADM-B-23).
+  const role = roleParam && ROLE_ORDER.includes(roleParam) ? roleParam : "recruiter";
   const supabase = await createClient();
 
   const [{ data: perms }, { data: grants }] = await Promise.all([

@@ -14,6 +14,7 @@ export async function POST() {
       p_result: "success",
     });
   } catch {}
-  await supabase.auth.signOut();
+  // Only this browser: signing out here must not end the person's other sessions (INV-B-33).
+  await supabase.auth.signOut({ scope: "local" });
   redirect("/login");
 }

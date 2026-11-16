@@ -82,6 +82,11 @@ const STATUS_META: Record<string, { label: string; candidate?: string; tone: Pil
   growth_areas_identified: { label: "Growth areas identified", tone: "info" },
   active: { label: "Active", tone: "good" },
   deactivated: { label: "Deactivated", tone: "neutral" },
+  suspended: { label: "Suspended", tone: "warning" },
+  pending: { label: "Waiting for a decision", tone: "info" },
+  approved: { label: "Approved", tone: "good" },
+  declined: { label: "Declined", tone: "critical" },
+  rejected: { label: "Rejected", tone: "critical" },
 };
 
 export function StatusBadge({ status, audience = "staff" }: { status: string; audience?: "staff" | "candidate" }) {

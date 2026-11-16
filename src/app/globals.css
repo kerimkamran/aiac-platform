@@ -309,6 +309,13 @@
   --text-2xl--line-height: 2rem;
   --text-3xl: 2rem;                    /* Headline 32/40 */
   --text-3xl--line-height: 2.5rem;
+  /* Named steps used across the screens (UX-B-02): without these, every
+     heading and lead paragraph that asks for them fell back to body text. */
+  --text-title: 1.25rem;
+  --text-title--line-height: 1.75rem;
+  --text-title--font-weight: 600;
+  --text-body-large: 1.125rem;
+  --text-body-large--line-height: 1.75rem;
 
   /* Radius scale: 4 badges, 8 buttons and inputs, 12 cards and menus, 16
      dialogs and the sign-in card, 24 landing figures only. The standard

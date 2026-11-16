@@ -200,7 +200,8 @@ export function AppShell({
         </header>
 
         <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Menu">
-          <div className="-mx-2 space-y-0.5">
+          {/* Tapping the page you are already on does not change the path, so close on any link tap (UX-B-12). */}
+          <div className="-mx-2 space-y-0.5" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setSheetOpen(false); }}>
             {links.map((l) => {
               const active = isActive(l);
               return (
@@ -216,7 +217,7 @@ export function AppShell({
               );
             })}
           </div>
-          <div className="-mx-2 mt-3 pt-3 border-t border-line space-y-0.5">{accountLinks}</div>
+          <div className="-mx-2 mt-3 pt-3 border-t border-line space-y-0.5" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setSheetOpen(false); }}>{accountLinks}</div>
           <div className="mt-3 pt-4 border-t border-line">
             <div className="flex items-center gap-3 mb-4">
               <Avatar name={name} className="w-10 h-10 text-sm" />
