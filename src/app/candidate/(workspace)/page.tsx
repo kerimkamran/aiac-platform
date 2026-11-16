@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { WelcomeMark } from "@/components/WelcomeMark";
 import { EmptyState, StatusBadge } from "@/components/ui";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -48,10 +49,13 @@ export default async function CandidateHome() {
 
   return (
     <div className="container-page max-w-4xl py-8 lg:py-12">
-      <p className="text-mono-label text-muted">
-        {greeting()}
-        {firstName ? `, ${firstName}` : ""}
-      </p>
+      <div className="flex items-center gap-3">
+        <WelcomeMark />
+        <p className="text-base font-semibold text-muted">
+          {greeting()}
+          {firstName ? `, ${firstName}` : ""}
+        </p>
+      </div>
 
       {list.length === 0 ? (
         <div className="mt-6">

@@ -72,3 +72,53 @@ describe("decision-maker role", () => {
     expect(hits, hits.join("\n")).toEqual([]);
   });
 });
+
+// Redesign plan B3, B6 and B8: retired decoration stays gone, the type steps
+// the screens use are defined, and page content never waits invisible for an
+// animation to start.
+describe("redesign rules", () => {
+  const all: string[] = [];
+  (function collect(dir: string) {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) collect(full);
+      else if (/\.(ts|tsx)$/.test(e.name) && !e.name.endsWith("design-rules.test.ts")) all.push(full);
+    }
+  })(SRC);
+  const css = fs.readFileSync(path.join(SRC, "app", "globals.css"), "utf8");
+
+  function find(re: RegExp): string[] {
+    const hits: string[] = [];
+    for (const file of all) {
+      fs.readFileSync(file, "utf8").split("\n").forEach((line, i) => {
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return;
+        if (re.test(line)) hits.push(`${path.relative(SRC, file)}:${i + 1}`);
+      });
+    }
+    return hits;
+  }
+
+  it("retired decoration and controls are not used", () => {
+    const hits = find(/SwipeToConfirm|HorizonField|NodeField|HorizonSeal|ExamPreview|EvidenceCard/);
+    expect(hits, hits.join("\n")).toEqual([]);
+  });
+
+  it("page content has no entrance animation that starts invisible", () => {
+    const hits = find(/anim-fade-up/);
+    expect(hits, hits.join("\n")).toEqual([]);
+  });
+
+  it("the type steps used by the screens are defined", () => {
+    for (const step of ["--text-title:", "--text-title-large:", "--text-body-large:"]) {
+      expect(css.includes(step), `${step} missing in globals.css`).toBe(true);
+    }
+    for (const util of ["text-display", "text-headline", "text-mono-label"]) {
+      expect(css.includes(`@utility ${util}`), `${util} missing`).toBe(true);
+    }
+  });
+
+  it("the old cream and grey canvases and the signal blue are gone", () => {
+    expect(css).not.toMatch(/data-canvas/);
+    expect(css).not.toMatch(/#fcfaf5|#1d5aa6/i);
+  });
+});

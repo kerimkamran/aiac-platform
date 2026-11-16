@@ -31,7 +31,7 @@ export async function AuthShell({
         </div>
       </header>
       <main id="main-content" tabIndex={-1} className="flex-1 flex items-start sm:items-center justify-center px-4 sm:px-8 py-6 focus:outline-none">
-        <div className="w-full max-w-[640px] sm:max-w-md anim-fade-up">
+        <div className="w-full max-w-[640px] sm:max-w-md">
           <div className="rounded-dialog border border-line bg-surface p-6 sm:p-8">
             <h1 className="text-headline text-foreground">{title}</h1>
             {subtitle && <p className="text-base text-muted mt-2">{subtitle}</p>}

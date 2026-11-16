@@ -326,7 +326,7 @@ export default async function BuilderDetailPage({
                         to reorder sections or questions before this -- only
                         add and delete. Keyboard-operable up/down buttons
                         only; no drag path, since a drag-only reorder would
-                        fail WCAG 2.5.7 exactly like SwipeToConfirm did
+                        fail WCAG 2.5.7 exactly like the old slide control did
                         before Phase 4's T4.1 fix. */}
                     <div className="flex items-center gap-0.5">
                       <form action={moveSection.bind(null, section.id, id, "up")}>

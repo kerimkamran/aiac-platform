@@ -82,10 +82,10 @@
      tile, so its colours are the same in light and dark. */
   --horizon-from: #133e72;
   --horizon-to: #356d1b;
-  --mark-tile: #0c2a4f;
-  --mark-from: #5a90d4;
-  --mark-to: #8fd16e;
-  --mark-node: #8fd16e;
+  --mark-tile: #133e72;
+  --mark-from: #ffffff;
+  --mark-to: #7cc04b;
+  --mark-node: #7cc04b;
   --mark-field: #ffffff;
 
   /* Charts: always labelled, because navy and green are only 1.7:1 apart. */
@@ -459,6 +459,25 @@ a.text-accent-dark {
   from { stroke-dashoffset: var(--len, 1); }
   to { stroke-dashoffset: 0; }
 }
+/* Moment W1: the mark draws itself. Plays once, never blocks, and the mark is
+   fully visible without it (no delay-hidden state). */
+@keyframes mark-draw {
+  from { stroke-dashoffset: var(--len); }
+  to { stroke-dashoffset: 0; }
+}
+@keyframes mark-pop {
+  from { transform: scale(0.4); }
+  60% { transform: scale(1.15); }
+  to { transform: scale(1); }
+}
+@keyframes mark-dot {
+  from { transform: scale(0.6); }
+  to { transform: scale(1); }
+}
+.mark-animate .mark-link { animation: mark-draw 500ms var(--ease-standard) 250ms backwards; }
+.mark-animate .mark-view { transform-box: fill-box; transform-origin: center; animation: mark-dot 280ms var(--ease-standard) backwards; }
+.mark-animate .mark-view-2 { animation-delay: 120ms; }
+.mark-animate .mark-point { animation: mark-pop 450ms cubic-bezier(0.34, 1.56, 0.64, 1) 700ms backwards; }
 @keyframes grow-x {
   from { transform: scaleX(0); }
   to { transform: scaleX(1); }
