@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { buttonClass } from "@/components/ui/Button";
 import { Icon } from "@/components/ui";
-import { SwipeToConfirm } from "@/components/SwipeToConfirm";
 import { ProgressHorizon } from "@/components/horizon/ProgressHorizon";
 import { LOW_TIME_SECONDS, formatClock } from "@/lib/exam-time";
 
@@ -92,6 +92,7 @@ export function AssessmentRunner({
   const [savedAt, setSavedAt] = useState<number | null>(null);
   const [idx, setIdx] = useState(0);
   const [reviewing, setReviewing] = useState(false);
+  const [confirmingSubmit, setConfirmingSubmit] = useState(false);
   const [timerHidden, setTimerHidden] = useState(false);
   const [showGrid, setShowGrid] = useState(false);
   // Null until mounted, so the server and first client render agree and the
@@ -345,8 +346,11 @@ export function AssessmentRunner({
 
   const savedLabel =
     savedAt === null || nowMs === null
-      ? "Saved on this device"
-      : `Saved on this device · ${Math.max(0, Math.round((nowMs - savedAt) / 1000))} s ago`;
+      ? "Saved"
+      : // Minute steps only, so a screen reader is not interrupted every second.
+        nowMs - savedAt < 60_000
+        ? "Saved just now"
+        : `Saved · ${Math.floor((nowMs - savedAt) / 60_000)} min ago`;
 
   if (total === 0) {
     return (
@@ -383,8 +387,12 @@ export function AssessmentRunner({
         <div className="mx-auto flex max-w-[1040px] items-center gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-bold text-foreground sm:text-base">{title}</h1>
-            <p className="truncate text-xs text-muted" aria-live="polite">
+            <p className="truncate text-xs text-muted" aria-hidden="true">
               {savedLabel}
+            </p>
+            {/* Screen readers hear one fixed sentence, not a clock that changes every second. */}
+            <p className="sr-only" role="status">
+              {savedAt !== null ? "Answers saved on this device." : ""}
             </p>
           </div>
           {timerShown ? (
@@ -410,8 +418,9 @@ export function AssessmentRunner({
               {timerHidden ? "Show timer" : "Hide timer"}
             </button>
           )}
+          {/* The text changes once a minute, so it is announced once a minute. */}
           <p className="sr-only" role="status">
-            {low ? "Less than 5 minutes remaining." : ""}
+            {secondsLeft === null ? "" : secondsLeft <= 60 ? "Less than 1 minute remaining." : `${Math.ceil(secondsLeft / 60)} minutes remaining.`}
           </p>
           <Link
             href="/candidate/assessments"
@@ -517,6 +526,29 @@ export function AssessmentRunner({
             </span>
           </p>
 
+          {answered < total && (
+            <p role="status" className="mt-6 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
+              {total - answered} question{total - answered > 1 ? "s are" : " is"} not answered. You can still submit, but unanswered
+              questions earn no points.
+            </p>
+          )}
+          {confirmingSubmit && (
+            <div role="alertdialog" aria-labelledby="confirm-submit-h" className="mt-6 rounded-card border border-line bg-surface p-5">
+              <h3 id="confirm-submit-h" className="text-lg font-semibold text-foreground">
+                Submit your answers now?
+              </h3>
+              <p className="mt-1 text-base text-muted">You will not be able to change them afterwards.</p>
+              <div className="mt-4 flex flex-wrap gap-3">
+                <button type="button" autoFocus onClick={() => doSubmit()} disabled={isPending} className={buttonClass({ size: "md" })}>
+                  {isPending ? "Submitting…" : "Yes, submit"}
+                </button>
+                <button type="button" onClick={() => setConfirmingSubmit(false)} className={buttonClass({ size: "md", variant: "secondary" })}>
+                  Keep editing
+                </button>
+              </div>
+            </div>
+          )}
+
           <div className="mt-10 flex flex-col gap-3 sm:flex-row sm:items-center">
             <button
               type="button"
@@ -527,21 +559,15 @@ export function AssessmentRunner({
               Keep editing
             </button>
             <div className="flex-1">
-              <SwipeToConfirm
-                label={
-                  isPending
-                    ? "Submitting…"
-                    : answered < total
-                      ? `Answer ${total - answered} more to submit`
-                      : "Slide to submit assessment"
-                }
-                onConfirm={doSubmit}
-                disabled={answered < total || isPending}
-                tone="brand"
-                icon="send"
-                height={52}
-                className="w-full"
-              />
+              <button
+                type="button"
+                onClick={() => setConfirmingSubmit(true)}
+                disabled={isPending}
+                className={buttonClass({ size: "lg", block: true })}
+              >
+                <Icon name="send" className="h-4 w-4" />
+                {isPending ? "Submitting…" : answered < total ? "Submit with unanswered questions" : "Submit answers"}
+              </button>
             </div>
           </div>
         </main>

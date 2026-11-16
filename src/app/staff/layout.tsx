@@ -61,7 +61,7 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
 
   return (
-    <AppShell role={profile.role} name={profile.full_name} homeHref="/staff" links={links} actions={actions} switchLinks={switchLinks} showCredit>
+    <AppShell role={profile.role} name={profile.full_name} homeHref="/staff" links={links} actions={actions} switchLinks={switchLinks} primaryAction={profile.role !== "hiring_manager" ? { href: "/staff/invite", label: "Invite candidate", icon: "plus" } : undefined} showCredit>
       {children}
     </AppShell>
   );

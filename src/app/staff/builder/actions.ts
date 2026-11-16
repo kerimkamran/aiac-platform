@@ -2,6 +2,7 @@
 
 import { assignAssessment as assignToCandidate } from "@/lib/invite";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole, requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -101,40 +102,52 @@ export async function addSection(assessmentId: string, formData: FormData) {
 export async function addQuestion(sectionId: string, assessmentId: string, formData: FormData) {
   await requireStaff();
   const supabase = await createClient();
-  if (await isLockedForEditing(supabase, assessmentId)) {
-    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(LOCKED_MESSAGE));
+  const back = `/staff/builder/${assessmentId}`;
+  function fail(message: string): never {
+    redirect(`${back}?error=` + encodeURIComponent(message));
   }
+  if (await isLockedForEditing(supabase, assessmentId)) fail(LOCKED_MESSAGE);
 
-  const questionType = String(formData.get("question_type") || "text");
-  const prompt = String(formData.get("prompt") || "");
+  const questionType = String(formData.get("question_type") || "text") === "mcq" ? "mcq" : "text";
+  const prompt = String(formData.get("prompt") || "").trim();
   const competencyId = String(formData.get("competency_id") || "");
   const weight = Number(formData.get("weight") || 1);
+  if (prompt.length < 10) fail("A question needs a prompt of at least 10 characters.");
+  if (!Number.isFinite(weight) || weight <= 0) fail("The weight must be a number above zero.");
 
-  let options = null;
+  // Same rules as editing a question (BLD-X-01): a multiple-choice question
+  // needs two options with text and exactly one correct answer, and the letters
+  // are re-assigned after blanks are dropped.
+  let options: { key: string; text: string; correct: boolean }[] | null = null;
   if (questionType === "mcq") {
-    const optTexts = formData.getAll("option_text") as string[];
-    const correctIndex = Number(formData.get("correct_option") || 0);
-    options = optTexts
-      .map((t, i) => ({ key: String.fromCharCode(65 + i), text: t.trim(), correct: i === correctIndex }))
-      .filter((o) => o.text.length > 0);
+    const texts = (formData.getAll("option_text") as string[]).map((t) => String(t).trim());
+    const correctIndex = Number(formData.get("correct_option"));
+    const kept = texts.map((text, index) => ({ text, correct: index === correctIndex })).filter((o) => o.text.length > 0);
+    if (kept.length < 2) fail("A multiple-choice question needs at least two options.");
+    if (kept.filter((o) => o.correct).length !== 1) fail("Mark exactly one option as correct, and make sure it has text.");
+    options = kept.map((o, i) => ({ key: optionKey(i), text: o.text, correct: o.correct }));
   }
 
-  const { count } = await supabase
+  const { data: last } = await supabase
     .from("questions")
-    .select("id", { count: "exact", head: true })
-    .eq("section_id", sectionId);
+    .select("sequence")
+    .eq("section_id", sectionId)
+    .order("sequence", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
-  await supabase.from("questions").insert({
+  const { error } = await supabase.from("questions").insert({
     section_id: sectionId,
     question_type: questionType,
     prompt,
     options,
     competency_id: competencyId || null,
     weight,
-    sequence: (count || 0) + 1,
+    sequence: ((last as { sequence?: number } | null)?.sequence ?? 0) + 1,
   });
+  if (error) fail(error.message);
 
-  revalidatePath(`/staff/builder/${assessmentId}`);
+  revalidatePath(back);
 }
 
 export async function publishAssessment(assessmentId: string, formData?: FormData) {
@@ -247,7 +260,16 @@ async function loadEngine(
   // The key itself lives in Supabase Vault (encrypted at rest), not on this
   // row -- get_engine_api_key() is a SECURITY DEFINER RPC that decrypts it
   // server-side only, re-checking is_staff() independently of this call site.
-  const { data: apiKey } = await supabase.rpc("get_engine_api_key", { p_engine_key: engineKey });
+  // The browser-callable key function is closed (migration 0022): the check that
+  // this person may use AI runs as them, and the key is read with the server's
+  // own key, so a signed-in user can never fetch it from the browser (BLD-B-25).
+  const { data: allowed } = await supabase.rpc("can_use_ai");
+  const admin = createAdminClient();
+  let apiKey: string | null = null;
+  if (allowed && admin) {
+    const { data } = await admin.rpc("get_engine_api_key_for_scoring", { p_engine_key: engineKey });
+    apiKey = (data as string | null) ?? null;
+  }
 
   if (!engine || !engine.enabled || !engine.configured || !apiKey) {
     throw new Error(
@@ -831,6 +853,14 @@ export async function duplicateAssessment(assessmentId: string) {
 
   if (error || !created) redirect("/staff/builder?error=" + encodeURIComponent(error?.message || "Couldn't duplicate."));
 
+  // A copy that is missing parts is worse than no copy: remove it (its sections
+  // and questions go with it) and say what failed (BLD-B-24).
+  async function abandonCopy(reason: string): Promise<never> {
+    // Cleaned up with the server key: deleting tests is admin-only for a signed-in user (0022).
+    await (createAdminClient() ?? supabase).from("assessments").delete().eq("id", created!.id);
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(`The copy was not made (${reason}). Nothing was changed.`));
+  }
+
   for (const s of sections || []) {
     const { data: newSection, error: sErr } = await supabase
       .from("assessment_sections")
@@ -843,7 +873,7 @@ export async function duplicateAssessment(assessmentId: string) {
       })
       .select("id")
       .single();
-    if (sErr || !newSection) continue;
+    if (sErr || !newSection) return abandonCopy(sErr?.message || "a section could not be copied");
 
     const qs = ((s.questions || []) as unknown as {
       question_type: string;
@@ -861,14 +891,18 @@ export async function duplicateAssessment(assessmentId: string) {
       weight: q.weight,
       sequence: q.sequence,
     }));
-    if (qs.length > 0) await supabase.from("questions").insert(qs);
+    if (qs.length > 0) {
+      const { error: qErr } = await supabase.from("questions").insert(qs);
+      if (qErr) return abandonCopy(qErr.message);
+    }
   }
 
   if (proctoring) {
     const rest: Record<string, unknown> = { ...(proctoring as Record<string, unknown>) };
     delete rest.id;
     delete rest.assessment_id;
-    await supabase.from("proctoring_settings").insert({ ...rest, assessment_id: created.id });
+    const { error: pErr } = await supabase.from("proctoring_settings").insert({ ...rest, assessment_id: created.id });
+    if (pErr) return abandonCopy(pErr.message);
   }
 
   revalidatePath("/staff/builder");

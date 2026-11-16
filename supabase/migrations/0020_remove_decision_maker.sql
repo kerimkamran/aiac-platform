@@ -63,7 +63,8 @@ begin
 
   update public.profiles
     set role = p_role::public.user_role,
-        department = nullif(trim(coalesce(p_department, '')), '')
+        -- A null department means "leave it as it is" (ADM-B-10).
+        department = case when p_department is null then department else nullif(trim(p_department), '') end
     where id = p_user_id;
 
   insert into public.admin_audit_log (actor_id, action, target_user_id, details)

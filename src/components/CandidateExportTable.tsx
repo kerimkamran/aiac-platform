@@ -6,12 +6,16 @@ import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { nowMs } from "@/lib/time";
 import { buttonClass } from "@/components/ui/Button";
+import { ageLabel } from "@/lib/dates";
 
 export type CandidateExportRow = {
   id: string;
   status: string;
   overall_score: number | null;
   due_at?: string | null;
+  submitted_at?: string | null;
+  // Answers the scorer was not sure about and nobody has confirmed yet.
+  flags?: number;
   candidate: { full_name: string; email: string } | null;
   assessments: { title: string } | null;
 };
@@ -81,7 +85,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
         </div>
       ),
     },
-    { key: "assessment", label: "Assessment", render: (r) => <span className="text-muted">{r.assessments?.title}</span> },
+    { key: "assessment", label: "Test", render: (r) => <span className="text-muted">{r.assessments?.title}</span> },
     {
       key: "status",
       label: "Status",
@@ -103,9 +107,32 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
       ),
     },
     {
-      key: "role_fit",
-      label: "Role Fit",
+      key: "score",
+      label: "Score",
       render: (r) => (r.overall_score !== null ? <ScoreBadge score={Math.round(r.overall_score)} /> : <span className="text-muted">—</span>),
+    },
+    {
+      key: "flags",
+      label: "Flags",
+      render: (r) =>
+        r.flags ? (
+          <span className="inline-flex items-center gap-1 text-sm font-semibold text-warning">
+            <Icon name="alertTriangle" className="w-4 h-4" />
+            {r.flags} to check
+          </span>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
+    },
+    {
+      key: "waiting",
+      label: "Waiting since",
+      render: (r) =>
+        r.submitted_at && ["submitted", "scored"].includes(r.status) ? (
+          <span className="text-muted">{ageLabel(r.submitted_at)}</span>
+        ) : (
+          <span className="text-muted">—</span>
+        ),
     },
     {
       key: "actions",
@@ -116,7 +143,7 @@ export function CandidateExportTable({ rows, exportBase }: { rows: CandidateExpo
           href={`/staff/reports/candidates/${r.id}`}
           className="inline-flex items-center gap-1.5 text-accent-dark font-semibold whitespace-nowrap hover:underline"
         >
-          Review
+          Open
           <Icon name="arrowRight" className="w-3.5 h-3.5" />
         </Link>
       ),

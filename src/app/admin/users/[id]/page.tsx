@@ -234,13 +234,23 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               <span className="text-foreground font-medium">{user.consent_at ? new Date(user.consent_at).toLocaleDateString() : "—"}</span>
             </div>
             <div className="border-t border-line pt-4">
-              <form action={anonymizeUser.bind(null, id)}>
-                <ConfirmSubmitButton
-                  confirmMessage={`GDPR-anonymize ${user.full_name}? Personal data is permanently blanked (scores are kept, de-identified). This cannot be undone.`}
-                  className="w-full border border-line text-critical text-sm font-semibold px-4 py-2.5 rounded-xl hover:border-critical hover:bg-critical-soft transition-colors"
-                >
-                  Anonymize (GDPR)
-                </ConfirmSubmitButton>
+              <form action={anonymizeUser.bind(null, id)} className="space-y-3">
+                <p className="text-sm text-muted">
+                  Anonymising permanently blanks this person&apos;s personal data. Scores are kept without their name. This cannot be undone.
+                </p>
+                <label className="block text-sm font-semibold text-foreground" htmlFor="confirm_name">
+                  Type &ldquo;{user.full_name}&rdquo; to confirm
+                </label>
+                <input
+                  id="confirm_name"
+                  name="confirm_name"
+                  required
+                  autoComplete="off"
+                  className="w-full min-h-12 rounded-md border border-line-control bg-surface px-3 text-base"
+                />
+                <button className="w-full min-h-12 rounded-md bg-critical text-on-critical text-sm font-semibold px-4 hover:opacity-90">
+                  Anonymise this person
+                </button>
               </form>
               {user.anonymized_at && <p className="text-xs text-muted mt-2">Anonymized {new Date(user.anonymized_at).toLocaleString()}</p>}
             </div>

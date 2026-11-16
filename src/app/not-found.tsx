@@ -1,11 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { homeFor } from "@/lib/home";
 import { getT } from "@/i18n/server";
-import { NodeField } from "@/components/horizon/NodeField";
 import { ButtonLink } from "@/components/ui/Button";
 import { PublicShell } from "@/components/PublicShell";
 
-// 404: the V drifting out of frame. "Go to my home" follows the visitor's role.
+// 404. "Go to my home" follows the visitor's role.
 export default async function NotFound() {
   const { t } = await getT();
   let home = "/";
@@ -23,7 +22,7 @@ export default async function NotFound() {
   const signedIn = home !== "/";
   return (
     <PublicShell wide>
-      <div className="grid gap-10 lg:grid-cols-2 lg:items-center py-6">
+      <div className="py-6">
         <div>
           <p className="text-mono-label text-muted">404</p>
           <h1 className="mt-3 text-display text-foreground">{t.errors.notFound.title}</h1>
@@ -34,7 +33,6 @@ export default async function NotFound() {
             </ButtonLink>
           </div>
         </div>
-        <NodeField tone="page" drift className="w-full h-auto max-h-80" />
       </div>
     </PublicShell>
   );

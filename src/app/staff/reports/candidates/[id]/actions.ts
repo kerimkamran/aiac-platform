@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireRole, STAFF_ROLES } from "@/lib/authz";
 import { clampExtra } from "@/lib/exam-time";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { recomputeTotals } from "@/lib/score-attempt";
 
 export async function submitReview(candidateAssessmentId: string, formData: FormData) {
   await requireRole(...STAFF_ROLES);
@@ -50,6 +52,9 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
     .eq("id", candidateAssessmentId);
 
   revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
+  // Land back on the page with a clear "saved" message and a way to the next
+  // candidate waiting for a decision.
+  redirect(`${back}?decided=${decision}`);
 }
 
 export async function requestManagerSignoff(candidateAssessmentId: string) {
@@ -147,4 +152,71 @@ export async function setExtraTime(candidateAssessmentId: string, formData: Form
     .eq("id", candidateAssessmentId)
     .in("status", ["invited", "in_progress"]);
   revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
+}
+
+// A reviewer confirms (agree) or corrects (change) the score for one answer.
+// Confirming clears the "needs review" flag. A change keeps the AI's score in
+// ai_score, saves the reason, and recalculates the candidate's totals. Written
+// with the server key because candidates' score rows are not writable by users.
+export async function reviewAnswer(candidateAssessmentId: string, responseId: string, formData: FormData) {
+  await requireRole(...STAFF_ROLES);
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const back = `/staff/reports/candidates/${candidateAssessmentId}`;
+  const fail = (m: string): never => redirect(`${back}?error=` + encodeURIComponent(m));
+
+  const { data: target } = await supabase
+    .from("candidate_assessments")
+    .select("status, candidate_id")
+    .eq("id", candidateAssessmentId)
+    .maybeSingle();
+  if (!target) fail("That assessment was not found.");
+  if (target!.candidate_id === user!.id) fail("This is your own assessment. Another reviewer needs to review it.");
+  if (!["scored", "reviewed"].includes(target!.status)) fail("This assessment is not ready for review yet.");
+
+  const admin = createAdminClient();
+  if (!admin) fail("Reviewing answers needs the server key to be set up. Ask your administrator.");
+  const db = admin!;
+
+  const { data: row } = await db
+    .from("candidate_responses")
+    .select("id, score, ai_score")
+    .eq("id", responseId)
+    .eq("candidate_assessment_id", candidateAssessmentId)
+    .maybeSingle();
+  if (!row) fail("That answer was not found.");
+
+  const mode = String(formData.get("mode") || "agree");
+  const now = new Date().toISOString();
+  if (mode === "change") {
+    const next = Number(formData.get("score"));
+    const note = String(formData.get("note") || "").trim();
+    if (!Number.isFinite(next) || next < 0 || next > 100) fail("The score must be a number from 0 to 100.");
+    if (note.length < 5) fail("Say briefly why you changed the score.");
+    const { error } = await db
+      .from("candidate_responses")
+      .update({
+        ai_score: (row as { ai_score: number | null }).ai_score ?? (row as { score: number }).score,
+        score: Math.round(next),
+        reviewer_note: note,
+        reviewed_by: user!.id,
+        reviewed_at: now,
+        needs_review: false,
+      })
+      .eq("id", responseId);
+    if (error) fail("The score was not saved. Has migration 0023 been run?");
+    const totals = await recomputeTotals(db, candidateAssessmentId);
+    if (!totals.ok) fail(totals.error || "The totals could not be updated.");
+  } else {
+    const { error } = await db
+      .from("candidate_responses")
+      .update({ reviewed_by: user!.id, reviewed_at: now, needs_review: false })
+      .eq("id", responseId);
+    if (error) fail("The confirmation was not saved. Has migration 0023 been run?");
+  }
+
+  revalidatePath(back);
+  redirect(`${back}?added=` + encodeURIComponent(mode === "change" ? "Score changed and totals updated." : "Score confirmed."));
 }

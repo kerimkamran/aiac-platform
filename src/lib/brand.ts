@@ -19,9 +19,9 @@ export const BRAND = {
   critical: "#B42318",
   criticalTint: "#FDE7E4",
   white: "#FFFFFF",
-  // The mark: tile, V gradient and the centre node.
-  markTile: "#0C2A4F",
-  markFrom: "#5A90D4",
-  markTo: "#8FD16E",
-  markNode: "#8FD16E",
+  // The mark: the navy tile, the white views and links, and the lighter green point.
+  markTile: "#133E72",
+  markFrom: "#FFFFFF",
+  markTo: "#7CC04B",
+  markNode: "#7CC04B",
 } as const;

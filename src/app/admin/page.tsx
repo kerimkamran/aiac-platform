@@ -12,16 +12,10 @@ export const metadata = { title: "System" };
 // nothing needs attention the page says so and stays quiet; otherwise each
 // exception is one line with a way to act. All counts are head-only queries.
 const INDEX = [
-  { href: "/admin/users", label: "Users", note: "Accounts, roles and status" },
-  { href: "/admin/roles", label: "Roles & permissions", note: "What each role can do" },
-  { href: "/admin/organizations", label: "Organizations", note: "Companies and teams" },
-  { href: "/admin/approvals", label: "Approvals", note: "Requests that need a second person" },
-  { href: "/admin/audit", label: "Audit log", note: "Every admin action, append-only" },
-  { href: "/admin/security", label: "Security", note: "Sign-in and session rules" },
-  { href: "/admin/ai-governance", label: "AI governance", note: "Scoring engines and keys" },
-  { href: "/admin/data-governance", label: "Data governance", note: "Retention and exports" },
-  { href: "/admin/notifications", label: "Notifications", note: "What people are told, and when" },
-  { href: "/admin/api-docs", label: "API", note: "Endpoints and reference" },
+  { href: "/admin/users", label: "People & roles", note: "Accounts, roles, permissions and approvals" },
+  { href: "/admin/organizations", label: "Organisation", note: "Companies and teams" },
+  { href: "/admin/ai-governance", label: "AI & data", note: "Scoring engines, data rules, security and API" },
+  { href: "/admin/audit", label: "Activity log", note: "Every admin action, append-only" },
 ];
 
 export default async function SystemHorizon() {

@@ -27,6 +27,7 @@ import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { InlineFormError } from "@/components/InlineFormError";
 import { LEVELS, isLevelKey } from "@/lib/levels";
 import { buttonClass } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -229,17 +230,14 @@ export default async function BuilderDetailPage({
       <Card className="p-5 mb-6 flex flex-wrap items-center gap-3">
         <p className="text-sm font-bold text-foreground mr-auto">Reuse</p>
         <form action={duplicateAssessment.bind(null, id)}>
-          <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Make an exact copy</button>
+          <SubmitButton variant="secondary" pendingLabel="Copying…">Make an exact copy</SubmitButton>
         </form>
         {translationTargets.map((lang) => (
           <form key={lang} action={createTranslatedVersion.bind(null, id)}>
             <input type="hidden" name="language" value={lang} />
-            <button
-              disabled={questionCount === 0}
-              className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent disabled:opacity-50"
-            >
+            <SubmitButton variant="secondary" disabled={questionCount === 0} pendingLabel="Translating… about a minute">
               Create {lang === "az" ? "Azərbaycan" : "Русская"} version
-            </button>
+            </SubmitButton>
           </form>
         ))}
         <p className="basis-full text-xs text-muted">
@@ -328,7 +326,7 @@ export default async function BuilderDetailPage({
                         to reorder sections or questions before this -- only
                         add and delete. Keyboard-operable up/down buttons
                         only; no drag path, since a drag-only reorder would
-                        fail WCAG 2.5.7 exactly like SwipeToConfirm did
+                        fail WCAG 2.5.7 exactly like the old slide control did
                         before Phase 4's T4.1 fix. */}
                     <div className="flex items-center gap-0.5">
                       <form action={moveSection.bind(null, section.id, id, "up")}>
@@ -481,9 +479,9 @@ export default async function BuilderDetailPage({
                                 })}
                               </fieldset>
                             )}
-                            <button className={buttonClass({ size: "sm" })}>
+                            <SubmitButton size="sm" pendingLabel="Saving…">
                               Save question
-                            </button>
+                            </SubmitButton>
                           </form>
                           <form action={regenerateOneQuestion.bind(null, q.id, id)} className="mt-3 flex flex-wrap items-end gap-2">
                             <label className="flex-1 min-w-[12rem] text-xs font-semibold text-muted">
@@ -495,7 +493,7 @@ export default async function BuilderDetailPage({
                                 className="mt-1 w-full bg-surface border border-line rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-accent"
                               />
                             </label>
-                            <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Regenerate</button>
+                            <SubmitButton variant="secondary" pendingLabel="Generating…">Regenerate</SubmitButton>
                           </form>
                         </details>
                       )}

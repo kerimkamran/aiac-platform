@@ -106,7 +106,7 @@ export default async function SignoffsPage() {
                 const meta = caMeta.get(r.candidate_assessment_id);
                 return (
                   <Card key={r.id} className="p-5 flex items-start gap-3">
-                    <StatusBadge status={r.status === "approved" ? "approved" : "declined"} />
+                    <StatusBadge status={r.status === "approved" ? "signoff_approved" : "signoff_declined"} />
                     <div className="text-sm text-muted min-w-0">
                       <p>
                         <span className="font-semibold text-foreground">{meta?.candidateName}</span> —{" "}

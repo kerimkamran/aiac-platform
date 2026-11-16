@@ -7,12 +7,14 @@ import { Avatar } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui";
 import { IconButton } from "@/components/ui/IconButton";
+import { ButtonLink } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Dialog";
 import { CommandPalette } from "@/components/CommandPalette";
 import { AppearancePanel } from "@/components/AppearanceMenu";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { ToastProvider } from "@/components/Toaster";
 import type { CanvasChoice } from "@/lib/appearance";
+import { clearExamDrafts } from "@/lib/exam-drafts";
 
 // The signed-in app shell (Clear Horizon plan, section 15). One frosted 56px
 // top bar for every role: the mark and wordmark link to *your* home, text
@@ -29,6 +31,7 @@ export function AppShell({
   actions,
   contextLabel,
   switchLinks = [],
+  primaryAction,
   showSearch = true,
   showBell = true,
   defaultCanvas = "white",
@@ -45,6 +48,8 @@ export function AppShell({
   contextLabel?: string;
   // Areas this person can switch to (Workspace, Admin, My assessments).
   switchLinks?: NavLink[];
+  // One visible call to action in the top bar (for staff: Invite candidate).
+  primaryAction?: NavLink;
   showSearch?: boolean;
   showBell?: boolean;
   // Role default background: cream for candidates.
@@ -141,7 +146,7 @@ export function AppShell({
                 )}
               </Link>
               {links.length > 0 && (
-                <nav aria-label="Main" className="hidden lg:flex items-center gap-6 min-w-0">
+                <nav aria-label="Main" className="hidden md:flex items-center gap-6 min-w-0">
                   {links.map((l) => {
                     const active = isActive(l);
                     return (
@@ -162,10 +167,16 @@ export function AppShell({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {primaryAction && (
+                <ButtonLink href={primaryAction.href} size="md" className="mr-1 hidden sm:inline-flex">
+                  <Icon name="plus" className="w-4 h-4" />
+                  {primaryAction.label}
+                </ButtonLink>
+              )}
               {showSearch && links.length > 0 && <CommandPalette links={links} actions={actions} />}
               {showBell && <NotificationsBell />}
 
-              <div ref={menuRef} className="relative hidden lg:block ml-2">
+              <div ref={menuRef} className="relative hidden md:block ml-2">
                 <button
                   type="button"
                   onClick={() => setMenuOpen((o) => !o)}
@@ -190,7 +201,7 @@ export function AppShell({
                     </div>
                     <div className="p-2">
                       {switchLinks.length === 0 && accountLinks}
-                      <form action="/logout" method="post">
+                      <form action="/logout" method="post" onSubmit={clearExamDrafts}>
                         <button className="w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
                           <Icon name="logout" className="w-5 h-5 text-muted" />
                           Sign out
@@ -201,13 +212,21 @@ export function AppShell({
                 )}
               </div>
 
-              <IconButton icon="menu" label="Open menu" onClick={() => setSheetOpen(true)} className="lg:hidden -mr-2" aria-haspopup="dialog" />
+              <IconButton icon="menu" label="Open menu" onClick={() => setSheetOpen(true)} className="md:hidden -mr-2" aria-haspopup="dialog" />
             </div>
           </div>
         </header>
 
         <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Menu">
           {/* Tapping the page you are already on does not change the path, so close on any link tap (UX-B-12). */}
+          {primaryAction && (
+            <div className="mb-3 sm:hidden">
+              <ButtonLink href={primaryAction.href} size="lg" block onClick={() => setSheetOpen(false)}>
+                <Icon name="plus" className="w-4 h-4" />
+                {primaryAction.label}
+              </ButtonLink>
+            </div>
+          )}
           <div className="-mx-2 space-y-0.5" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setSheetOpen(false); }}>
             {links.map((l) => {
               const active = isActive(l);
@@ -234,7 +253,7 @@ export function AppShell({
               </div>
             </div>
             <AppearancePanel defaultCanvas={defaultCanvas} />
-            <form action="/logout" method="post" className="mt-4">
+            <form action="/logout" method="post" className="mt-4" onSubmit={clearExamDrafts}>
               <button className="w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-base font-medium text-foreground ring-1 ring-inset ring-line-control">
                 <Icon name="logout" className="w-5 h-5 text-muted" />
                 Sign out
@@ -243,9 +262,37 @@ export function AppShell({
           </div>
         </Sheet>
 
-        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">
+        <main id="main-content" tabIndex={-1} className={`flex-1 min-w-0 focus:outline-none ${links.length > 0 && links.length <= 5 ? "pb-20 md:pb-0" : ""}`}>
           {children}
         </main>
+
+        {/* Phones: the main places sit in a bar at the thumb (plan B9). */}
+        {links.length > 0 && links.length <= 5 && (
+          <nav
+            aria-label="Main"
+            className="md:hidden no-print fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
+          >
+            <ul className="flex">
+              {links.map((l) => {
+                const active = isActive(l);
+                return (
+                  <li key={l.href} className="flex-1 min-w-0">
+                    <Link
+                      href={l.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-xs ${
+                        active ? "font-semibold text-foreground" : "font-medium text-muted"
+                      }`}
+                    >
+                      <Icon name={l.icon} className={`w-6 h-6 ${active ? "text-brand" : "text-muted"}`} />
+                      <span className="truncate max-w-full">{l.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        )}
 
         <footer className="border-t border-line-soft no-print">
           <div className="container-page py-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-muted">

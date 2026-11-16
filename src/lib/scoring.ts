@@ -19,6 +19,10 @@
 import { extractJson } from "./ai-engine";
 import { LEVELS, type LevelKey } from "./levels";
 
+// Rationales written by the fallback start with this text, so reports can say
+// which answers were not read by the AI scorer.
+export const FALLBACK_RATIONALE_PREFIX = "Heuristic fallback scoring";
+
 export type ScoreResult = { score: number; rationale: string; needsReview: boolean };
 
 export type CompetencyContext = {
@@ -67,12 +71,12 @@ function scoreTextHeuristic(text: string): ScoreResult {
   if (sentenceEnders >= 4) score += 15;
   score = Math.max(0, Math.min(100, Math.round(score)));
 
-  const needsReview = score < 55 || wordCount < 15;
+  // A length-and-structure count never reads for substance, so a person always
+  // confirms these scores (plan ADD-STF-09).
+  const needsReview = true;
 
   let rationale = `Heuristic fallback scoring (no AI scoring engine configured/available): ${wordCount} words, ${sentenceEnders} sentence-ending marks. This is a length/structure heuristic, scored the same way in every language the platform generates assessments in -- not a model reading for substance, directional only.`;
-  if (needsReview) {
-    rationale += " Flagged for human reviewer confirmation (human-in-the-loop requirement, Part 4).";
-  }
+  rationale += " Flagged for human reviewer confirmation (human-in-the-loop requirement, Part 4).";
 
   return { score, rationale, needsReview };
 }

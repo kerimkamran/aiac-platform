@@ -1,18 +1,29 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, reviewAnswer } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { FALLBACK_RATIONALE_PREFIX } from "@/lib/scoring";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
 import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
-export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
+const DECIDED_WORDS: Record<string, string> = { shortlist: "shortlisted", hold: "put on hold", reject: "not progressed" };
+
+export default async function CandidateReviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ decided?: string }>;
+}) {
   const { id } = await params;
+  const { decided } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -81,7 +92,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_responses")
-      .select("response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options, competencies(name))")
+      .select("id, response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options, competencies(name))")
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_reviews")
@@ -158,6 +169,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   // used by the new summary banner and the per-response badges further down
   // share one source of truth.
   const responseRows = (responses || []) as unknown as {
+    id: string;
     response_text: string | null;
     selected_option: string | null;
     score: number;
@@ -171,6 +183,17 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     } | null;
   }[];
   const needsReviewCount = responseRows.filter((r) => r.needs_review).length;
+  const fallbackCount = responseRows.filter((r) => (r.ai_rationale || "").startsWith(FALLBACK_RATIONALE_PREFIX)).length;
+
+  // Who confirmed or changed each answer (migration 0023). Read on its own and
+  // tolerant of the columns not existing yet: a failed read shows no history.
+  const { data: reviewRows } = await supabase
+    .from("candidate_responses")
+    .select("id, ai_score, reviewed_at, reviewer_note")
+    .eq("candidate_assessment_id", id);
+  const reviewInfo = new Map(
+    ((reviewRows || []) as unknown as { id: string; ai_score: number | null; reviewed_at: string | null; reviewer_note: string | null }[]).map((r) => [r.id, r])
+  );
 
   // T5.1: the sorted bar list is the primary at-a-glance read of competency
   // performance (per the confirmed radar-demotion decision below); the radar
@@ -209,8 +232,19 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const { data: limitRow } = await supabase.from("assessments").select("time_limit_minutes").eq("id", ca.assessment_id).maybeSingle();
   const limitMinutes = (limitRow as { time_limit_minutes?: number } | null)?.time_limit_minutes ?? 60;
 
+  // The next person waiting for a decision (oldest submission first), so a
+  // reviewer can work through the queue without going back to the list.
+  const { data: waiting } = await supabase
+    .from("candidate_assessments")
+    .select("id, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name)")
+    .in("status", ["submitted", "scored"])
+    .neq("id", id)
+    .order("submitted_at", { ascending: true, nullsFirst: false })
+    .limit(1);
+  const nextWaiting = ((waiting || [])[0] ?? null) as unknown as { id: string; candidate: { full_name: string } | null } | null;
+
   return (
-    <div className="p-6 lg:p-10 max-w-5xl print-page">
+    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto print-page">
       <Link
         href="/staff/reports/candidates"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-5 font-medium no-print"
@@ -246,6 +280,25 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </div>
       </div>
 
+      {decided && DECIDED_WORDS[decided] ? (
+        <Callout tone="good" title={`Decision saved: ${candidate?.full_name} is ${DECIDED_WORDS[decided]}`} className="mb-6 no-print">
+          You can change it below at any time; every decision stays in the history.{" "}
+          {nextWaiting ? (
+            <Link href={`/staff/reports/candidates/${nextWaiting.id}`} className="font-semibold underline">
+              Next candidate: {nextWaiting.candidate?.full_name ?? "waiting for a decision"}
+            </Link>
+          ) : (
+            <span>Nobody else is waiting for a decision.</span>
+          )}
+        </Callout>
+      ) : null}
+
+      <a href="#decision" className="lg:hidden inline-flex items-center min-h-11 text-sm font-semibold underline mb-4 no-print">
+        Go to the decision
+      </a>
+
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem] gap-8 items-start">
+      <div className="min-w-0">
       {submittedLate ? (
         <Callout tone="warning" title="Submitted after the time limit" className="mb-6 no-print">
           The answers arrived after the time limit, or were closed automatically when time ran out. They are kept as written, and you decide how to treat them.
@@ -260,6 +313,13 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           first and the candidate's actual answers were buried below all of
           it; a reviewer had to trust the number before ever seeing what it
           was based on. */}
+
+      {fallbackCount > 0 && (
+        <Callout tone="warning" title="Some answers were not read by the AI scorer" className="mb-6 no-print">
+          {fallbackCount} {fallbackCount === 1 ? "answer was" : "answers were"} scored by a fallback that only counts length and sentences. Please read{" "}
+          {fallbackCount === 1 ? "it" : "them"} yourself and agree with or change {fallbackCount === 1 ? "the score" : "each score"}.
+        </Callout>
+      )}
 
       {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" />}
 
@@ -341,6 +401,61 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
                     <Icon name="wand" className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-dark" />
                     {r.ai_rationale}
                   </p>
+                  {(() => {
+                    const info = reviewInfo.get(r.id);
+                    return (
+                      <div className="mt-4 pt-4 border-t border-line-soft no-print">
+                        {info?.reviewed_at && (
+                          <p className="text-sm text-muted mb-3">
+                            <span className="font-semibold text-foreground">Confirmed by a reviewer</span> on {new Date(info.reviewed_at).toLocaleDateString()}
+                            {info.ai_score !== null && info.ai_score !== undefined ? ` · changed from ${info.ai_score} to ${r.score}` : ""}
+                            {info.reviewer_note ? ` — “${info.reviewer_note}”` : ""}
+                          </p>
+                        )}
+                        {canDecide && ["scored", "reviewed"].includes(ca.status) && (
+                          <div className="flex flex-wrap items-start gap-3">
+                            <form action={reviewAnswer.bind(null, id, r.id)}>
+                              <input type="hidden" name="mode" value="agree" />
+                              <SubmitButton size="sm" variant="secondary" pendingLabel="Saving…">
+                                Agree with this score
+                              </SubmitButton>
+                            </form>
+                            <details className="min-w-0">
+                              <summary className="cursor-pointer min-h-11 inline-flex items-center text-sm font-semibold text-accent">Change score</summary>
+                              <form action={reviewAnswer.bind(null, id, r.id)} className="mt-2 flex flex-wrap items-end gap-3">
+                                <input type="hidden" name="mode" value="change" />
+                                <label className="text-sm font-semibold text-foreground">
+                                  New score (0 to 100)
+                                  <input
+                                    name="score"
+                                    type="number"
+                                    min={0}
+                                    max={100}
+                                    required
+                                    defaultValue={r.score}
+                                    className="mt-1 block w-28 min-h-12 rounded-md border border-line-control bg-surface px-3 text-base"
+                                  />
+                                </label>
+                                <label className="text-sm font-semibold text-foreground flex-1 min-w-[12rem]">
+                                  Why?
+                                  <input
+                                    name="note"
+                                    required
+                                    minLength={5}
+                                    maxLength={300}
+                                    className="mt-1 block w-full min-h-12 rounded-md border border-line-control bg-surface px-3 text-base font-normal"
+                                  />
+                                </label>
+                                <SubmitButton size="md" pendingLabel="Saving…">
+                                  Save score
+                                </SubmitButton>
+                              </form>
+                            </details>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -548,7 +663,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </Card>
       )}
 
-      {/* ---------- The human decision ---------- */}
+      </div>
+
+      {/* ---------- The human decision (stays in view beside the evidence) ---------- */}
+      <aside id="decision" aria-label="Decision" className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scroll-mt-20">
       {["invited", "in_progress"].includes(ca.status) && (
         <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
       )}
@@ -580,7 +698,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           ) : (
             <div className="flex items-start gap-3">
               <StatusBadge
-                status={signoff.status === "pending" ? "in_progress" : signoff.status === "approved" ? "shortlist" : "reject"}
+                status={signoff.status === "pending" ? "signoff_pending" : signoff.status === "approved" ? "signoff_approved" : "signoff_declined"}
               />
               <div className="text-sm text-muted">
                 <p>
@@ -714,6 +832,14 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           </div>
         </Card>
       )}
+      {nextWaiting && !decided && (
+        <Link href={`/staff/reports/candidates/${nextWaiting.id}`} className="no-print inline-flex items-center gap-1.5 text-sm font-semibold underline min-h-11">
+          Skip to next candidate: {nextWaiting.candidate?.full_name ?? "waiting"}
+          <Icon name="arrowRight" className="w-4 h-4" />
+        </Link>
+      )}
+      </aside>
+      </div>
     </div>
   );
 }

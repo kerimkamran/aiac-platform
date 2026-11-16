@@ -1,5 +1,7 @@
+import { extraMinutesFor } from "@/lib/extra-minutes";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
+import { WelcomeMark } from "@/components/WelcomeMark";
 import { EmptyState, StatusBadge } from "@/components/ui";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
@@ -42,16 +44,21 @@ export default async function CandidateHome() {
   ]);
 
   const list = (assessments || []) as unknown as Row[];
+  const extra = await extraMinutesFor(supabase, list.map((a) => a.id));
+  const minutesOf = (a: Row) => (a.assessments?.time_limit_minutes ?? 0) + (extra.get(a.id) ?? 0);
   const next = list.find((a) => a.status === "in_progress") || list.find((a) => a.status === "invited");
   const focus = next || list[0];
   const firstName = (profile?.full_name || "").split(" ")[0];
 
   return (
     <div className="container-page max-w-4xl py-8 lg:py-12">
-      <p className="text-mono-label text-muted">
-        {greeting()}
-        {firstName ? `, ${firstName}` : ""}
-      </p>
+      <div className="flex items-center gap-3">
+        <WelcomeMark />
+        <p className="text-base font-semibold text-muted">
+          {greeting()}
+          {firstName ? `, ${firstName}` : ""}
+        </p>
+      </div>
 
       {list.length === 0 ? (
         <div className="mt-6">
@@ -76,7 +83,7 @@ export default async function CandidateHome() {
               <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-muted">
                 <span className="inline-flex items-center gap-1.5">
                   <Icon name="clock" className="w-4 h-4" />
-                  {next.assessments?.time_limit_minutes} minutes
+                  {minutesOf(next)} minutes
                 </span>
                 <span>Answers save as you go</span>
                 {next.due_at && <span className="font-semibold text-foreground">{dueLabel(next.due_at)}</span>}
@@ -108,7 +115,7 @@ export default async function CandidateHome() {
                 >
                   <p className="truncate text-base font-semibold text-foreground">{a.assessments?.title}</p>
                   <p className="text-sm text-muted">
-                    {a.assessments?.time_limit_minutes} min · invited {new Date(a.invited_at).toLocaleDateString()}
+                    {minutesOf(a)} min · invited {new Date(a.invited_at).toLocaleDateString()}
                   </p>
                 </ListRow>
               ))}

@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { Timeline } from "@/components/ui/Timeline";
-import { HorizonSeal } from "@/components/horizon/HorizonSeal";
+import { VantageMark } from "@/components/VantageMark";
 import { AssessmentPurpose, normalizePurpose } from "@/lib/purpose";
 import { ClearDraft } from "../ClearDraft";
 
@@ -54,6 +54,8 @@ export default async function AssessmentSubmittedPage({
     .single();
 
   if (!ca) notFound();
+  // Someone who has not submitted yet is sent back to the test, not shown a confirmation (CAN-B-31).
+  if (["invited", "in_progress"].includes(ca.status)) redirect(`/candidate/assessments/${id}`);
 
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
   const firstName = (profile?.full_name || "").split(/\s+/)[0] || "there";
@@ -65,8 +67,8 @@ export default async function AssessmentSubmittedPage({
     <div className="container-page max-w-xl py-10 lg:py-14">
       <ClearDraft caId={id} />
       <div className="flex flex-col items-center text-center">
-        <HorizonSeal />
-        <h1 className="mt-5 text-display text-foreground">{expired ? "Time ran out. Your answers are in." : `Your answers are in, ${firstName}.`}</h1>
+        <VantageMark animate tile={false} className="w-20 h-20" title="Vantage" />
+        <h1 className="mt-5 text-display text-foreground">{expired ? "Time ran out. Your answers are in." : `Well done, ${firstName}. You're finished.`}</h1>
         <p className="mt-3 text-body-large text-muted measure">
           {expired ? (
             <>
@@ -74,13 +76,13 @@ export default async function AssessmentSubmittedPage({
             </>
           ) : (
             <>
-              <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted. Thank you for seeing it through.
+              <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted. You can close this page.
             </>
           )}
         </p>
       </div>
 
-      <section className="mt-10 border-t border-line pt-6 anim-fade-up">
+      <section className="mt-10 border-t border-line pt-6">
         <h2 className="text-title-large text-foreground">What happens next</h2>
         <Timeline
           className="mt-5"

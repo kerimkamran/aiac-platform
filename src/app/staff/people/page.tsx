@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -45,6 +46,7 @@ type ProfileRow = {
   created_at: string;
   is_employee: boolean | null;
   job_title: string | null;
+  last_login_at?: string | null;
 };
 
 export default async function PeoplePage({
@@ -71,7 +73,7 @@ export default async function PeoplePage({
   const [{ data: profiles }, { data: assessmentOptions }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, email, role, department, status, created_at, is_employee, job_title")
+      .select("id, full_name, email, role, department, status, created_at, is_employee, job_title, last_login_at")
       .order("created_at", { ascending: false }),
     supabase.from("assessments").select("id, title").eq("status", "published").order("title"),
   ]);
@@ -84,7 +86,9 @@ export default async function PeoplePage({
     const needle = q.toLowerCase();
     return p.full_name.toLowerCase().includes(needle) || p.email.toLowerCase().includes(needle);
   };
-  const matchesStatus = (p: ProfileRow) => !statusFilter || p.status === statusFilter;
+  const neverSignedIn = (p: ProfileRow) => p.status === "active" && !p.last_login_at;
+  const matchesStatus = (p: ProfileRow) =>
+    !statusFilter || (statusFilter === "pending_invite" ? neverSignedIn(p) : p.status === statusFilter);
   const matchesRole = (p: ProfileRow) => !roleFilter || p.role === roleFilter;
 
   const staffRows = allRows.filter((p) => p.role !== "candidate" && matchesSearch(p) && matchesStatus(p) && matchesRole(p));
@@ -302,6 +306,7 @@ export default async function PeoplePage({
         <select name="status" defaultValue={statusFilter} className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
           <option value="">Any status</option>
           <option value="active">Active</option>
+          <option value="pending_invite">Invited, not signed in yet</option>
           <option value="deactivated">Deactivated</option>
         </select>
         <button className={buttonClass({ size: "sm" })}>
@@ -402,7 +407,7 @@ export default async function PeoplePage({
                   <td className="px-6 py-3 text-muted">{ROLE_LABEL[p.role] || p.role}</td>
                   <td className="px-6 py-3 text-muted">{p.department || "—"}</td>
                   <td className="px-6 py-3">
-                    <StatusBadge status={p.status} />
+                    {neverSignedIn(p) ? <StatusBadge status="invited_pending" /> : <StatusBadge status={p.status} />}
                   </td>
                   <td className="px-6 py-3 text-muted text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
                   <td className="px-6 py-3 text-right">
@@ -411,6 +416,14 @@ export default async function PeoplePage({
                         <Link href={`/staff/people${qs({ edit: p.id })}`} className="text-accent-dark text-xs font-semibold hover:underline">
                           Edit
                         </Link>
+                        {neverSignedIn(p) && (
+                          <>
+                            <form action={resendInvite.bind(null, p.email)}>
+                              <SubmitButton size="sm" variant="ghost" pendingLabel="Sending…">Resend invite</SubmitButton>
+                            </form>
+                            <CopyInviteLinkButton email={p.email} />
+                          </>
+                        )}
                         <form action={setUserStatus.bind(null, p.id, p.status === "active" ? "deactivated" : "active")}>
                           <ConfirmSubmitButton
                             confirmMessage={
@@ -539,7 +552,7 @@ export default async function PeoplePage({
                 </td>
                 <td className="px-6 py-3 text-muted">{p.department || "—"}</td>
                 <td className="px-6 py-3">
-                  <StatusBadge status={p.status} />
+                  {neverSignedIn(p) ? <StatusBadge status="invited_pending" /> : <StatusBadge status={p.status} />}
                 </td>
                 <td className="px-6 py-3 text-muted text-xs">{new Date(p.created_at).toLocaleDateString()}</td>
                 <td className="px-6 py-3 text-right">
@@ -547,10 +560,14 @@ export default async function PeoplePage({
                     <Link href={`/staff/people${qs({ edit: p.id })}`} className="text-accent-dark text-xs font-semibold hover:underline">
                       Edit
                     </Link>
-                    <form action={resendInvite.bind(null, p.email)}>
-                      <button className="text-accent-dark text-xs font-semibold hover:underline">Resend invite</button>
-                    </form>
-                    <CopyInviteLinkButton email={p.email} />
+                    {neverSignedIn(p) && (
+                      <>
+                        <form action={resendInvite.bind(null, p.email)}>
+                          <SubmitButton size="sm" variant="ghost" pendingLabel="Sending…">Resend invite</SubmitButton>
+                        </form>
+                        <CopyInviteLinkButton email={p.email} />
+                      </>
+                    )}
                     <form action={setUserStatus.bind(null, p.id, p.status === "active" ? "deactivated" : "active")}>
                       <ConfirmSubmitButton
                         confirmMessage={

@@ -4,61 +4,106 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SidebarLayout, type SidebarLink } from "@/components/SidebarLayout";
 
-// Design-execution-plan Phase 5 / T5.4: these eleven destinations used to all
-// live as a single crowded row of links in the admin area's own top bar
-// (NavShell's `links` prop, previously admin/layout.tsx's full list) --
-// exactly the kind of "deep page with its own sub-sections" NavShell.tsx's
-// SidebarLayout was already built for, but nothing had wired it up yet. The
-// admin layout's top bar now carries only the true top-level entries
-// (Overview, Back to Workspace); this component is what actually lists the
-// sub-pages, as a persistent rail on wider screens and a horizontal scrollable
-// strip on narrow ones (SidebarLayout's own rail is desktop-only by design,
-// matching the pattern already used for the Builder and candidate-detail
-// sidebars) so nothing that was reachable from a phone before becomes
-// unreachable now.
-const SECTIONS: SidebarLink[] = [
-  { id: "overview", label: "System", icon: "shield", href: "/admin" },
-  { id: "users", label: "Users", icon: "users", href: "/admin/users" },
-  { id: "roles", label: "Roles & Permissions", icon: "check", href: "/admin/roles" },
-  { id: "organizations", label: "Organizations", icon: "building", href: "/admin/organizations" },
-  { id: "approvals", label: "Approvals", icon: "checkCircle", href: "/admin/approvals" },
-  { id: "audit", label: "Audit Logs", icon: "file", href: "/admin/audit" },
-  { id: "notifications", label: "Notifications", icon: "mail", href: "/admin/notifications" },
-  { id: "security", label: "Security", icon: "ban", href: "/admin/security" },
-  { id: "ai-governance", label: "AI Governance", icon: "brain", href: "/admin/ai-governance" },
-  { id: "data-governance", label: "Data Governance", icon: "layers", href: "/admin/data-governance" },
-  { id: "api-docs", label: "API", icon: "command", href: "/admin/api-docs" },
+// Admin has four places (redesign plan B9/B11). Each one groups the pages that
+// used to be eleven separate sections; the pages are unchanged and reachable
+// from a small tab row above the content.
+type Page = { label: string; href: string };
+type Group = { id: string; label: string; icon: string; href: string; pages: Page[] };
+
+const GROUPS: Group[] = [
+  {
+    id: "people",
+    label: "People & roles",
+    icon: "users",
+    href: "/admin/users",
+    pages: [
+      { label: "Users", href: "/admin/users" },
+      { label: "Roles & permissions", href: "/admin/roles" },
+      { label: "Approvals", href: "/admin/approvals" },
+    ],
+  },
+  {
+    id: "organisation",
+    label: "Organisation",
+    icon: "building",
+    href: "/admin/organizations",
+    pages: [{ label: "Organisations", href: "/admin/organizations" }],
+  },
+  {
+    id: "ai-data",
+    label: "AI & data",
+    icon: "brain",
+    href: "/admin/ai-governance",
+    pages: [
+      { label: "AI settings", href: "/admin/ai-governance" },
+      { label: "Data", href: "/admin/data-governance" },
+      { label: "Security", href: "/admin/security" },
+      { label: "API", href: "/admin/api-docs" },
+    ],
+  },
+  {
+    id: "activity",
+    label: "Activity log",
+    icon: "file",
+    href: "/admin/audit",
+    pages: [
+      { label: "Activity log", href: "/admin/audit" },
+      { label: "Notifications", href: "/admin/notifications" },
+    ],
+  },
 ];
 
-function activeSectionId(pathname: string): string {
-  const match = SECTIONS.find((s) =>
-    s.href === "/admin" ? pathname === "/admin" : pathname === s.href || pathname.startsWith(s.href + "/")
-  );
-  return match?.id ?? "overview";
+const onPage = (pathname: string, href: string) => pathname === href || pathname.startsWith(href + "/");
+
+function activeGroup(pathname: string): Group {
+  return GROUPS.find((g) => g.pages.some((p) => onPage(pathname, p.href))) ?? GROUPS[0];
 }
 
 export function AdminSidebar({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const active = activeSectionId(pathname);
+  const group = activeGroup(pathname);
+  // The overview page itself belongs to no group.
+  const overview = pathname === "/admin";
+  const sections: SidebarLink[] = GROUPS.map((g) => ({ id: g.id, label: g.label, icon: g.icon, href: g.href }));
 
   return (
     <>
       <div className="md:hidden overflow-x-auto no-print border-b border-line mb-2">
-        <nav className="flex gap-1 px-3 w-max min-w-full">
-          {SECTIONS.map((s) => (
+        <nav aria-label="Admin" className="flex gap-1 px-3 w-max min-w-full">
+          {GROUPS.map((g) => (
             <Link
-              key={s.id}
-              href={s.href!}
-              className={`text-xs whitespace-nowrap px-3 py-2.5 border-b-2 transition-colors ${
-                active === s.id ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent"
+              key={g.id}
+              href={g.href}
+              aria-current={!overview && group.id === g.id ? "page" : undefined}
+              className={`text-sm whitespace-nowrap px-3 py-3 border-b-2 transition-colors ${
+                !overview && group.id === g.id ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent"
               }`}
             >
-              {s.label}
+              {g.label}
             </Link>
           ))}
         </nav>
       </div>
-      <SidebarLayout title="Admin" sections={SECTIONS} activeId={active}>
+      <SidebarLayout title="Admin" sections={sections} activeId={overview ? "" : group.id}>
+        {!overview && group.pages.length > 1 && (
+          <nav aria-label={group.label} className="flex flex-wrap gap-1 px-6 lg:px-10 pt-6 lg:pt-8 no-print">
+            {group.pages.map((p) => {
+              const on = onPage(pathname, p.href);
+              return (
+                <Link
+                  key={p.href}
+                  href={p.href}
+                  aria-current={on ? "page" : undefined}
+                  className={`min-h-11 inline-flex items-center rounded-md px-3 text-sm font-semibold ${
+                    on ? "bg-brand text-on-primary" : "text-muted hover:text-foreground hover:bg-surface-sunken"
+                  }`}
+                >
+                  {p.label}
+                </Link>
+              );
+            })}
+          </nav>
+        )}
         {children}
       </SidebarLayout>
     </>

@@ -115,14 +115,17 @@ export type ReportData = {
   generatedAt: string;
 };
 
-// The Vantage "Node V" mark (plan v2, section 4.4), drawn for the PDF.
+// The Vantage mark (redesign plan B7), drawn for the PDF: two views, links and
+// the green vantage point on the Azerconnect navy field.
 function LogoMark() {
   return (
     <Svg width={26} height={26} viewBox="0 0 64 64">
       <Rect width={64} height={64} rx={14} fill={PALETTE.markTile} />
-      {[16, 32, 48].flatMap((x) => [16, 32, 48].map((y) => <Circle key={`${x}-${y}`} cx={x} cy={y} r={2.6} fill={PALETTE.white} opacity={0.22} />))}
-      <Path d="M16 16 L32 48 L48 16" fill="none" stroke={PALETTE.markFrom} strokeWidth={5.5} strokeLinecap="round" strokeLinejoin="round" />
-      <Circle cx={32} cy={32} r={5.2} fill={PALETTE.markNode} />
+      <Path d="M14 17 L32 48.18" stroke={PALETTE.markFrom} strokeWidth={5} strokeLinecap="round" />
+      <Path d="M50 17 L32 48.18" stroke={PALETTE.markFrom} strokeWidth={5} strokeLinecap="round" />
+      <Circle cx={14} cy={17} r={7.75} fill={PALETTE.white} />
+      <Circle cx={50} cy={17} r={7.75} fill={PALETTE.white} />
+      <Circle cx={32} cy={48.18} r={9.5} fill={PALETTE.markNode} />
     </Svg>
   );
 }

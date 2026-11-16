@@ -128,6 +128,7 @@ export const en = {
       subtitle: "Use the email address your invitation was sent to.",
       firstTime: "First time here? Set up your account from your invitation email.",
       invitationLink: "Need help with your invitation?",
+      whatToExpect: "What to expect when you take a test",
       emailPlaceholder: "you@company.com",
     },
     errors: {
