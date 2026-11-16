@@ -1,3 +1,4 @@
+import { extraMinutesFor } from "@/lib/extra-minutes";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Card, EmptyState, Icon, PageHeader, StatusBadge } from "@/components/ui";
@@ -29,6 +30,7 @@ export default async function CandidateAssessmentsPage() {
   // Rows whose assessment isn't visible (a draft that was assigned before it was
   // published, or one the candidate can't see) come back with a null join; skip them.
   const list = ((assessments || []) as unknown as Row[]).filter((a) => a.assessments !== null);
+  const extra = await extraMinutesFor(supabase, list.map((a) => a.id));
   const now = nowMs();
   const todo = list.filter((a) => ["invited", "in_progress"].includes(a.status));
   const done = list.filter((a) => !["invited", "in_progress"].includes(a.status));
@@ -51,7 +53,7 @@ export default async function CandidateAssessmentsPage() {
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span className="inline-flex items-center gap-1.5">
               <Icon name="timer" className="w-4 h-4" />
-              {a.assessments?.time_limit_minutes} minutes
+              {(a.assessments?.time_limit_minutes ?? 0) + (extra.get(a.id) ?? 0)} minutes
             </span>
             {a.due_at && ["invited", "in_progress"].includes(a.status) && (
               <span className={`inline-flex items-center gap-1.5 font-semibold ${expired ? "text-critical" : ""}`}>

@@ -387,8 +387,12 @@ export function AssessmentRunner({
         <div className="mx-auto flex max-w-[1040px] items-center gap-3 px-4 py-3 sm:px-6">
           <div className="min-w-0 flex-1">
             <h1 className="truncate text-sm font-bold text-foreground sm:text-base">{title}</h1>
-            <p className="truncate text-xs text-muted" aria-live="polite">
+            <p className="truncate text-xs text-muted" aria-hidden="true">
               {savedLabel}
+            </p>
+            {/* Screen readers hear one fixed sentence, not a clock that changes every second. */}
+            <p className="sr-only" role="status">
+              {savedAt !== null ? "Answers saved on this device." : ""}
             </p>
           </div>
           {timerShown ? (

@@ -12,8 +12,17 @@ import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 
-export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
+const DECIDED_WORDS: Record<string, string> = { shortlist: "shortlisted", hold: "put on hold", reject: "not progressed" };
+
+export default async function CandidateReviewPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ decided?: string }>;
+}) {
   const { id } = await params;
+  const { decided } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -221,8 +230,19 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const { data: limitRow } = await supabase.from("assessments").select("time_limit_minutes").eq("id", ca.assessment_id).maybeSingle();
   const limitMinutes = (limitRow as { time_limit_minutes?: number } | null)?.time_limit_minutes ?? 60;
 
+  // The next person waiting for a decision (oldest submission first), so a
+  // reviewer can work through the queue without going back to the list.
+  const { data: waiting } = await supabase
+    .from("candidate_assessments")
+    .select("id, submitted_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name)")
+    .in("status", ["submitted", "scored"])
+    .neq("id", id)
+    .order("submitted_at", { ascending: true, nullsFirst: false })
+    .limit(1);
+  const nextWaiting = ((waiting || [])[0] ?? null) as unknown as { id: string; candidate: { full_name: string } | null } | null;
+
   return (
-    <div className="p-6 lg:p-10 max-w-5xl print-page">
+    <div className="px-6 lg:px-10 py-8 max-w-[1280px] mx-auto print-page">
       <Link
         href="/staff/reports/candidates"
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-5 font-medium no-print"
@@ -258,6 +278,25 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </div>
       </div>
 
+      {decided && DECIDED_WORDS[decided] ? (
+        <Callout tone="good" title={`Decision saved: ${candidate?.full_name} is ${DECIDED_WORDS[decided]}`} className="mb-6 no-print">
+          You can change it below at any time; every decision stays in the history.{" "}
+          {nextWaiting ? (
+            <Link href={`/staff/reports/candidates/${nextWaiting.id}`} className="font-semibold underline">
+              Next candidate: {nextWaiting.candidate?.full_name ?? "waiting for a decision"}
+            </Link>
+          ) : (
+            <span>Nobody else is waiting for a decision.</span>
+          )}
+        </Callout>
+      ) : null}
+
+      <a href="#decision" className="lg:hidden inline-flex items-center min-h-11 text-sm font-semibold underline mb-4 no-print">
+        Go to the decision
+      </a>
+
+      <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem] gap-8 items-start">
+      <div className="min-w-0">
       {submittedLate ? (
         <Callout tone="warning" title="Submitted after the time limit" className="mb-6 no-print">
           The answers arrived after the time limit, or were closed automatically when time ran out. They are kept as written, and you decide how to treat them.
@@ -615,7 +654,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         </Card>
       )}
 
-      {/* ---------- The human decision ---------- */}
+      </div>
+
+      {/* ---------- The human decision (stays in view beside the evidence) ---------- */}
+      <aside id="decision" aria-label="Decision" className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scroll-mt-20">
       {["invited", "in_progress"].includes(ca.status) && (
         <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
       )}
@@ -647,7 +689,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           ) : (
             <div className="flex items-start gap-3">
               <StatusBadge
-                status={signoff.status === "pending" ? "in_progress" : signoff.status === "approved" ? "shortlist" : "reject"}
+                status={signoff.status === "pending" ? "signoff_pending" : signoff.status === "approved" ? "signoff_approved" : "signoff_declined"}
               />
               <div className="text-sm text-muted">
                 <p>
@@ -781,6 +823,14 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           </div>
         </Card>
       )}
+      {nextWaiting && !decided && (
+        <Link href={`/staff/reports/candidates/${nextWaiting.id}`} className="no-print inline-flex items-center gap-1.5 text-sm font-semibold underline min-h-11">
+          Skip to next candidate: {nextWaiting.candidate?.full_name ?? "waiting"}
+          <Icon name="arrowRight" className="w-4 h-4" />
+        </Link>
+      )}
+      </aside>
+      </div>
     </div>
   );
 }

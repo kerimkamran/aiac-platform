@@ -87,6 +87,10 @@ const STATUS_META: Record<string, { label: string; candidate?: string; tone: Pil
   approved: { label: "Approved", tone: "good" },
   declined: { label: "Declined", tone: "critical" },
   rejected: { label: "Rejected", tone: "critical" },
+  invited_pending: { label: "Invited, not signed in yet", tone: "info" },
+  signoff_pending: { label: "Awaiting manager", tone: "info" },
+  signoff_approved: { label: "Manager approved", tone: "good" },
+  signoff_declined: { label: "Manager declined", tone: "critical" },
 };
 
 export function StatusBadge({ status, audience = "staff" }: { status: string; audience?: "staff" | "candidate" }) {

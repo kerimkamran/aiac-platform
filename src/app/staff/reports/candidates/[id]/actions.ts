@@ -52,6 +52,9 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
     .eq("id", candidateAssessmentId);
 
   revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
+  // Land back on the page with a clear "saved" message and a way to the next
+  // candidate waiting for a decision.
+  redirect(`${back}?decided=${decision}`);
 }
 
 export async function requestManagerSignoff(candidateAssessmentId: string) {

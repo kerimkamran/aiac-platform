@@ -14,6 +14,7 @@ import { AppearancePanel } from "@/components/AppearanceMenu";
 import { NotificationsBell } from "@/components/NotificationsBell";
 import { ToastProvider } from "@/components/Toaster";
 import type { CanvasChoice } from "@/lib/appearance";
+import { clearExamDrafts } from "@/lib/exam-drafts";
 
 // The signed-in app shell (Clear Horizon plan, section 15). One frosted 56px
 // top bar for every role: the mark and wordmark link to *your* home, text
@@ -200,7 +201,7 @@ export function AppShell({
                     </div>
                     <div className="p-2">
                       {switchLinks.length === 0 && accountLinks}
-                      <form action="/logout" method="post">
+                      <form action="/logout" method="post" onSubmit={clearExamDrafts}>
                         <button className="w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
                           <Icon name="logout" className="w-5 h-5 text-muted" />
                           Sign out
@@ -252,7 +253,7 @@ export function AppShell({
               </div>
             </div>
             <AppearancePanel defaultCanvas={defaultCanvas} />
-            <form action="/logout" method="post" className="mt-4">
+            <form action="/logout" method="post" className="mt-4" onSubmit={clearExamDrafts}>
               <button className="w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-base font-medium text-foreground ring-1 ring-inset ring-line-control">
                 <Icon name="logout" className="w-5 h-5 text-muted" />
                 Sign out
