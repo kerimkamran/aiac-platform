@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui";
 import { IconButton } from "@/components/ui/IconButton";
+import { ButtonLink } from "@/components/ui/Button";
 import { Sheet } from "@/components/ui/Dialog";
 import { CommandPalette } from "@/components/CommandPalette";
 import { AppearancePanel } from "@/components/AppearanceMenu";
@@ -29,6 +30,7 @@ export function AppShell({
   actions,
   contextLabel,
   switchLinks = [],
+  primaryAction,
   showSearch = true,
   showBell = true,
   defaultCanvas = "white",
@@ -45,6 +47,8 @@ export function AppShell({
   contextLabel?: string;
   // Areas this person can switch to (Workspace, Admin, My assessments).
   switchLinks?: NavLink[];
+  // One visible call to action in the top bar (for staff: Invite candidate).
+  primaryAction?: NavLink;
   showSearch?: boolean;
   showBell?: boolean;
   // Role default background: cream for candidates.
@@ -141,7 +145,7 @@ export function AppShell({
                 )}
               </Link>
               {links.length > 0 && (
-                <nav aria-label="Main" className="hidden lg:flex items-center gap-6 min-w-0">
+                <nav aria-label="Main" className="hidden md:flex items-center gap-6 min-w-0">
                   {links.map((l) => {
                     const active = isActive(l);
                     return (
@@ -162,10 +166,16 @@ export function AppShell({
             </div>
 
             <div className="flex items-center gap-1 shrink-0">
+              {primaryAction && (
+                <ButtonLink href={primaryAction.href} size="md" className="mr-1 hidden sm:inline-flex">
+                  <Icon name="plus" className="w-4 h-4" />
+                  {primaryAction.label}
+                </ButtonLink>
+              )}
               {showSearch && links.length > 0 && <CommandPalette links={links} actions={actions} />}
               {showBell && <NotificationsBell />}
 
-              <div ref={menuRef} className="relative hidden lg:block ml-2">
+              <div ref={menuRef} className="relative hidden md:block ml-2">
                 <button
                   type="button"
                   onClick={() => setMenuOpen((o) => !o)}
@@ -201,13 +211,21 @@ export function AppShell({
                 )}
               </div>
 
-              <IconButton icon="menu" label="Open menu" onClick={() => setSheetOpen(true)} className="lg:hidden -mr-2" aria-haspopup="dialog" />
+              <IconButton icon="menu" label="Open menu" onClick={() => setSheetOpen(true)} className="md:hidden -mr-2" aria-haspopup="dialog" />
             </div>
           </div>
         </header>
 
         <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Menu">
           {/* Tapping the page you are already on does not change the path, so close on any link tap (UX-B-12). */}
+          {primaryAction && (
+            <div className="mb-3 sm:hidden">
+              <ButtonLink href={primaryAction.href} size="lg" block onClick={() => setSheetOpen(false)}>
+                <Icon name="plus" className="w-4 h-4" />
+                {primaryAction.label}
+              </ButtonLink>
+            </div>
+          )}
           <div className="-mx-2 space-y-0.5" onClick={(e) => { if ((e.target as HTMLElement).closest("a")) setSheetOpen(false); }}>
             {links.map((l) => {
               const active = isActive(l);

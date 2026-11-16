@@ -72,14 +72,3 @@ export function ListRow({
   );
 }
 
-// A numbered figure frame for the public pages ("Fig. 01"): a mono label, a
-// hairline frame and an optional caption. The contents are live components.
-export function Fig({ n, caption, children, className = "" }: { n: number; caption?: ReactNode; children: ReactNode; className?: string }) {
-  return (
-    <figure className={className}>
-      <figcaption className="text-mono-label text-muted mb-3">Fig. {String(n).padStart(2, "0")}</figcaption>
-      <div className="rounded-figure border border-line bg-surface p-4 sm:p-6 shadow-sm">{children}</div>
-      {caption && <p className="text-sm text-muted mt-3 measure">{caption}</p>}
-    </figure>
-  );
-}

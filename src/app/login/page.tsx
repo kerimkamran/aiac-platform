@@ -72,6 +72,11 @@ export default async function LoginPage({
             {t.auth.signIn.invitationLink}
           </Link>
         </p>
+        <p className="text-sm text-center">
+          <Link href="/help/invitation" className="text-accent font-semibold hover:underline">
+            {t.auth.signIn.whatToExpect}
+          </Link>
+        </p>
       </form>
     </AuthShell>
   );

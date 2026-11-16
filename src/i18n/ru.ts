@@ -126,6 +126,7 @@ export const ru: Dict = {
       subtitle: "Используйте адрес эл. почты, на который пришло приглашение.",
       firstTime: "Впервые здесь? Настройте аккаунт по письму-приглашению.",
       invitationLink: "Нужна помощь с приглашением?",
+      whatToExpect: "Чего ожидать на тесте",
       emailPlaceholder: "you@company.com",
     },
     errors: {

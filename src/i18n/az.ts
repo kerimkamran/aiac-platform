@@ -127,6 +127,7 @@ export const az: Dict = {
       subtitle: "Dəvətin göndərildiyi e-poçt ünvanından istifadə edin.",
       firstTime: "İlk dəfədir? Hesabınızı dəvət məktubundan qurun.",
       invitationLink: "Dəvətlə bağlı köməyə ehtiyacınız var?",
+      whatToExpect: "Test zamanı nə gözləməli",
       emailPlaceholder: "siz@sirket.az",
     },
     errors: {

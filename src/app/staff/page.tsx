@@ -3,7 +3,6 @@ import Link from "next/link";
 import { Avatar, ScoreBadge, StatusBadge } from "@/components/ui";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { PipelineHorizon, type PipelineStage } from "@/components/horizon/PipelineHorizon";
 import { ageLabel, daysSince, greeting, REVIEW_TARGET_DAYS } from "@/lib/dates";
 
 // Staff home (Clear Horizon plan, section 10): a statement of what needs a
@@ -61,14 +60,14 @@ export default async function StaffHomePage() {
       .lt("due_at", nowIso),
   ]);
 
-  const stages: PipelineStage[] = STAGES.map((s, i) => ({
-    key: s.key,
-    label: s.label,
-    count: counts[i].count ?? 0,
-    href: `/staff/reports/candidates?status=${s.key}`,
-    emphasis: s.key === "scored",
-  }));
-  const waitingCount = stages.find((s) => s.key === "scored")?.count ?? 0;
+  const countOf = (key: string) => counts[STAGES.findIndex((s) => s.key === key)].count ?? 0;
+  const waitingCount = countOf("scored");
+  // At most three counters, and each one is a link to the filtered list.
+  const counters = [
+    { label: "waiting for review", n: waitingCount, href: "/staff/reports/candidates?status=scored" },
+    { label: "taking a test now", n: countOf("in_progress"), href: "/staff/reports/candidates?status=in_progress" },
+    { label: "invited but past the deadline", n: overdue ?? 0, href: "/staff/reports/candidates?status=invited" },
+  ];
   const waiting = (queue || []) as unknown as Row[];
   const recentRows = (recent || []) as unknown as Row[];
   const oldest = waiting[0]?.submitted_at ?? null;
@@ -98,14 +97,23 @@ export default async function StaffHomePage() {
       {waitingCount > 0 && (
         <div className="mt-6">
           <ButtonLink href="/staff/review" size="lg">
-            Start review mode
+            Start reviewing
             <Icon name="arrowRight" className="w-4 h-4 ml-2" />
           </ButtonLink>
         </div>
       )}
 
-      <section aria-label="Pipeline" className="mt-12 border-t border-line pt-8">
-        <PipelineHorizon stages={stages} overdue={overdue ?? 0} />
+      <section aria-label="Today" className="mt-10 grid gap-3 sm:grid-cols-3">
+        {counters.map((c) => (
+          <Link
+            key={c.label}
+            href={c.href}
+            className="press rounded-card border border-line bg-surface p-5 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            <p className="text-headline text-foreground tabular-nums">{c.n}</p>
+            <p className="mt-1 text-base text-muted">{c.label}</p>
+          </Link>
+        ))}
       </section>
 
       <div className="mt-14 grid gap-12 lg:grid-cols-2">
@@ -135,7 +143,7 @@ export default async function StaffHomePage() {
           </h2>
           {recentRows.length === 0 ? (
             <p className="mt-3 border-t border-line py-6 text-base text-muted">
-              Nothing submitted yet. Publish an assessment, then invite candidates from People.
+              Nothing submitted yet. Publish a test, then invite candidates.
             </p>
           ) : (
             <div className="mt-3 border-t border-line">
