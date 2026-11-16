@@ -37,7 +37,7 @@ export function RoleLevelPicker({
           onChange={(e) => setJobTitle(e.target.value)}
           maxLength={120}
           placeholder="e.g. Customer Care Team Lead"
-          className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 
@@ -53,7 +53,7 @@ export function RoleLevelPicker({
                 aria-pressed={on}
                 onClick={() => toggleLevel(l)}
                 className={`text-sm rounded-full px-3.5 py-1.5 ring-1 ring-inset transition-colors ${
-                  on ? "bg-brand text-on-primary ring-brand-deep" : "bg-canvas text-foreground ring-line hover:ring-accent"
+                  on ? "bg-brand text-on-primary ring-brand-deep" : "bg-surface text-foreground ring-line hover:ring-accent"
                 }`}
               >
                 {LEVELS[l].label}

@@ -59,7 +59,6 @@ export function AppShell({
   const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const roleLabel = role.replace(/_/g, " ");
-  const cream = defaultCanvas === "cream";
 
   const isActive = (l: NavLink) => (l.exact ? pathname === l.href : pathname === l.href || pathname.startsWith(l.href + "/"));
 
@@ -116,7 +115,7 @@ export function AppShell({
 
   return (
     <ToastProvider>
-      <div className={`min-h-screen flex flex-col bg-background ${cream ? "canvas-role-cream" : ""}`}>
+      <div className="min-h-screen flex flex-col bg-background">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:bg-brand focus:text-on-primary focus:px-4 focus:py-2.5 focus:rounded-md focus:text-sm focus:font-semibold"

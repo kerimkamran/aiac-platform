@@ -25,11 +25,6 @@ const THEMES: { value: ThemeChoice; label: string }[] = [
   { value: "dark", label: "Dark" },
   { value: "system", label: "System" },
 ];
-const CANVASES: { value: CanvasChoice; label: string }[] = [
-  { value: "white", label: "White" },
-  { value: "cream", label: "Cream" },
-  { value: "grey", label: "Grey" },
-];
 
 function hasStoredCanvas(): boolean {
   try {
@@ -99,11 +94,7 @@ export function AppearancePanel({
         <p className="text-sm font-semibold text-foreground">Theme</p>
         <SegmentedControl label="Theme" options={THEMES} value={appearance.theme} onChange={(theme) => update({ theme })} />
       </div>
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-foreground">Background</p>
-        <SegmentedControl label="Background" options={CANVASES} value={appearance.canvas} onChange={(canvas) => update({ canvas })} disabled={dark} />
-        <p className="text-sm text-muted">{dark ? "Dark mode uses its own background." : "Applies in light mode."}</p>
-      </div>
+      <p className="text-sm text-muted">{dark ? "Dark mode has its own colours." : "System follows your device setting."}</p>
     </div>
   );
 }

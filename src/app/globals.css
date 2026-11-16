@@ -6,32 +6,32 @@
    test (src/lib/no-raw-colours.test.ts) fails the build on hard-coded
    Tailwind palette classes or hex values outside this file.
 
-   Themes: light is the default and the `.dark` class switches to dark
-   (set before first paint by src/app/layout.tsx). Canvases (white, cream,
-   grey) change only the page background in light mode; dark mode has one
-   canvas. The contrast tests in src/lib/contrast*.test.ts read these blocks
-   directly, so the values here are the source of truth. Keep every token
-   value a plain hex colour so the tests can read it. */
+   Themes: one light theme, and the `.dark` class switches to dark (set before
+   first paint by src/app/layout.tsx; "system" follows the device). The page
+   background is the Azerconnect tint #F0F4FB with white cards on it. The
+   contrast tests in src/lib/contrast*.test.ts read these blocks directly, so
+   the values here are the source of truth. Keep every token value a plain hex
+   colour so the tests can read it. */
 
 :root {
   /* Surfaces and text */
-  --background: #ffffff;
+  --background: #f0f4fb;
   --surface: #ffffff;
   --raised: #ffffff;
-  --surface-sunken: #f4f6f9;
-  --foreground: #0b1a2e;
+  --surface-sunken: #f0f4fb;
+  --foreground: #151515;
   --muted: #4d5b6e;
-  --line: #d6dde6;
+  --line: #dce2ea;
   --line-soft: #e7ecf2;
   /* Control borders (inputs, checkboxes) need 3:1 against the surface. */
-  --line-strong: #75808f;
-  --line-control: #75808f;
+  --line-strong: #7a8797;
+  --line-control: #7a8797;
 
   /* Three soft shadows only: hover and primary card, menus, dialogs. */
   --shadow-xs: none;
-  --shadow-sm: 0 1px 2px rgba(11, 26, 46, 0.06), 0 2px 8px rgba(11, 26, 46, 0.05);
-  --shadow-md: 0 4px 16px rgba(11, 26, 46, 0.1);
-  --shadow-lg: 0 16px 48px rgba(11, 26, 46, 0.16);
+  --shadow-sm: none;
+  --shadow-md: 0 8px 24px rgba(21, 21, 21, 0.14);
+  --shadow-lg: 0 8px 24px rgba(21, 21, 21, 0.14);
 
   /* Primary: Azerconnect navy. Buttons and selected states. */
   --brand: #133e72;
@@ -42,14 +42,15 @@
   --brand-50: #eef3fa;
   --on-primary: #ffffff;
   --primary-container: #eef3fa;
-  --on-primary-container: #0b1a2e;
+  --on-primary-container: #151515;
 
-  /* Signal blue: links, focus ring and info. Kept apart from the navy so
-     links never look like buttons. */
-  --accent: #1d5aa6;
-  --accent-dark: #1d5aa6;
-  --accent-soft: #eef3fa;
-  --focus: #1d5aa6;
+  /* Links, focus ring and info are the Azerconnect navy too (the separate
+     signal blue is retired); links are underlined so they never read as
+     buttons. The soft tint is Azerconnect's information blue. */
+  --accent: #133e72;
+  --accent-dark: #133e72;
+  --accent-soft: #e2efff;
+  --focus: #133e72;
 
   /* Secondary: Azerconnect green. Progress, success, the vantage point. */
   --secondary: #356d1b;
@@ -68,7 +69,7 @@
   --critical: #b42318;
   --critical-soft: #fde7e4;
   --on-critical: #ffffff;
-  --info: #1d5aa6;
+  --info: #133e72;
 
   /* Brand panel: a deep night-navy block, at most one per screen. */
   --panel: #0c2a4f;
@@ -106,32 +107,6 @@
   --glass-alpha: 82%;
 }
 
-/* Backgrounds. White is the default for staff and admin; cream is the
-   candidate's canvas, the exam and the report; grey is optional. The
-   selectors are light-only so they never override dark mode. Cards stay
-   white on cream and grey, like paper on a desk. */
-:root:not(.dark)[data-canvas="cream"] {
-  --background: #fcfaf5;
-  --surface-sunken: #f3efe6;
-}
-:root:not(.dark)[data-canvas="grey"] {
-  --background: #f4f6f9;
-  --surface-sunken: #e9edf2;
-}
-/* Role default: candidates see cream until they choose a background. The
-   canvas attribute is written only for an explicit choice (including
-   white), so its absence means "not chosen". */
-:root:not(.dark):not([data-canvas]) .canvas-role-cream {
-  --background: #fcfaf5;
-  --surface-sunken: #f3efe6;
-}
-/* The focused exam is cream in light mode whatever the person's canvas
-   choice, so the question page reads as paper, not an app screen. */
-:root:not(.dark) .exam-canvas {
-  --background: #fcfaf5;
-  --surface-sunken: #f3efe6;
-}
-
 .dark {
   --background: #0a1424;
   --surface: #0f1c30;
@@ -145,9 +120,9 @@
   --line-control: #6e7f99;
 
   --shadow-xs: none;
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.6);
+  --shadow-sm: none;
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
 
   /* Navy fills disappear on a navy-black page, so buttons become a light
      "horizon blue" with ink text. The brand is carried by the panel, the
@@ -289,7 +264,9 @@
      rollout removes them. */
   --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: var(--font-geist-mono), ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  /* One typeface (plan B4): the "mono" role now means Inter with tabular
+     figures, so timers and scores still line up. */
+  --font-mono: var(--font-inter), system-ui, -apple-system, "Segoe UI", sans-serif;
 
   /* Type scale (design plan, section 6). Display XL, Display and Headline
      are utilities below because they change size with the screen. */
@@ -299,8 +276,8 @@
   --text-xs--line-height: 1.125rem;
   --text-sm: 0.875rem;                 /* Label 14/20 */
   --text-sm--line-height: 1.25rem;
-  --text-base: 1rem;                   /* Body 16/24 */
-  --text-base--line-height: 1.5rem;
+  --text-base: 1.0625rem;              /* Body 17/26 */
+  --text-base--line-height: 1.625rem;
   --text-lg: 1.125rem;                 /* Body large 18/28 */
   --text-lg--line-height: 1.75rem;
   --text-xl: 1.25rem;                  /* Title 20/28 */
@@ -311,9 +288,9 @@
   --text-3xl--line-height: 2.5rem;
   /* Named steps used across the screens (UX-B-02): without these, every
      heading and lead paragraph that asks for them fell back to body text. */
-  --text-title: 1.25rem;
-  --text-title--line-height: 1.75rem;
-  --text-title--font-weight: 600;
+  --text-title: 1.375rem;              /* Section title 22/30 */
+  --text-title--line-height: 1.875rem;
+  --text-title--font-weight: 700;
   --text-body-large: 1.125rem;
   --text-body-large--line-height: 1.75rem;
 
@@ -322,14 +299,14 @@
      Tailwind names are mapped onto it so the whole app moves at once. */
   --radius-xs: 0.25rem;
   --radius-sm: 0.25rem;
-  --radius-md: 0.5rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 1rem;
   --radius-2xl: 1rem;
   --radius-3xl: 1.5rem;
   --radius-chip: 0.25rem;
-  --radius-control: 0.5rem;
-  --radius-card: 0.75rem;
+  --radius-control: 0.625rem;          /* 10: controls */
+  --radius-card: 1rem;                 /* 16: cards and dialogs */
   --radius-dialog: 1rem;
   --radius-figure: 1.5rem;
 }
@@ -354,10 +331,10 @@
 }
 /* Headline: the statement on every home, sign-in titles. */
 @utility text-headline {
-  font-size: 1.625rem;
-  line-height: 2rem;
+  font-size: 1.75rem;
+  line-height: 2.25rem;
   letter-spacing: -0.025em;
-  font-weight: 600;
+  font-weight: 700;
   @media (min-width: 48rem) {
     font-size: 2rem;
     line-height: 2.5rem;
@@ -374,6 +351,7 @@
 /* Mono label: figure labels, eyebrows, counts, keyboard hints. */
 @utility text-mono-label {
   font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
   font-size: 0.8125rem;
   line-height: 1.125rem;
   letter-spacing: 0;
@@ -429,7 +407,14 @@ p, li {
   background: color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
-/* Visible focus on every interactive element, in signal blue. */
+/* Text links are navy and underlined, so they never read as buttons. */
+a.text-accent,
+a.text-accent-dark {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Visible focus on every interactive element, in navy. */
 :focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
