@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Callout } from "@/components/ui/Callout";
-import { ListRow } from "@/components/ui/Surfaces";
+import { HomeLauncher, type LauncherTile } from "@/components/HomeLauncher";
 import { Icon } from "@/components/ui/Icon";
 import { Avatar } from "@/components/ui";
 import { nowMs } from "@/lib/time";
@@ -11,13 +11,6 @@ export const metadata = { title: "System" };
 // System horizon (Clear Horizon plan, section 10): exceptions only. When
 // nothing needs attention the page says so and stays quiet; otherwise each
 // exception is one line with a way to act. All counts are head-only queries.
-const INDEX = [
-  { href: "/admin/users", label: "People & roles", note: "Accounts, roles, permissions and approvals" },
-  { href: "/admin/organizations", label: "Organisation", note: "Companies and teams" },
-  { href: "/admin/ai-governance", label: "AI & data", note: "Scoring engines, data rules, security and API" },
-  { href: "/admin/audit", label: "Activity log", note: "Every admin action, append-only" },
-];
-
 export default async function SystemHorizon() {
   const supabase = await createClient();
   const weekAgo = new Date(nowMs() - 7 * 86_400_000).toISOString();
@@ -51,8 +44,31 @@ export default async function SystemHorizon() {
       cta: "Open the audit log",
     });
 
+  const tiles: LauncherTile[] = [
+    {
+      href: "/admin/users",
+      title: "People & roles",
+      body: "Accounts, roles, permissions and approvals.",
+      icon: "users",
+      count: pending ?? 0,
+      countLabel: "approvals waiting",
+      primary: (pending ?? 0) > 0,
+    },
+    { href: "/admin/organizations", title: "Organisation", body: "Companies and teams.", icon: "building" },
+    { href: "/admin/ai-governance", title: "AI & data", body: "Scoring engines, data rules, security and API.", icon: "brain" },
+    {
+      href: "/admin/audit",
+      title: "Activity log",
+      body: "Every admin action, append-only.",
+      icon: "file",
+      count: denied ?? 0,
+      countLabel: "denied this week",
+    },
+    { href: "/staff", title: "Candidate workspace", body: "Tests, candidates and reviews.", icon: "clipboard" },
+  ];
+
   return (
-    <div className="px-1 py-2">
+    <div className="px-6 lg:px-10 py-8 max-w-5xl">
       <h1 className="text-display text-foreground measure">{exceptions.length === 0 ? "Nothing needs attention." : "A few things need attention."}</h1>
       <p className="mt-2 text-body-large text-muted measure">
         {exceptions.length === 0 ? "No pending approvals and no denied actions this week." : "Everything else is running as expected."}
@@ -82,15 +98,10 @@ export default async function SystemHorizon() {
 
       <section aria-labelledby="idx-h" className="mt-12">
         <h2 id="idx-h" className="text-title-large text-foreground">
-          Everything in Admin
+          Go to
         </h2>
-        <div className="mt-3 border-t border-line">
-          {INDEX.map((s) => (
-            <ListRow key={s.href} href={s.href}>
-              <p className="text-base font-semibold text-foreground">{s.label}</p>
-              <p className="text-sm text-muted">{s.note}</p>
-            </ListRow>
-          ))}
+        <div className="mt-4">
+          <HomeLauncher tiles={tiles} label="Admin functions" />
         </div>
       </section>
 

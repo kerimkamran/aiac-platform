@@ -5,6 +5,7 @@ import { WelcomeMark } from "@/components/WelcomeMark";
 import { EmptyState, StatusBadge } from "@/components/ui";
 import { ButtonLink } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
+import { HomeLauncher } from "@/components/HomeLauncher";
 import { ListRow, PrimaryCard } from "@/components/ui/Surfaces";
 import { PathHorizon, type PathStep } from "@/components/horizon/PathHorizon";
 import { dueLabel, greeting } from "@/lib/dates";
@@ -96,6 +97,31 @@ export default async function CandidateHome() {
               </div>
             </PrimaryCard>
           )}
+
+          <section aria-label="Quick links" className="mt-10">
+            <HomeLauncher
+              label="Quick links"
+              tiles={[
+                {
+                  href: "/candidate/assessments",
+                  title: "My tests",
+                  body: "Tests waiting for you and ones you have started.",
+                  icon: "clipboard",
+                  count: list.filter((a) => ["invited", "in_progress"].includes(a.status)).length,
+                  countLabel: "to do",
+                },
+                {
+                  href: "/candidate/results",
+                  title: "My results",
+                  body: "Your feedback once a person has reviewed it.",
+                  icon: "award",
+                  count: list.filter((a) => a.status === "reviewed").length,
+                  countLabel: "ready",
+                },
+                { href: "/privacy", title: "Privacy", body: "How your answers and recording are used.", icon: "shield" },
+              ]}
+            />
+          </section>
 
           <section aria-labelledby="mine-h" className="mt-12">
             <div className="flex items-baseline justify-between">

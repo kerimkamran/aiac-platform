@@ -37,6 +37,11 @@ export async function updateSession(request: NextRequest, requestHeaders?: Heade
   const protectedPrefixes = ["/candidate", "/staff", "/admin", "/signoffs", "/report", "/api/v1", "/api/search"];
   const isProtected = protectedPrefixes.some((p) => request.nextUrl.pathname.startsWith(p));
 
+  if (!user && isProtected && request.nextUrl.pathname.startsWith("/api/")) {
+    // Programs calling the API get a machine-readable answer, not a sign-in page.
+    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+  }
+
   if (!user && isProtected) {
     // Send the visitor to sign-in and remember where they were going, so an
     // emailed deep link returns there afterwards. The path is validated so it

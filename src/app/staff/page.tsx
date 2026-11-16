@@ -2,8 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { WelcomeMark } from "@/components/WelcomeMark";
 import { Avatar, ScoreBadge, StatusBadge } from "@/components/ui";
-import { ButtonLink } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { HomeLauncher, type LauncherTile } from "@/components/HomeLauncher";
 import { ageLabel, daysSince, greeting, REVIEW_TARGET_DAYS } from "@/lib/dates";
 
 // Staff home (Clear Horizon plan, section 10): a statement of what needs a
@@ -41,7 +40,7 @@ export default async function StaffHomePage() {
     STAGES.map((s) => supabase.from("candidate_assessments").select("id", { count: "exact", head: true }).eq("status", s.key))
   );
   const [{ data: profile }, { data: queue }, { data: recent }, { count: overdue }] = await Promise.all([
-    supabase.from("profiles").select("full_name").eq("id", user!.id).single(),
+    supabase.from("profiles").select("full_name, role").eq("id", user!.id).single(),
     supabase
       .from("candidate_assessments")
       .select(ROW_SELECT)
@@ -63,12 +62,50 @@ export default async function StaffHomePage() {
 
   const countOf = (key: string) => counts[STAGES.findIndex((s) => s.key === key)].count ?? 0;
   const waitingCount = countOf("scored");
-  // At most three counters, and each one is a link to the filtered list.
-  const counters = [
-    { label: "waiting for review", n: waitingCount, href: "/staff/reports/candidates?status=scored" },
-    { label: "taking a test now", n: countOf("in_progress"), href: "/staff/reports/candidates?status=in_progress" },
-    { label: "invited but past the deadline", n: overdue ?? 0, href: "/staff/reports/candidates?status=invited" },
+  const role = (profile as { role?: string } | null)?.role ?? "recruiter";
+  const isAdmin = ["hr_admin", "system_admin", "org_admin"].includes(role);
+  const canBuild = role !== "hiring_manager";
+  // The home is a menu: every function people use is one tap away.
+  const tiles: LauncherTile[] = [
+    {
+      href: "/staff/review",
+      title: "Review candidates",
+      body: waitingCount === 0 ? "Nothing is waiting for a person." : "Read the answers and make a decision.",
+      icon: "check",
+      count: waitingCount,
+      countLabel: "waiting for review",
+      primary: waitingCount > 0,
+    },
+    {
+      href: "/staff/reports/candidates",
+      title: "Candidates",
+      body: "Everyone invited, with status and scores.",
+      icon: "users",
+      count: countOf("in_progress"),
+      countLabel: "taking a test now",
+    },
   ];
+  if (canBuild) {
+    tiles.push(
+      { href: "/staff/invite", title: "Invite candidates", body: "Send a test by email or copy the link.", icon: "send" },
+      { href: "/staff/builder", title: "Tests", body: "Open, edit and publish your tests.", icon: "layers" },
+      { href: "/staff/builder/new", title: "New test", body: "Build a test step by step, with AI help.", icon: "wand" }
+    );
+  }
+  tiles.push({
+    href: "/staff/reports/candidates?status=invited",
+    title: "Past the deadline",
+    body: "Invited people who have not started in time.",
+    icon: "clock",
+    count: overdue ?? 0,
+    countLabel: "past the deadline",
+  });
+  if (isAdmin) {
+    tiles.push(
+      { href: "/staff/people", title: "People & access", body: "Add people, change roles, send invites again.", icon: "shield" },
+      { href: "/staff/settings", title: "Settings", body: "Organisation settings and templates.", icon: "sliders" }
+    );
+  }
   const waiting = (queue || []) as unknown as Row[];
   const recentRows = (recent || []) as unknown as Row[];
   const oldest = waiting[0]?.submitted_at ?? null;
@@ -98,26 +135,12 @@ export default async function StaffHomePage() {
             ? `The longest wait is ${ageLabel(oldest)}${oldestDays > REVIEW_TARGET_DAYS ? `, past the ${REVIEW_TARGET_DAYS}-day target` : ""}.`
             : "Every score is a draft until a person confirms it."}
       </p>
-      {waitingCount > 0 && (
-        <div className="mt-6">
-          <ButtonLink href="/staff/review" size="lg">
-            Start reviewing
-            <Icon name="arrowRight" className="w-4 h-4 ml-2" />
-          </ButtonLink>
-        </div>
-      )}
 
-      <section aria-label="Today" className="mt-10 grid gap-3 sm:grid-cols-3">
-        {counters.map((c) => (
-          <Link
-            key={c.label}
-            href={c.href}
-            className="press rounded-card border border-line bg-surface p-5 hover:border-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            <p className="text-headline text-foreground tabular-nums">{c.n}</p>
-            <p className="mt-1 text-base text-muted">{c.label}</p>
-          </Link>
-        ))}
+      <section aria-labelledby="menu-h" className="mt-10">
+        <h2 id="menu-h" className="mb-4 text-title-large text-foreground">
+          What would you like to do?
+        </h2>
+        <HomeLauncher tiles={tiles} label="Functions" />
       </section>
 
       <div className="mt-14 grid gap-12 lg:grid-cols-2">

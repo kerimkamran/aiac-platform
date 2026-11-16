@@ -29,7 +29,8 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
 
   const patch: Record<string, unknown> = {};
   for (const key of EDITABLE) if (key in body) patch[key] = body[key];
-  if (Object.keys(patch).length === 0) return NextResponse.json({ error: "No editable fields in body" }, { status: 422 });
+  const hasRoleOrStatus = typeof body.role === "string" || typeof body.status === "string";
+  if (Object.keys(patch).length === 0 && !hasRoleOrStatus) return NextResponse.json({ error: "No editable fields in body" }, { status: 422 });
 
   const supabase = await createClient();
 
@@ -42,9 +43,16 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  const { data, error } = await supabase.from("profiles").update(patch).eq("id", id).select().maybeSingle();
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
-  await logAudit({ module: "api", action: "user_updated", targetType: "user", targetId: id, details: { fields: Object.keys(patch) } });
+  let data: unknown = null;
+  if (Object.keys(patch).length > 0) {
+    const res = await supabase.from("profiles").update(patch).eq("id", id).select().maybeSingle();
+    if (res.error) return NextResponse.json({ error: res.error.message }, { status: 400 });
+    data = res.data;
+  } else {
+    const res = await supabase.from("profiles").select().eq("id", id).maybeSingle();
+    data = res.data;
+  }
+  await logAudit({ module: "api", action: "user_updated", targetType: "user", targetId: id, details: { fields: [...Object.keys(patch), ...(typeof body.role === "string" ? ["role"] : []), ...(typeof body.status === "string" ? ["status"] : [])] } });
   return NextResponse.json({ data });
 }
 

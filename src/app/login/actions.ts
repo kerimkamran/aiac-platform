@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { logAudit } from "@/lib/authz";
 import { homeFor, safeNextPath } from "@/lib/home";
 
 // Maps what Supabase returns to a short code; the sign-in page turns the code
@@ -52,17 +53,7 @@ export async function login(formData: FormData) {
     redirect(loginUrl("deactivated", null));
   }
 
-  try {
-    await supabase.rpc("log_admin_event", {
-      p_module: "auth",
-      p_action: "login",
-      p_target_type: "user",
-      p_target_id: user!.id,
-      p_details: null,
-      p_ip: null,
-      p_result: "success",
-    });
-  } catch {}
+  await logAudit({ module: "auth", action: "login", targetType: "user", targetId: user!.id });
 
   // A deep link survives sign-in: an emailed link to an assessment returns you
   // there. It was validated above, so it can only be a path on this site.

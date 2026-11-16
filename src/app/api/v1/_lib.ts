@@ -1,3 +1,4 @@
+import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePermission, logAudit, type SessionProfile } from "@/lib/authz";
 
@@ -44,7 +45,16 @@ export async function guard(
     const profile = await requirePermission(module, action);
     return { profile };
   } catch {
-    return { response: NextResponse.json({ error: "Not authorized" }, { status: 401 }) };
+    // Signed out or a bad token is 401; signed in without the permission is 403.
+    let signedIn = false;
+    try {
+      const supabase = await createClient();
+      const { data } = await supabase.auth.getUser();
+      signedIn = !!data.user;
+    } catch {}
+    return signedIn
+      ? { response: NextResponse.json({ error: "Not authorized" }, { status: 403 }) }
+      : { response: NextResponse.json({ error: "Not authenticated" }, { status: 401 }) };
   }
 }
 

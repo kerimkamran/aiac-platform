@@ -119,10 +119,12 @@ export function AppShell({
         <Icon name="shield" className="w-5 h-5 text-muted" />
         Privacy
       </Link>
-      <Link href="/help/invitation" className="flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
-        <Icon name="helpCircle" className="w-5 h-5 text-muted" />
-        Help
-      </Link>
+      {role === "candidate" && (
+        <Link href="/help/invitation" className="flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
+          <Icon name="helpCircle" className="w-5 h-5 text-muted" />
+          Invitation help
+        </Link>
+      )}
     </>
   );
 
@@ -173,7 +175,7 @@ export function AppShell({
                   {primaryAction.label}
                 </ButtonLink>
               )}
-              {showSearch && links.length > 0 && <CommandPalette links={links} actions={actions} />}
+              {showSearch && role !== "candidate" && links.length > 0 && <CommandPalette links={links} actions={actions} />}
               {showBell && <NotificationsBell />}
 
               <div ref={menuRef} className="relative hidden md:block ml-2">

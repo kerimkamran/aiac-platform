@@ -484,6 +484,21 @@ a.text-accent-dark {
 }
 
 .anim-fade-up { animation: fade-up var(--dur-sheet) var(--ease-standard) both; }
+/* Launcher tiles rise into place one after another. They are never invisible:
+   only position moves, so nothing is lost if the animation does not run. */
+@keyframes tile-rise {
+  from { transform: translateY(10px); }
+  to { transform: translateY(0); }
+}
+.launch-tile {
+  animation: tile-rise var(--dur-sheet) var(--ease-standard) both;
+  animation-delay: calc(var(--i, 0) * 45ms);
+}
+.launch-tile:hover { transform: translateY(-2px); }
+.launch-tile:active { transform: scale(0.985); }
+.launch-arrow { transition: transform var(--dur-hover) var(--ease-standard); }
+.launch-tile:hover .launch-arrow, .launch-tile:focus-visible .launch-arrow { transform: translateX(4px); }
+
 .anim-fade-in { animation: fade-in var(--dur-menu) var(--ease-standard) both; }
 .anim-menu { animation: menu-in var(--dur-menu) var(--ease-standard) both; }
 .anim-sheet { animation: sheet-in var(--dur-sheet) var(--ease-standard) both; }

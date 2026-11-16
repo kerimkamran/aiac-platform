@@ -142,7 +142,9 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
   }, []);
 
   const items: Item[] = useMemo(() => {
-    const recentItems: Item[] = recents.map((r) => ({ ...r, group: "Recent" }));
+    // Recents are stored per browser, so keep only places this person can open.
+    const allowed = new Set([...links, ...actions].map((l) => l.href));
+    const recentItems: Item[] = recents.filter((r) => allowed.has(r.href)).map((r) => ({ ...r, group: "Recent" }));
     const actionItems: Item[] = actions.map((a) => ({ ...a, group: "Quick actions" }));
     const pageItems: Item[] = links.map((l) => ({ ...l, group: "Pages" }));
     return [...recentItems, ...actionItems, ...pageItems];
