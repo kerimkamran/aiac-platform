@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { Timeline } from "@/components/ui/Timeline";
 import { HorizonSeal } from "@/components/horizon/HorizonSeal";
@@ -54,6 +54,8 @@ export default async function AssessmentSubmittedPage({
     .single();
 
   if (!ca) notFound();
+  // Someone who has not submitted yet is sent back to the test, not shown a confirmation (CAN-B-31).
+  if (["invited", "in_progress"].includes(ca.status)) redirect(`/candidate/assessments/${id}`);
 
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
   const firstName = (profile?.full_name || "").split(/\s+/)[0] || "there";

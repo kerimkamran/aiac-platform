@@ -346,8 +346,11 @@ export function AssessmentRunner({
 
   const savedLabel =
     savedAt === null || nowMs === null
-      ? "Saved on this device"
-      : `Saved on this device · ${Math.max(0, Math.round((nowMs - savedAt) / 1000))} s ago`;
+      ? "Saved"
+      : // Minute steps only, so a screen reader is not interrupted every second.
+        nowMs - savedAt < 60_000
+        ? "Saved just now"
+        : `Saved · ${Math.floor((nowMs - savedAt) / 60_000)} min ago`;
 
   if (total === 0) {
     return (
@@ -411,8 +414,9 @@ export function AssessmentRunner({
               {timerHidden ? "Show timer" : "Hide timer"}
             </button>
           )}
+          {/* The text changes once a minute, so it is announced once a minute. */}
           <p className="sr-only" role="status">
-            {low ? "Less than 5 minutes remaining." : ""}
+            {secondsLeft === null ? "" : secondsLeft <= 60 ? "Less than 1 minute remaining." : `${Math.ceil(secondsLeft / 60)} minutes remaining.`}
           </p>
           <Link
             href="/candidate/assessments"

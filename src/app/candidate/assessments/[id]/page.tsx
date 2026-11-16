@@ -96,9 +96,13 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
               Complete by {new Date(ca.due_at).toLocaleDateString()}
             </li>
           )}
-          <li className="flex items-center gap-2 text-muted">
-            <Icon name="check" className="w-4 h-4" />
-            Your answers save as you go. You can hide the timer.
+          <li className="flex items-start gap-2 text-muted">
+            <Icon name="check" className="w-4 h-4 mt-1 shrink-0" />
+            Your answers are saved on our server as you go. If your connection drops, open the link again and carry on.
+          </li>
+          <li className="flex items-start gap-2 text-muted">
+            <Icon name="timer" className="w-4 h-4 mt-1 shrink-0" />
+            The timer keeps running if you close the page or leave. You can hide the timer on screen.
           </li>
         </ul>
 

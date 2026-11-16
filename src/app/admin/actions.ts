@@ -83,12 +83,18 @@ export async function toggleUserFlag(userId: string, flag: "blacklisted" | "lega
   revalidatePath(`/admin/users/${userId}`);
 }
 
-export async function anonymizeUser(userId: string) {
+export async function anonymizeUser(userId: string, formData: FormData) {
   const caller = await requirePermission("data", "delete");
   if (caller.id === userId) {
     redirect(`/admin/users/${userId}?error=${encodeURIComponent("You can't anonymise your own account. Ask another admin.")}`);
   }
   const supabase = await createClient();
+  // Irreversible: the person's full name must be typed exactly (ADM-UX-06).
+  const { data: target } = await supabase.from("profiles").select("full_name").eq("id", userId).maybeSingle();
+  const typed = String(formData.get("confirm_name") || "").trim().toLowerCase();
+  if (!target || typed !== (target.full_name || "").trim().toLowerCase()) {
+    redirect(`/admin/users/${userId}?error=${encodeURIComponent("Not anonymised: the name you typed does not match.")}`);
+  }
   const { error } = await supabase.rpc("admin_anonymize_user", { p_user_id: userId });
   if (error) redirect(`/admin/users/${userId}?error=${encodeURIComponent(error.message)}`);
   revalidatePath(`/admin/users/${userId}`);
