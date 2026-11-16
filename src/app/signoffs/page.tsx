@@ -11,6 +11,8 @@ type Row = {
   requested_at: string;
   decided_at: string | null;
   candidate_assessment_id: string;
+  candidate_name: string | null;
+  assessment_title: string | null;
 };
 
 export default async function SignoffsPage() {
@@ -20,29 +22,14 @@ export default async function SignoffsPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: signoffs } = await supabase
-    .from("promotion_signoffs")
-    .select("id, status, comment, requested_at, decided_at, candidate_assessment_id")
-    .eq("manager_id", user.id)
-    .order("requested_at", { ascending: false });
-
+  // Names come through a secure function: a manager may not read the
+  // employee's assessment row directly.
+  const { data: signoffs } = await supabase.rpc("my_signoff_requests");
   const rows = (signoffs || []) as Row[];
-
-  const caIds = rows.map((r) => r.candidate_assessment_id);
-  const { data: cas } = caIds.length
-    ? await supabase
-        .from("candidate_assessments")
-        .select("id, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name), assessments(title)")
-        .in("id", caIds)
-    : { data: [] };
-
   const caMeta = new Map(
-    (cas || []).map((c) => [
-      c.id as string,
-      {
-        candidateName: (c.candidate as unknown as { full_name: string } | null)?.full_name || "This employee",
-        assessmentTitle: (c.assessments as unknown as { title: string } | null)?.title || "an assessment",
-      },
+    rows.map((r) => [
+      r.candidate_assessment_id,
+      { candidateName: r.candidate_name || "This employee", assessmentTitle: r.assessment_title || "an assessment" },
     ])
   );
 
@@ -119,7 +106,7 @@ export default async function SignoffsPage() {
                 const meta = caMeta.get(r.candidate_assessment_id);
                 return (
                   <Card key={r.id} className="p-5 flex items-start gap-3">
-                    <StatusBadge status={r.status === "approved" ? "shortlist" : "reject"} />
+                    <StatusBadge status={r.status === "approved" ? "approved" : "declined"} />
                     <div className="text-sm text-muted min-w-0">
                       <p>
                         <span className="font-semibold text-foreground">{meta?.candidateName}</span> —{" "}

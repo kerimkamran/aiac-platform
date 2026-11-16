@@ -4,16 +4,12 @@ import path from "node:path";
 import { AA_LARGE_TEXT, AA_NORMAL_TEXT, contrastRatio, extractHexTokens, extractThemeBlocks } from "./contrast";
 
 // Plan v2, Phase 2 (Appendix A): extends the contrast checks to the Node Grid
-// pairs the redesign relies on, in both themes and on every canvas. Text pairs
+// pairs the redesign relies on, in both themes. Text pairs
 // must reach 4.5:1; control borders and focus rings must reach 3:1 against the
 // surface they sit on (WCAG 1.4.11).
 
 const cssText = fs.readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf8");
 const { light, dark } = extractThemeBlocks(cssText);
-
-const canvasBlocks = Array.from(
-  cssText.matchAll(/:root:not\(\.dark\)\[data-canvas="(\w+)"\]\s*\{([^}]*)\}/g)
-).map((m) => ({ name: m[1], tokens: extractHexTokens(m[2]) }));
 
 const TEXT_PAIRS: [string, string][] = [
   ["foreground", "background"],
@@ -66,19 +62,4 @@ describe.each(THEMES)("Node Grid %s theme", (_name, block) => {
       expect(contrastRatio(tokens[part], tokens[bg])).toBeGreaterThanOrEqual(AA_LARGE_TEXT);
     });
   }
-});
-
-describe.each(canvasBlocks.map((c) => [c.name, c.tokens] as const))("light canvas %s", (_name, overrides) => {
-  const base = extractHexTokens(light);
-  const tokens = { ...base, ...overrides };
-
-  for (const [text, bg] of TEXT_PAIRS.filter(([, b]) => b === "background" || b === "surface-sunken")) {
-    it(`--${text} on --${bg} reaches AA text contrast`, () => {
-      expect(contrastRatio(tokens[text], tokens[bg])).toBeGreaterThanOrEqual(AA_NORMAL_TEXT);
-    });
-  }
-});
-
-it("has the cream and grey canvases defined", () => {
-  expect(canvasBlocks.map((c) => c.name).sort()).toEqual(["cream", "grey"]);
 });

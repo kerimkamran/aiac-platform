@@ -1,13 +1,13 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { startAssessment, submitAssessment } from "./actions";
+import { saveDraft, startAssessment, submitAssessment } from "./actions";
 import { AssessmentRunner, type RunnerSection } from "./runner";
 import { ProctoredAssessmentRunner } from "./proctoring-gate";
 import { Icon } from "@/components/ui/Icon";
 import { Card } from "@/components/ui/Surfaces";
 import { ButtonLink } from "@/components/ui/Button";
-import { SubmitButton } from "@/components/ui/SubmitButton";
+import { StartTimedForm } from "./StartTimedForm";
 import { nowMs } from "@/lib/time";
 import { examDeadlineMs } from "@/lib/exam-time";
 
@@ -24,9 +24,9 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   // so the exam can have focus), so it repeats the account-status check the
   // layout used to make.
   const { data: me } = await supabase.from("profiles").select("status").eq("id", user.id).single();
-  if (me?.status === "deactivated") {
+  if (me?.status !== "active") {
     await supabase.auth.signOut();
-    redirect("/login?error=deactivated");
+    redirect("/login?error=inactive");
   }
 
   const { data: ca } = await supabase
@@ -47,9 +47,9 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
   const totalMinutes = (metaEarly?.time_limit_minutes || 60) + extraMinutes;
 
-  // Deadline gate: once due_at has passed, the assessment can no longer be
-  // started or continued -- HR can extend/re-invite from People & Access.
-  if (ca.due_at && new Date(ca.due_at).getTime() < nowMs()) {
+  // Deadline gate (E-06): once due_at has passed, the assessment can no longer
+  // be STARTED. Someone already in progress keeps their full time.
+  if (ca.status === "invited" && ca.due_at && new Date(ca.due_at).getTime() < nowMs()) {
     return (
       <div className="container-page max-w-2xl py-12">
         <h1 className="text-display text-foreground">The deadline for this assessment has passed.</h1>
@@ -73,6 +73,12 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   // question, and starts the clock deliberately.
   if (ca.status === "invited") {
     const startWithId = startAssessment.bind(null, id);
+    const { data: cam } = await supabase
+      .from("proctoring_settings")
+      .select("camera_enabled")
+      .eq("assessment_id", ca.assessment_id)
+      .maybeSingle();
+    const cameraRequired = cam?.camera_enabled;
     return (
       <div className="container-page max-w-2xl py-10 lg:py-14">
         <p className="text-mono-label text-muted">Ready to begin</p>
@@ -108,12 +114,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
           </div>
         </Card>
 
-        <form action={startWithId} className="mt-8">
-          <SubmitButton size="lg" block pendingLabel="Starting…">
-            Start the timed assessment
-          </SubmitButton>
-        </form>
-        <p className="mt-3 text-sm text-muted text-center">The {totalMinutes}-minute timer begins the moment you press start.</p>
+        <StartTimedForm caId={id} minutes={totalMinutes} cameraRequired={!!cameraRequired} startAction={startWithId} />
         <p className="mt-5 text-center">
           <Link href="/candidate/assessments" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
             Back to my assessments
@@ -169,6 +170,13 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
     content_language: string | null;
   };
   const submitWithId = submitAssessment.bind(null, id);
+  const saveDraftWithId = saveDraft.bind(null, id);
+
+  // Answers saved on the server (migration 0021). Read on its own and tolerant
+  // of the column not existing yet: a failed read means no saved answers.
+  const { data: draftRow } = await supabase.from("candidate_assessments").select("draft_answers").eq("id", id).maybeSingle();
+  const serverDraft = ((draftRow as { draft_answers?: Record<string, string> | null } | null)?.draft_answers ?? null) as Record<string, string> | null;
+  const serverNow = nowMs();
 
   const deadlineMs = examDeadlineMs(startedAt, meta?.time_limit_minutes, extraMinutes);
 
@@ -184,6 +192,9 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
         totalQuestions={totalQuestions}
         sections={runnerSections}
         submitAction={submitWithId}
+        saveDraftAction={saveDraftWithId}
+        serverNowMs={serverNow}
+        serverDraft={serverDraft}
         watermarkLabel={user.email || "confidential"}
         storageBackend={(proctoring.storage_backend as "supabase" | "local") || "supabase"}
         contentLanguage={meta?.content_language}
@@ -200,6 +211,9 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
       totalQuestions={totalQuestions}
       sections={runnerSections}
       submitAction={submitWithId}
+      saveDraftAction={saveDraftWithId}
+      serverNowMs={serverNow}
+      serverDraft={serverDraft}
       watermarkLabel={user.email || "confidential"}
       contentLanguage={meta?.content_language}
     />

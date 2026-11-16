@@ -3,6 +3,7 @@ import { getSettings } from "@/lib/authz";
 import { Card, Icon, PageHeader } from "@/components/ui";
 import { saveSettings } from "../actions";
 import { buttonClass } from "@/components/ui/Button";
+import { Callout } from "@/components/ui/Callout";
 
 type SecuritySettings = { session_timeout_minutes: number; ip_allowlist: string[]; mfa_required_roles: string[] };
 
@@ -27,7 +28,11 @@ export default async function AdminSecurityPage() {
 
       <div className="grid lg:grid-cols-2 gap-6 items-start">
         <Card className="p-6">
+          <Callout tone="warning" title="Not active yet" className="mb-5">
+            These settings are shown, but not active: nothing in Vantage enforces them yet. They are shown so you can see what is planned.
+          </Callout>
           <form action={saveSecurity} className="space-y-5">
+            <fieldset disabled className="space-y-5 contents">
             <p className="text-sm font-bold text-foreground flex items-center gap-2">
               <Icon name="ban" className="w-4 h-4 text-accent-dark" />
               Access policy
@@ -53,6 +58,7 @@ export default async function AdminSecurityPage() {
               </div>
             </div>
             <button className={buttonClass({ size: "md" })}>Save security settings</button>
+            </fieldset>
           </form>
         </Card>
 

@@ -53,15 +53,24 @@ export function AssessmentRunner({
   deadlineMs,
   sections,
   submitAction,
+  saveDraftAction,
+  serverNowMs,
+  serverDraft,
   watermarkLabel = "confidential",
   contentLanguage,
 }: {
   caId: string;
+  // The server's clock when the page was sent, so a wrong device clock cannot
+  // change how much time is left (E-04).
+  serverNowMs?: number;
+  // Answers saved on the server (E-05). Used when this device has none.
+  serverDraft?: Record<string, string> | null;
+  saveDraftAction?: (answers: Record<string, string>) => Promise<boolean>;
   title: string;
   description: string;
   deadlineMs: number;
   sections: RunnerSection[];
-  submitAction: (formData: FormData) => Promise<void>;
+  submitAction: (formData: FormData) => Promise<void | { error: string }>;
   watermarkLabel?: string;
   totalQuestions: number;
   // The exam chrome is English; prompts and options are generated in the
@@ -90,15 +99,19 @@ export function AssessmentRunner({
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const submittedRef = useRef(false);
+  // A failed submit keeps every answer on this device and offers a retry.
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const answers = draft.answers;
   const flaggedSet = useMemo(() => new Set(draft.flagged), [draft.flagged]);
 
   /* Restore the local draft once on mount, then keep it saved on this device. */
   useEffect(() => {
+    const local = readDraft(caId);
+    const hasLocal = Object.values(local.answers).some((v) => v && v.length > 0);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage after mount
-    setDraft(readDraft(caId));
+    setDraft(!hasLocal && serverDraft ? { answers: serverDraft, flagged: local.flagged } : local);
     setRestored(true);
-  }, [caId]);
+  }, [caId, serverDraft]);
 
   useEffect(() => {
     try {
@@ -169,6 +182,35 @@ export function AssessmentRunner({
   // function (manual slide or countdown expiry) reads current values without
   // being rebuilt on every keystroke.
   const answersRef = useRef(answers);
+  // Difference between the server clock and this device's clock.
+  const clockOffsetRef = useRef(0);
+  useEffect(() => {
+    if (typeof serverNowMs === "number") clockOffsetRef.current = serverNowMs - Date.now();
+  }, [serverNowMs]);
+
+  // Save the answers on the server a few seconds after the last change, and
+  // whenever the tab is hidden, so nothing depends on this device surviving.
+  const lastSavedRef = useRef("");
+  useEffect(() => {
+    if (!restored || !saveDraftAction) return;
+    const save = () => {
+      const snapshot = JSON.stringify(answersRef.current);
+      if (snapshot === lastSavedRef.current || submittedRef.current) return;
+      lastSavedRef.current = snapshot;
+      saveDraftAction(answersRef.current).then((ok) => {
+        if (!ok) lastSavedRef.current = "";
+      });
+    };
+    const timer = setTimeout(save, 4000);
+    const onHide = () => {
+      if (document.visibilityState === "hidden") save();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [answers, restored, saveDraftAction]);
   const tabSwitchesRef = useRef(tabSwitches);
   useEffect(() => {
     answersRef.current = answers;
@@ -185,13 +227,25 @@ export function AssessmentRunner({
       for (const s of steps) fd.set(`q_${s.q.id}`, answersRef.current[s.q.id] || "");
       fd.set("tab_switch_count", String(tabSwitchesRef.current));
       fd.set("submit_reason", reason);
-      try {
-        localStorage.removeItem(draftKey(caId));
-        localStorage.removeItem(`aiac-answers-${caId}`);
-      } catch {}
-      startTransition(() => submitAction(fd));
+      setSubmitError(null);
+      // The draft stays on this device until the server confirms. The
+      // confirmation page clears it (see ClearDraft).
+      startTransition(async () => {
+        try {
+          const res = await submitAction(fd);
+          if (res && "error" in res) {
+            submittedRef.current = false;
+            setSubmitError(res.error);
+          }
+        } catch (e) {
+          // A redirect to the confirmation page is not a failure.
+          if (e && typeof e === "object" && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_REDIRECT")) throw e;
+          submittedRef.current = false;
+          setSubmitError("We couldn't submit. Your answers are still here. Try again.");
+        }
+      });
     },
-    [steps, caId, submitAction]
+    [steps, submitAction]
   );
 
   /* Countdown: the single timer on screen, and the single source of truth for
@@ -201,7 +255,7 @@ export function AssessmentRunner({
   useEffect(() => {
     if (!restored) return;
     const tick = () => {
-      const n = Date.now();
+      const n = Date.now() + clockOffsetRef.current;
       setNowMs(n);
       if (Math.round((deadlineMs - n) / 1000) <= 0) doSubmit("expiry");
     };
@@ -240,6 +294,15 @@ export function AssessmentRunner({
         target instanceof HTMLTextAreaElement ||
         (target instanceof HTMLInputElement && !["radio", "checkbox"].includes(target.type));
       if (isTyping) return;
+      // Leave browser shortcuts alone (Ctrl/Cmd+F, Alt+Left...) and let a
+      // focused button, link or menu keep its own Enter / arrow behaviour.
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      const onControl =
+        target instanceof HTMLButtonElement ||
+        target instanceof HTMLAnchorElement ||
+        target instanceof HTMLSelectElement ||
+        target?.getAttribute?.("role") === "button";
+      if (onControl && (e.key === "Enter" || e.key === " ")) return;
 
       if (current.q.type === "mcq") {
         const key = e.key.toUpperCase();
@@ -305,6 +368,15 @@ export function AssessmentRunner({
           </div>
         ))}
       </div>
+
+      {submitError ? (
+        <div role="alert" className="sticky top-0 z-40 border-b border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
+          {submitError}{" "}
+          <button type="button" className="font-semibold underline" onClick={() => doSubmit("manual")}>
+            Try again
+          </button>
+        </div>
+      ) : null}
 
       {/* One header: title, autosave status, the progress chain and the one timer. */}
       <header className="sticky top-0 z-30 border-b border-line bg-background/95 backdrop-blur">

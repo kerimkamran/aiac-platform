@@ -5,7 +5,7 @@ import { useState } from "react";
 /**
  * Per-assessment "Assign" control in the Assessment Builder list. Lets
  * staff attach a published assessment directly to any existing active
- * account (candidate, decision maker, staff, admin) without going
+ * account (candidate, staff, admin) without going
  * through the "Add a candidate" flow in People & Access -- for accounts
  * that already exist and just need this assessment.
  */

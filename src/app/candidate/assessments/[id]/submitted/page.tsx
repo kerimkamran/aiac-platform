@@ -4,6 +4,7 @@ import { ButtonLink } from "@/components/ui/Button";
 import { Timeline } from "@/components/ui/Timeline";
 import { HorizonSeal } from "@/components/horizon/HorizonSeal";
 import { AssessmentPurpose, normalizePurpose } from "@/lib/purpose";
+import { ClearDraft } from "../ClearDraft";
 
 // What happens next, in plain language. A person reviews every score, and a
 // candidate is never told "AI scored" (Clear Horizon plan, section 11).
@@ -11,7 +12,7 @@ const NEXT_STEPS: Record<AssessmentPurpose, { t: string; b: string }[]> = {
   hiring: [
     { t: "A draft is prepared", b: "Your answers are compared with the role's competencies, with the evidence noted." },
     { t: "A person reviews it", b: "A recruiter checks the draft against your answers before anything is decided." },
-    { t: "You'll hear back", b: "You'll be notified here once a decision maker has reviewed your results." },
+    { t: "You'll hear back", b: "You'll be notified here once a reviewer has made a decision on your results." },
   ],
   promotion: [
     { t: "A draft is prepared", b: "Your answers are compared with the target role's competencies, with the evidence noted." },
@@ -62,6 +63,7 @@ export default async function AssessmentSubmittedPage({
 
   return (
     <div className="container-page max-w-xl py-10 lg:py-14">
+      <ClearDraft caId={id} />
       <div className="flex flex-col items-center text-center">
         <HorizonSeal />
         <h1 className="mt-5 text-display text-foreground">{expired ? "Time ran out. Your answers are in." : `Your answers are in, ${firstName}.`}</h1>

@@ -64,7 +64,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
     setLink(fetched);
     if (copyWithExecCommand(fetched)) {
       setState("copied");
-      reset(2000);
+      reset(4000);
     } else {
       setState("manual");
     }
@@ -88,7 +88,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
         .write([new ClipboardItem({ "text/plain": textBlob })])
         .then(() => {
           setState("copied");
-          reset(2000);
+          reset(4000);
         })
         .catch(() => {
           linkPromise.then(finishWithLink, showError);
@@ -104,7 +104,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
             .writeText(l)
             .then(() => {
               setState("copied");
-              reset(2000);
+              reset(4000);
             })
             .catch(() => finishWithLink(l));
         } else {
@@ -123,7 +123,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
         disabled={state === "loading"}
         className={className || "text-accent-dark text-xs font-semibold hover:underline disabled:opacity-50"}
       >
-        {state === "copied" ? "Link copied!" : state === "loading" ? "Generating…" : "Copy invite link"}
+        {state === "copied" ? "Copied. It works once, so don't open it yourself." : state === "loading" ? "Generating…" : "Copy invite link"}
       </button>
 
       {state === "error" && (
@@ -140,7 +140,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
             value={link}
             onFocus={(e) => e.currentTarget.select()}
             aria-label="Invite link"
-            className="w-full bg-canvas border border-line rounded-md px-2 py-1 text-xs"
+            className="w-full bg-surface border border-line rounded-md px-2 py-1 text-xs"
           />
           <button type="button" onClick={() => setState("idle")} className="text-xs font-semibold text-accent-dark hover:underline">
             Close

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, logAudit, notify } from "@/lib/authz";
+import { provisionAccount, sendInvite } from "@/lib/invite";
 
 function str(fd: FormData, key: string): string {
   return String(fd.get(key) ?? "").trim();
@@ -24,7 +25,7 @@ export async function updateUserProfile(userId: string, formData: FormData) {
     }
   }
 
-  const { error } = await supabase
+  const { data: saved, error } = await supabase
     .from("profiles")
     .update({
       full_name: str(formData, "full_name"),
@@ -43,10 +44,14 @@ export async function updateUserProfile(userId: string, formData: FormData) {
       max_workload: Number(formData.get("max_workload") || 5),
       custom_fields: custom,
     })
-    .eq("id", userId);
+    .eq("id", userId)
+    .select("id");
 
   await logAudit({ module: "users", action: "profile_updated", targetType: "user", targetId: userId, result: error ? "error" : "success" });
   if (error) redirect(`/admin/users/${userId}?error=${encodeURIComponent(error.message)}`);
+  if (!saved || saved.length === 0) {
+    redirect(`/admin/users/${userId}?error=${encodeURIComponent("Not saved: you may not have access to change this account.")}`);
+  }
   revalidatePath(`/admin/users/${userId}`);
   redirect(`/admin/users/${userId}?ok=${encodeURIComponent("Profile saved")}`);
 }
@@ -63,13 +68,26 @@ export async function setUserStatus(userId: string, status: string) {
 export async function toggleUserFlag(userId: string, flag: "blacklisted" | "legal_hold", value: boolean) {
   await requirePermission(flag === "legal_hold" ? "data" : "candidates", "update");
   const supabase = await createClient();
-  await supabase.from("profiles").update({ [flag]: value }).eq("id", userId);
-  await logAudit({ module: flag === "legal_hold" ? "data" : "candidates", action: `${flag}_${value ? "set" : "cleared"}`, targetType: "user", targetId: userId });
+  const { data: changed, error } = await supabase.from("profiles").update({ [flag]: value }).eq("id", userId).select("id");
+  const failed = !!error || !changed || changed.length === 0;
+  await logAudit({
+    module: flag === "legal_hold" ? "data" : "candidates",
+    action: `${flag}_${value ? "set" : "cleared"}`,
+    targetType: "user",
+    targetId: userId,
+    result: failed ? "error" : "success",
+  });
+  if (failed) {
+    redirect(`/admin/users/${userId}?error=${encodeURIComponent(error?.message || "Not saved: you may not have access to change this account.")}`);
+  }
   revalidatePath(`/admin/users/${userId}`);
 }
 
 export async function anonymizeUser(userId: string) {
-  await requirePermission("data", "delete");
+  const caller = await requirePermission("data", "delete");
+  if (caller.id === userId) {
+    redirect(`/admin/users/${userId}?error=${encodeURIComponent("You can't anonymise your own account. Ask another admin.")}`);
+  }
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_anonymize_user", { p_user_id: userId });
   if (error) redirect(`/admin/users/${userId}?error=${encodeURIComponent(error.message)}`);
@@ -79,6 +97,9 @@ export async function anonymizeUser(userId: string) {
 
 export async function addPermissionOverride(userId: string, formData: FormData) {
   const admin = await requirePermission("roles", "update");
+  if (admin.id === userId) {
+    redirect(`/admin/users/${userId}?error=${encodeURIComponent("You can't change your own permissions. Ask another admin.")}`);
+  }
   const supabase = await createClient();
   const permissionId = Number(formData.get("permission_id"));
   const expires = str(formData, "expires_at");
@@ -108,6 +129,15 @@ export async function saveRoleMatrix(formData: FormData) {
   const supabase = await createClient();
   const role = str(formData, "role");
   const granted = formData.getAll("perm").map(Number);
+
+  // Super Admin always holds every permission and is never edited here:
+  // saving that tab used to wipe all of them.
+  if (role === "system_admin") {
+    redirect(`/admin/roles?error=${encodeURIComponent("The Super Admin role always has every permission and can't be edited.")}`);
+  }
+  if (!["candidate", "recruiter", "hiring_manager", "hr_admin", "org_admin"].includes(role)) {
+    redirect(`/admin/roles?error=${encodeURIComponent("Unknown role.")}`);
+  }
 
   const { data: allPerms } = await supabase.from("permissions").select("id");
   const all = (allPerms || []).map((p) => p.id as number);
@@ -157,6 +187,9 @@ export async function createApprovalRequest(formData: FormData) {
     role: str(formData, "role"),
     note: str(formData, "note"),
   };
+  if (!["candidate", "recruiter", "hiring_manager", "hr_admin", "org_admin"].includes(payload.role)) {
+    redirect(`/admin/approvals?error=${encodeURIComponent("Choose a valid role.")}`);
+  }
   await supabase.from("approval_requests").insert({ request_type: type, payload, requested_by: requester.id });
   await logAudit({ module: "users", action: "approval_requested", details: { type, ...payload } });
   revalidatePath("/admin/approvals");
@@ -169,20 +202,34 @@ export async function decideApproval(requestId: string, decision: "approved" | "
 
   const { data: req } = await supabase.from("approval_requests").select("*").eq("id", requestId).single();
   if (!req || req.status !== "pending") redirect("/admin/approvals?error=" + encodeURIComponent("Request not found or already decided"));
+  if (req.requested_by === approver.id) {
+    redirect("/admin/approvals?error=" + encodeURIComponent("You can't decide your own request. Ask another admin."));
+  }
+  if (decision === "rejected" && !str(formData, "comment")) {
+    redirect("/admin/approvals?error=" + encodeURIComponent("Add a reason when rejecting a request."));
+  }
 
   if (decision === "approved") {
     const p = req.payload as { email?: string; full_name?: string; role?: string };
     if (req.request_type === "user_create" && p.email) {
-      const { error } = await supabase.rpc("admin_provision_user", {
-        p_email: p.email,
-        p_full_name: p.full_name || p.email,
-        p_role: p.role || "candidate",
-        p_department: null,
+      const account = await provisionAccount(supabase, {
+        email: p.email,
+        fullName: p.full_name || p.email,
+        role: p.role || "candidate",
+        department: null,
       });
-      if (error) redirect("/admin/approvals?error=" + encodeURIComponent(error.message));
+      if (!account.ok) redirect("/admin/approvals?error=" + encodeURIComponent(account.error));
+      // An approved account is invited the same way as every other new account.
+      if (account.created) {
+        const inviteError = await sendInvite(p.email);
+        if (inviteError) {
+          await logAudit({ module: "users", action: "approval_invite_failed", targetType: "approval_request", targetId: requestId, result: "error" });
+        }
+      }
     }
     if (req.request_type === "role_change" && p.email && p.role) {
       const { data: target } = await supabase.from("profiles").select("id").eq("email", p.email).maybeSingle();
+      if (!target) redirect("/admin/approvals?error=" + encodeURIComponent("No account has that email, so the role can't be changed."));
       if (target) {
         const { error } = await supabase.rpc("admin_update_user_role", { p_user_id: target.id, p_role: p.role, p_department: null });
         if (error) redirect("/admin/approvals?error=" + encodeURIComponent(error.message));

@@ -17,6 +17,14 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // The decision-maker portal was removed. Old links land on the staff pages.
+  async redirects() {
+    return [
+      { source: "/candidate/signoffs", destination: "/signoffs", permanent: false },
+      { source: "/decision", destination: "/staff", permanent: false },
+      { source: "/decision/candidates/:id", destination: "/staff/reports/candidates/:id", permanent: false },
+    ];
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

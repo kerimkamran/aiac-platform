@@ -34,7 +34,7 @@ export async function updateSession(request: NextRequest, requestHeaders?: Heade
     data: { user },
   } = await supabase.auth.getUser();
 
-  const protectedPrefixes = ["/candidate", "/staff", "/admin", "/decision", "/report", "/api/v1", "/api/search"];
+  const protectedPrefixes = ["/candidate", "/staff", "/admin", "/signoffs", "/report", "/api/v1", "/api/search"];
   const isProtected = protectedPrefixes.some((p) => request.nextUrl.pathname.startsWith(p));
 
   if (!user && isProtected) {
@@ -47,6 +47,21 @@ export async function updateSession(request: NextRequest, requestHeaders?: Heade
     url.search = "";
     if (target && request.method === "GET") url.searchParams.set("next", target);
     return NextResponse.redirect(url);
+  }
+
+  // A suspended or deactivated account loses access at once, on every
+  // protected page, route and action (not only on the next sign-in).
+  if (user && isProtected) {
+    const { data: profile } = await supabase.from("profiles").select("status").eq("id", user.id).maybeSingle();
+    if (profile && profile.status !== "active") {
+      await supabase.auth.signOut();
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      url.search = "?error=inactive";
+      const res = NextResponse.redirect(url);
+      supabaseResponse.cookies.getAll().forEach((c) => res.cookies.set(c));
+      return res;
+    }
   }
 
   return supabaseResponse;

@@ -132,7 +132,7 @@ export function ContextCard({
           rows={3}
           maxLength={INSTRUCTIONS_MAX_CHARS + 500}
           placeholder="e.g. Focus on enterprise B2B clients; include a pricing conflict."
-          className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <p className="text-xs text-muted">
           {instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_CHARS.toLocaleString()} characters
@@ -156,7 +156,7 @@ export function ContextCard({
             onChange={(e) => patchCtx({ jobDescription: e.target.value })}
             rows={6}
             placeholder="Paste the job description, or upload one."
-            className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <p className="text-xs text-muted">{ctx.jobDescription.length.toLocaleString()} / {JD_MAX_CHARS.toLocaleString()} characters</p>
         </div>
@@ -171,7 +171,7 @@ export function ContextCard({
             onChange={(e) => patchCtx({ notes: e.target.value })}
             rows={2}
             placeholder="e.g. Must handle the top-10 accounts; quarterly targets."
-            className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <p className="text-xs text-muted">{ctx.notes.length.toLocaleString()} / {NOTES_MAX_CHARS.toLocaleString()} characters</p>
         </div>
@@ -180,7 +180,7 @@ export function ContextCard({
           <p className="text-xs font-semibold text-muted">Reference files (up to {MAX_REFERENCE_FILES}, {Math.round(REFERENCE_FILE_MAX_CHARS / 1024)} KB each)</p>
           <ul className="space-y-1.5">
             {ctx.files.map((f, i) => (
-              <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-3 text-sm bg-canvas border border-line rounded-lg px-3 py-2">
+              <li key={`${f.name}-${i}`} className="flex items-center justify-between gap-3 text-sm bg-surface border border-line rounded-lg px-3 py-2">
                 <span className="truncate">{f.name}</span>
                 <button
                   type="button"
@@ -205,7 +205,7 @@ export function ContextCard({
         <p className="text-xs font-semibold text-muted">One-off material for this batch (not saved)</p>
         <ul className="flex flex-wrap gap-2">
           {oneOffs.map((f, i) => (
-            <li key={`${f.name}-${i}`} className="inline-flex items-center gap-2 text-xs bg-canvas border border-line rounded-full px-3 py-1">
+            <li key={`${f.name}-${i}`} className="inline-flex items-center gap-2 text-xs bg-surface border border-line rounded-full px-3 py-1">
               {f.name}
               <button type="button" onClick={() => setOneOffs((o) => o.filter((_, j) => j !== i))} aria-label={`Remove ${f.name}`} className="font-bold hover:text-critical">
                 ×

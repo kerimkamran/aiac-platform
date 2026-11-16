@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { guard, parsePagination, envelope, logAudit } from "../_lib";
+import { provisionAccount, sendInvite } from "@/lib/invite";
 
 export async function GET(request: NextRequest) {
   const g = await guard(request, "users", "view");
@@ -38,14 +39,21 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc("admin_provision_user", {
-    p_email: String(body.email),
-    p_full_name: String(body.full_name),
-    p_role: String(body.role || "candidate"),
-    p_department: body.department ? String(body.department) : null,
+  const account = await provisionAccount(supabase, {
+    email: String(body.email),
+    fullName: String(body.full_name),
+    role: String(body.role || "candidate"),
+    department: body.department ? String(body.department) : null,
   });
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+  if (!account.ok) return NextResponse.json({ error: account.error }, { status: 400 });
 
-  await logAudit({ module: "api", action: "user_created", targetType: "user", targetId: data?.[0]?.profile_id, details: { email: body.email } });
-  return NextResponse.json({ data: data?.[0] ?? null }, { status: 201 });
+  // A new account is invited by email, like every other way of adding people.
+  let inviteSent = false;
+  if (account.created) inviteSent = (await sendInvite(String(body.email))) === null;
+
+  await logAudit({ module: "api", action: "user_created", targetType: "user", targetId: account.id, details: { email: body.email, invite_sent: inviteSent } });
+  return NextResponse.json(
+    { data: { profile_id: account.id, created: account.created, invite_sent: inviteSent } },
+    { status: 201 }
+  );
 }

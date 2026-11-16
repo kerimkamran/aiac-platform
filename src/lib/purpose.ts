@@ -1,5 +1,5 @@
 // Purpose-aware constants shared across the Builder, staff review pages,
-// decision-maker review pages, and the candidate experience.
+// review pages, and the candidate experience.
 //
 // assessments.purpose is a DB-level enum ('hiring' | 'promotion' | 'development',
 // defaulting to 'hiring') that predates this file — this module is the single

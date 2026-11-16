@@ -29,7 +29,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     (variant: ToastVariant, message: string) => {
       const id = ++idRef.current;
       setToasts((t) => [...t.slice(-3), { id, variant, message }]);
-      window.setTimeout(() => dismiss(id), DURATION_MS);
+      // Errors stay until dismissed: they often carry guidance to act on.
+      if (variant !== "error") window.setTimeout(() => dismiss(id), DURATION_MS);
     },
     [dismiss]
   );
@@ -43,13 +44,13 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           return (
             <div
               key={t.id}
-              role="status"
+              role={t.variant === "error" ? "alert" : "status"}
               className={`anim-toast-in pointer-events-auto relative overflow-hidden w-full sm:w-96 bg-surface border border-line rounded-card shadow-xl ring-1 ${meta.ring} px-4 pt-3.5 pb-4 flex items-start gap-3`}
             >
               <span className={`w-7 h-7 rounded-lg grid place-items-center shrink-0 ${meta.iconWrap}`}>
                 <Icon name={meta.icon} className="w-4 h-4" />
               </span>
-              <p className="text-xs leading-snug text-foreground flex-1 pt-0.5">{t.message}</p>
+              <p className="text-sm leading-snug text-foreground flex-1 pt-0.5">{t.message}</p>
               <button
                 onClick={() => dismiss(t.id)}
                 aria-label="Dismiss notification"
@@ -57,12 +58,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
               >
                 <Icon name="x" className="w-3.5 h-3.5" />
               </button>
-              <div className="absolute bottom-0 left-0 h-0.5 w-full bg-line/60">
-                <div
-                  className="h-full bg-brand/60 anim-toast-bar"
-                  style={{ animationDuration: `${DURATION_MS}ms` }}
-                />
-              </div>
+              {t.variant !== "error" && (
+                <div className="absolute bottom-0 left-0 h-0.5 w-full bg-line/60">
+                  <div
+                    className="h-full bg-brand/60 anim-toast-bar"
+                    style={{ animationDuration: `${DURATION_MS}ms` }}
+                  />
+                </div>
+              )}
             </div>
           );
         })}
@@ -112,7 +115,7 @@ function ToastFromParamsInner({ specs }: { specs: ToastSpec[] }) {
       // twice.
       if (spec.param === "error" && searchParams.get("field")) continue;
       fired = true;
-      const message = spec.text ?? decodeURIComponent(value);
+      const message = spec.text ?? value;
       push(spec.variant || "info", message);
       (spec.clearParams || [spec.param]).forEach((p) => toClear.add(p));
     }

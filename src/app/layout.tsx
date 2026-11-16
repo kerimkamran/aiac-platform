@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { getLang } from "@/i18n/server";
 import "./globals.css";
 
 // Clear Horizon type system (design plan, section 6). Inter is a variable font
 // with the optical-size axis, so large sizes automatically use the tighter
-// Inter Display cut. Geist Mono carries the exam timer, figure labels and IDs.
-// Both load the Latin, Latin-extended and Cyrillic subsets, so Azerbaijani
+// Inter Display cut, and it carries every role (plan B4); it loads the Latin,
+// Latin-extended and Cyrillic subsets, so Azerbaijani
 // (Ə ə İ ı ş ç ğ) and Russian render correctly. Onest is retired; Manrope
 // cannot be used because it has no capital Ə.
 const inter = Inter({
@@ -16,12 +16,6 @@ const inter = Inter({
   axes: ["opsz"],
   display: "swap",
 });
-const geistMono = Geist_Mono({
-  subsets: ["latin", "latin-ext", "cyrillic"],
-  variable: "--font-geist-mono",
-  display: "swap",
-});
-
 export const metadata: Metadata = {
   // The public pages stay out of search engines until Azerconnect Comms and
   // Legal approve them (design plan, section 20).
@@ -51,7 +45,7 @@ export default async function RootLayout({
   const lang = await getLang();
 
   return (
-    <html lang={lang} className={`h-full antialiased ${inter.variable} ${geistMono.variable}`}>
+    <html lang={lang} className={`h-full antialiased ${inter.variable}`}>
       <head>
         <script
           nonce={nonce}
@@ -64,8 +58,6 @@ export default async function RootLayout({
     if (theme !== "light" && theme !== "dark") theme = "system";
     var dark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
     if (dark) document.documentElement.classList.add("dark");
-    var canvas = saved && saved.canvas ? saved.canvas : null;
-    if (canvas === "white" || canvas === "cream" || canvas === "grey") document.documentElement.setAttribute("data-canvas", canvas);
   } catch (e) {}
 })();`,
           }}

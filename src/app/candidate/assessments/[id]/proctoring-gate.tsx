@@ -1,12 +1,37 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Card, Icon } from "@/components/ui";
 import { buttonClass } from "@/components/ui/Button";
 import { AssessmentRunner, type RunnerSection } from "./runner";
 
+// Set when the candidate allows the camera on the "ready to begin" page, so
+// the camera starts by itself when the timed part opens. The browser keeps the
+// permission for the rest of the visit.
+export const cameraConsentKey = (caId: string) => `vantage-camera-${caId}`;
+
+// Picks a video format this browser can actually record. Safari on iPhone
+// records MP4, not WebM; if nothing is supported the exam goes ahead without a
+// recording and the reviewer sees that none was made.
+function pickRecordingFormat(): { mime: string; ext: "webm" | "mp4" } | null {
+  if (typeof MediaRecorder === "undefined") return null;
+  const options: { mime: string; ext: "webm" | "mp4" }[] = [
+    { mime: "video/webm;codecs=vp8", ext: "webm" },
+    { mime: "video/webm", ext: "webm" },
+    { mime: "video/mp4", ext: "mp4" },
+  ];
+  return options.find((o) => MediaRecorder.isTypeSupported(o.mime)) ?? null;
+}
+
+// Uploading the recording must never hold up the submit for long: the answers
+// are already saved on the server.
+const UPLOAD_TIMEOUT_MS = 20_000;
+
 export function ProctoredAssessmentRunner({
+  saveDraftAction,
+  serverNowMs,
+  serverDraft,
   caId,
   title,
   description,
@@ -18,13 +43,16 @@ export function ProctoredAssessmentRunner({
   storageBackend,
   contentLanguage,
 }: {
+  saveDraftAction?: (answers: Record<string, string>) => Promise<boolean>;
+  serverNowMs?: number;
+  serverDraft?: Record<string, string> | null;
   caId: string;
   title: string;
   description: string;
   deadlineMs: number;
   totalQuestions: number;
   sections: RunnerSection[];
-  submitAction: (formData: FormData) => Promise<void>;
+  submitAction: (formData: FormData) => Promise<void | { error: string }>;
   watermarkLabel: string;
   storageBackend: "supabase" | "local";
   contentLanguage?: string | null;
@@ -35,6 +63,7 @@ export function ProctoredAssessmentRunner({
   const recorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number>(0);
+  const formatRef = useRef<{ mime: string; ext: "webm" | "mp4" } | null>(null);
 
   const requestAccess = useCallback(async () => {
     setStage("requesting");
@@ -43,8 +72,10 @@ export function ProctoredAssessmentRunner({
       mediaRef.current = stream;
       startedAtRef.current = Date.now();
 
-      if (storageBackend === "supabase") {
-        const recorder = new MediaRecorder(stream, { mimeType: "video/webm" });
+      const format = pickRecordingFormat();
+      formatRef.current = format;
+      if (storageBackend === "supabase" && format) {
+        const recorder = new MediaRecorder(stream, { mimeType: format.mime });
         chunksRef.current = [];
         recorder.ondataavailable = (e) => {
           if (e.data.size > 0) chunksRef.current.push(e.data);
@@ -62,6 +93,32 @@ export function ProctoredAssessmentRunner({
     }
   }, [storageBackend]);
 
+  // Allowed earlier on the "ready to begin" page: start by itself.
+  useEffect(() => {
+    let consented = false;
+    try {
+      consented = sessionStorage.getItem(cameraConsentKey(caId)) === "1";
+    } catch {}
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- starts the camera once after mount
+    if (consented) void requestAccess();
+  }, [caId, requestAccess]);
+
+  // The camera never keeps running once the candidate leaves the exam
+  // (Save and exit, closing the tab, navigating away).
+  useEffect(() => {
+    const stop = () => {
+      try {
+        if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
+      } catch {}
+      mediaRef.current?.getTracks().forEach((t) => t.stop());
+    };
+    window.addEventListener("pagehide", stop);
+    return () => {
+      window.removeEventListener("pagehide", stop);
+      stop();
+    };
+  }, []);
+
   const stopAndUpload = useCallback(async () => {
     const durationSeconds = startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : 0;
     const stream = mediaRef.current;
@@ -73,26 +130,27 @@ export function ProctoredAssessmentRunner({
       const stopped = new Promise<void>((resolve) => {
         recorder.onstop = () => resolve();
       });
-      recorder.stop();
-      await stopped;
+      if (recorder.state !== "inactive") recorder.stop();
+      await Promise.race([stopped, new Promise<void>((r) => setTimeout(r, 3000))]);
 
-      try {
+      const format = formatRef.current ?? { mime: "video/webm", ext: "webm" as const };
+      const upload = (async () => {
         const supabase = createClient();
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        if (user) {
-          const blob = new Blob(chunksRef.current, { type: "video/webm" });
-          const path = `${user.id}/${caId}.webm`;
-          const { error: uploadError } = await supabase.storage.from("proctoring").upload(path, blob, {
-            contentType: "video/webm",
-            upsert: true,
-          });
-          if (!uploadError) storagePath = path;
-        }
-      } catch {
-        // Non-fatal: proceed with submission even if the recording upload fails.
-      }
+        if (!user) return null;
+        const blob = new Blob(chunksRef.current, { type: format.mime.split(";")[0] });
+        const path = `${user.id}/${caId}.${format.ext}`;
+        const { error: uploadError } = await supabase.storage.from("proctoring").upload(path, blob, {
+          contentType: format.mime.split(";")[0],
+          upsert: true,
+        });
+        return uploadError ? null : path;
+      })().catch(() => null);
+      // Non-fatal: submit anyway if the upload fails or is slow.
+      storagePath = await Promise.race([upload, new Promise<null>((r) => setTimeout(() => r(null), UPLOAD_TIMEOUT_MS))]);
+      chunksRef.current = [];
     }
 
     stream?.getTracks().forEach((t) => t.stop());
@@ -113,7 +171,7 @@ export function ProctoredAssessmentRunner({
   const wrappedSubmitAction = useCallback(
     async (formData: FormData) => {
       await stopAndUpload();
-      await submitAction(formData);
+      return submitAction(formData);
     },
     [stopAndUpload, submitAction]
   );
@@ -129,7 +187,7 @@ export function ProctoredAssessmentRunner({
           <p className="text-sm text-muted leading-relaxed mb-2">
             This assessment records video for integrity review by the hiring team.{" "}
             {storageBackend === "supabase"
-              ? "Your recording is uploaded securely and only visible to authorized staff and assigned decision makers."
+              ? "Your recording is uploaded securely and only visible to authorized staff."
               : "Your recording stays on this device only and is not uploaded or stored centrally."}
           </p>
           <p className="text-xs text-muted leading-relaxed mb-6">
@@ -159,6 +217,9 @@ export function ProctoredAssessmentRunner({
       totalQuestions={totalQuestions}
       sections={sections}
       submitAction={wrappedSubmitAction}
+      saveDraftAction={saveDraftAction}
+      serverNowMs={serverNowMs}
+      serverDraft={serverDraft}
       watermarkLabel={watermarkLabel}
       contentLanguage={contentLanguage}
     />

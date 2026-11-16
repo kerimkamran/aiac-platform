@@ -1,3 +1,5 @@
+import { confirmPath, type LinkType } from "@/lib/set-password-link";
+
 /**
  * The public origin used to build invite / password-reset redirect links.
  *
@@ -25,4 +27,11 @@ export function siteUrl(): string {
 
 export function inviteRedirectUrl(): string {
   return `${siteUrl()}/invite/callback`;
+}
+
+// A full "choose your password" link built from a token hash, for links the
+// app hands out itself ("Copy invite link"). It goes through /auth/confirm,
+// which verifies it on the server, so it works on any device.
+export function setPasswordLinkUrl(tokenHash: string, type: LinkType): string {
+  return `${siteUrl()}${confirmPath(tokenHash, type)}`;
 }

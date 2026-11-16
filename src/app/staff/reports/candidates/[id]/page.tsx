@@ -3,12 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
-import { assignDecisionMaker, unassignDecisionMaker } from "../../../people/actions";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
+import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -43,6 +43,8 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   const purpose = normalizePurpose(assessment?.purpose);
   const purposeMeta = PURPOSE_META[purpose];
   const decisionOptions = DECISION_OPTIONS[purpose];
+  const isOwnAssessment = !!viewer && ca.candidate_id === viewer.id;
+  const canDecide = !isOwnAssessment && ["submitted", "scored", "reviewed"].includes(ca.status);
   // Design-execution-plan Phase 2 / T2.5: the question prompt/options and the
   // candidate's own answer below are in the assessment's content language
   // (Azerbaijani/Russian assessments exist); ai_rationale stays English by
@@ -72,7 +74,7 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     }
   }
 
-  const [{ data: competencyScores }, { data: responses }, { data: reviews }, { data: allDecisionMakers }, { data: assignedDMs }] = await Promise.all([
+  const [{ data: competencyScores }, { data: responses }, { data: reviews }] = await Promise.all([
     supabase
       .from("candidate_competency_scores")
       .select("score, level, competency_id, competencies(name, category)")
@@ -86,11 +88,6 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       .select("decision, comment, created_at, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
       .eq("candidate_assessment_id", id)
       .order("created_at", { ascending: false }),
-    supabase.from("profiles").select("id, full_name, email").eq("role", "decision_maker").order("full_name"),
-    supabase
-      .from("candidate_decision_makers")
-      .select("profile_id, profiles(full_name, email)")
-      .eq("candidate_assessment_id", id),
   ]);
 
   const { data: recordings } = await supabase
@@ -131,10 +128,6 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
     signoff = existingSignoff;
   }
   const requestSignoffWithId = requestManagerSignoff.bind(null, id);
-
-  const assignedIds = new Set((assignedDMs || []).map((a) => a.profile_id));
-  const unassignedDMs = (allDecisionMakers || []).filter((dm) => !assignedIds.has(dm.id));
-  const assignDMWithId = assignDecisionMaker.bind(null, id);
 
   const scores = ((competencyScores || []) as unknown as {
     score: number;
@@ -209,6 +202,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   // had the migration yet just shows "none" instead of breaking this page.
   const { data: extraRow } = await supabase.from("candidate_assessments").select("extra_minutes").eq("id", id).maybeSingle();
   const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
+  // Migration 0021: set when the answers arrived after the time limit. Read on
+  // its own so the page works before the migration has been run.
+  const { data: lateRow } = await supabase.from("candidate_assessments").select("submitted_late").eq("id", id).maybeSingle();
+  const submittedLate = (lateRow as { submitted_late?: boolean } | null)?.submitted_late === true;
   const { data: limitRow } = await supabase.from("assessments").select("time_limit_minutes").eq("id", ca.assessment_id).maybeSingle();
   const limitMinutes = (limitRow as { time_limit_minutes?: number } | null)?.time_limit_minutes ?? 60;
 
@@ -248,6 +245,12 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           <PrintButton />
         </div>
       </div>
+
+      {submittedLate ? (
+        <Callout tone="warning" title="Submitted after the time limit" className="mb-6 no-print">
+          The answers arrived after the time limit, or were closed automatically when time ran out. They are kept as written, and you decide how to treat them.
+        </Callout>
+      ) : null}
 
       {/* Design-execution-plan Phase 5 / T5.1: the page now reads in the
           order a reviewer actually reasons in -- the evidence they'd want to
@@ -550,59 +553,6 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
         <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
       )}
 
-      {/* Decision makers */}
-      <Card className="p-6 mb-6 no-print">
-        <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-          <Icon name="shield" className="w-4 h-4 text-accent-dark" />
-          Decision makers
-        </p>
-        <p className="text-xs text-muted mb-4">
-          Give specific stakeholders access to review this candidate and submit a decision, alongside HR. Add new
-          people from People &amp; Access.
-        </p>
-
-        {(assignedDMs || []).length > 0 && (
-          <div className="space-y-2 mb-4">
-            {(assignedDMs as unknown as { profile_id: string; profiles: { full_name: string; email: string } | null }[]).map((a) => (
-              <div key={a.profile_id} className="flex items-center justify-between gap-3 text-sm border border-line rounded-xl px-3.5 py-2.5">
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground truncate">{a.profiles?.full_name}</p>
-                  <p className="text-xs text-muted truncate">{a.profiles?.email}</p>
-                </div>
-                <form action={unassignDecisionMaker.bind(null, id, a.profile_id)}>
-                  <button className="text-xs text-critical hover:underline shrink-0">Remove</button>
-                </form>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {unassignedDMs.length > 0 ? (
-          <form action={assignDMWithId} className="flex gap-2">
-            <select
-              name="decision_maker_id"
-              required
-              className="flex-1 min-w-0 bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
-            >
-              {unassignedDMs.map((dm) => (
-                <option key={dm.id} value={dm.id}>
-                  {dm.full_name} — {dm.email}
-                </option>
-              ))}
-            </select>
-            <button className={buttonClass({ size: "md", className: "shrink-0" })}>
-              Assign
-            </button>
-          </form>
-        ) : (
-          <p className="text-xs text-muted">
-            {(allDecisionMakers || []).length === 0
-              ? "No decision makers yet — add one from People & Access."
-              : "All decision makers are already assigned to this candidate."}
-          </p>
-        )}
-      </Card>
-
       {/* Manager sign-off (promotion only) */}
       {purpose === "promotion" && (
         <Card className="p-6 mb-6 no-print">
@@ -656,7 +606,14 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
       <Card className="p-6">
         <p className="text-sm font-bold text-foreground mb-1">{purposeMeta.reviewerTitle}</p>
         <p className="text-xs text-muted mb-5">{purposeMeta.blurb}</p>
-        <form action={submitReviewWithId} className="space-y-3.5 no-print">
+        {!canDecide ? (
+          <p className="mb-4 rounded-card bg-surface p-4 text-sm text-muted no-print" role="status">
+            {isOwnAssessment
+              ? "This is your own assessment. Another reviewer needs to decide."
+              : "The candidate hasn't submitted yet. You can record a decision once they have."}
+          </p>
+        ) : null}
+        <form action={submitReviewWithId} hidden={!canDecide} className="space-y-3.5 no-print">
           <div className={`grid gap-2.5 ${decisionOptions.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
             {decisionOptions.map((d) => (
               <label key={d.v} className="cursor-pointer">

@@ -11,7 +11,7 @@ const TOASTS: ToastSpec[] = [
 ];
 
 const PAGE_SIZE = 25;
-const ROLES = ["candidate", "recruiter", "assessor", "hiring_manager", "decision_maker", "client_user", "hr_admin", "org_admin", "system_admin"];
+const ROLES = ["candidate", "recruiter", "assessor", "hiring_manager", "client_user", "hr_admin", "org_admin", "system_admin"];
 
 export default async function AdminUsersPage({
   searchParams,
@@ -33,7 +33,7 @@ export default async function AdminUsersPage({
   if (role) query = query.eq("role", role);
   if (status) query = query.eq("status", status);
   if (type === "employee") query = query.eq("is_employee", true);
-  if (type === "external") query = query.eq("is_employee", false);
+  if (type === "external") query = query.eq("is_employee", false).eq("role", "candidate");
 
   const sortCol = ["full_name", "email", "role", "last_login_at", "created_at"].includes(sort) ? sort : "created_at";
   const { data: users, count } = await query

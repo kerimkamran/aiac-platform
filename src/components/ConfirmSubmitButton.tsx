@@ -76,6 +76,7 @@ export function ConfirmSubmitButton({
     const fullWidth = className.includes("w-full");
     return (
       <span ref={anchorRef} className={fullWidth ? "block w-full" : "block"}>
+        <span className="mb-1.5 block text-xs leading-snug text-muted">{confirmMessage}</span>
         <SwipeToConfirm
           label={
             <span className="inline-flex items-center gap-1.5">

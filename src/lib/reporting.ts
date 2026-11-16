@@ -1,4 +1,4 @@
-// Shared reporting logic used across the staff/decision candidate review pages,
+// Shared reporting logic used across the staff candidate review pages,
 // the PDF export, and the analytics dashboard — so benchmarking, talent-box
 // placement, and the executive-summary narrative stay identical everywhere
 // a candidate's results are shown.

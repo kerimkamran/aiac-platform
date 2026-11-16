@@ -18,11 +18,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .single();
 
   if (!profile) redirect("/login");
-  if (profile.status === "deactivated") {
+  if (profile.status !== "active") {
     await supabase.auth.signOut();
-    redirect("/login?error=deactivated");
+    redirect("/login?error=inactive");
   }
-  if (profile.role === "candidate" || profile.role === "decision_maker") redirect(homeFor(profile.role));
+  if (profile.role === "candidate") redirect(homeFor(profile.role));
 
   const isAdmin = profile.role === "hr_admin" || profile.role === "system_admin" || profile.role === "org_admin";
   const isSystemAdmin = profile.role === "system_admin";
@@ -32,30 +32,33 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .select("id", { count: "exact", head: true })
     .eq("candidate_id", user.id);
 
-  // Staff navigation (Clear Horizon plan, section 15): Home, Assessments,
-  // Candidates and Reports, plus People and Settings for admins.
+  // Staff navigation (redesign plan B9): at most four places, named for what
+  // people do there. Hiring managers have no Tests. People and Settings move to
+  // the account menu with the other things nobody opens weekly.
   const links: NavLink[] = [
     { href: "/staff", label: "Home", icon: "home", exact: true },
-    { href: "/staff/builder", label: "Assessments", icon: "layers" },
     { href: "/staff/reports/candidates", label: "Candidates", icon: "users" },
-    { href: "/staff/reports", label: "Reports", icon: "chart", exact: true },
   ];
-  if (isAdmin) {
-    links.push({ href: "/staff/people", label: "People", icon: "shield" });
-    links.push({ href: "/staff/settings", label: "Settings", icon: "sliders" });
-  }
+  if (profile.role !== "hiring_manager") links.push({ href: "/staff/builder", label: "Tests", icon: "layers" });
+  links.push({ href: "/staff/review", label: "Reviews", icon: "check" });
 
   const switchLinks: NavLink[] = [];
+  // Managers asked to sign off a promotion review reach it from here too (E-10).
+  const { count: reports } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("manager_id", user.id);
+  if ((reports ?? 0) > 0) switchLinks.push({ href: "/signoffs", label: "Sign-off requests", icon: "checkCircle" });
+  if (isAdmin) {
+    switchLinks.push({ href: "/staff/people", label: "People", icon: "shield" });
+    switchLinks.push({ href: "/staff/settings", label: "Settings", icon: "sliders" });
+  }
   if (isSystemAdmin) switchLinks.push({ href: "/admin", label: "Admin", icon: "command" });
-  if ((myInvites ?? 0) > 0) switchLinks.push({ href: "/candidate", label: "My assessments", icon: "clipboard" });
+  if ((myInvites ?? 0) > 0) switchLinks.push({ href: "/candidate", label: "My tests", icon: "clipboard" });
 
   const actions: NavLink[] = [{ href: "/staff/builder/new", label: "New assessment", icon: "plus" }];
+  actions.push({ href: "/staff/invite", label: "Invite a candidate", icon: "plus" });
   if (isAdmin) {
-    actions.push({ href: "/staff/people#add-candidate", label: "Add a candidate", icon: "plus" });
     actions.push({ href: "/staff/people#add-staff", label: "Add a staff member", icon: "plus" });
     actions.push({ href: "/staff/people#bulk-upload", label: "Bulk-add candidates (CSV)", icon: "download" });
   }
-  actions.push({ href: "/staff/review", label: "Start review mode", icon: "play" });
 
   return (
     <AppShell role={profile.role} name={profile.full_name} homeHref="/staff" links={links} actions={actions} switchLinks={switchLinks} showCredit>

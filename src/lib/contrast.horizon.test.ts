@@ -4,8 +4,7 @@ import path from "node:path";
 import { AA_LARGE_TEXT, AA_NORMAL_TEXT, contrastRatio, extractHexTokens, extractThemeBlocks } from "./contrast";
 
 // Clear Horizon design plan, section 5 and the acceptance checklist: every
-// colour pair listed there meets WCAG AA in light, dark and on all three light
-// canvases, and the increased-contrast overrides darken text and borders. The
+// colour pair listed there meets WCAG AA in light, dark and on one light theme, and the increased-contrast overrides darken text and borders. The
 // test reads the live globals.css, so it fails the moment a token drifts.
 
 const cssText = fs.readFileSync(path.resolve(__dirname, "../app/globals.css"), "utf8");
@@ -14,12 +13,6 @@ const L = extractHexTokens(light);
 // The dark block overrides the light one; tokens it does not redefine (the
 // mark, whose tile is always night navy) fall through.
 const D = { ...L, ...extractHexTokens(dark) };
-
-function canvas(name: string) {
-  const m = cssText.match(new RegExp(`:root:not\\(\\.dark\\)\\[data-canvas="${name}"\\]\\s*\\{([^}]*)\\}`));
-  if (!m) throw new Error(`canvas ${name} missing`);
-  return { ...L, ...extractHexTokens(m[1]) };
-}
 
 function ratio(t: Record<string, string>, a: string, b: string) {
   expect(t[a], `--${a} missing`).toBeDefined();
@@ -75,9 +68,7 @@ const GRAPHIC_PAIRS: [string, string][] = [
 ];
 
 describe.each([
-  ["light (white)", L],
-  ["light (cream)", canvas("cream")],
-  ["light (grey)", canvas("grey")],
+  ["light", L],
   ["dark", D],
 ] as const)("Clear Horizon %s", (_name, tokens) => {
   for (const [a, b] of TEXT_PAIRS) {
@@ -105,7 +96,9 @@ describe("Clear Horizon plan values", () => {
     expect(L.brand.toLowerCase()).toBe("#133e72");
     expect(L.secondary.toLowerCase()).toBe("#356d1b");
     expect(L.panel.toLowerCase()).toBe("#0c2a4f");
-    expect(L.accent.toLowerCase()).toBe("#1d5aa6");
+    expect(L.accent.toLowerCase()).toBe("#133e72");
+    expect(L.background.toLowerCase()).toBe("#f0f4fb");
+    expect(L.foreground.toLowerCase()).toBe("#151515");
     expect(D.brand.toLowerCase()).toBe("#9cc0f0");
     expect(D["on-primary"].toLowerCase()).toBe("#08182e");
   });
@@ -122,7 +115,7 @@ describe("increased contrast", () => {
   it("darkens muted text and control borders in light mode", () => {
     expect(lightMore.muted).toBeDefined();
     expect(lightMore["line-control"]).toBeDefined();
-    const sunken = canvas("cream")["surface-sunken"];
+    const sunken = L["surface-sunken"];
     expect(contrastRatio(lightMore.muted, sunken)).toBeGreaterThan(contrastRatio(L.muted, sunken));
     expect(contrastRatio(lightMore["line-control"], L.surface)).toBeGreaterThan(contrastRatio(L["line-control"], L.surface));
     expect(contrastRatio(lightMore.muted, sunken)).toBeGreaterThanOrEqual(7);

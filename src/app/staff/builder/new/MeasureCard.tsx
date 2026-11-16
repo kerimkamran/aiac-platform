@@ -105,7 +105,7 @@ export function MeasureCard({
                   <label
                     key={c.id}
                     className={`flex items-start gap-2.5 text-sm rounded-xl border px-3 py-2 ${
-                      on ? "border-accent bg-accent-soft" : "border-line bg-canvas"
+                      on ? "border-accent bg-accent-soft" : "border-line bg-surface"
                     } ${disabled ? "opacity-50" : "cursor-pointer"}`}
                   >
                     <input
@@ -154,7 +154,7 @@ export function MeasureCard({
             id="question-mix"
             value={mix}
             onChange={(e) => setMix(e.target.value as QuestionMix)}
-            className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {MIXES.map((m) => (
               <option key={m.value} value={m.value}>
@@ -172,7 +172,7 @@ export function MeasureCard({
             id="purpose"
             value={purpose}
             onChange={(e) => setPurpose(e.target.value as AssessmentPurpose)}
-            className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {PURPOSES.map((p) => (
               <option key={p.value} value={p.value}>
@@ -190,7 +190,7 @@ export function MeasureCard({
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value as GenerationLanguage)}
-            className="w-full bg-canvas border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {LANGUAGES.map((l) => (
               <option key={l.value} value={l.value}>
@@ -201,7 +201,7 @@ export function MeasureCard({
         </div>
       </div>
 
-      <details className="rounded-xl border border-line bg-canvas px-4 py-3">
+      <details className="rounded-xl border border-line bg-surface px-4 py-3">
         <summary className="text-sm font-semibold cursor-pointer text-foreground">Advanced</summary>
         <div className="mt-3 space-y-4">
           <div className="space-y-2">

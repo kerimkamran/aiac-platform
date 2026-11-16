@@ -58,7 +58,7 @@ export default async function SettingsPage({
     <div className="p-6 lg:p-10 max-w-4xl">
       <PageHeader
         title="Settings"
-        subtitle="Manage the invite email candidates and decision makers receive when they're added to the system."
+        subtitle="Manage the invite email candidates receive when they're added to the system."
       />
 
       <ToastFromParams specs={TOAST_SPECS} />
