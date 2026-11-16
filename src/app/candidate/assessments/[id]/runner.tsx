@@ -53,10 +53,19 @@ export function AssessmentRunner({
   deadlineMs,
   sections,
   submitAction,
+  saveDraftAction,
+  serverNowMs,
+  serverDraft,
   watermarkLabel = "confidential",
   contentLanguage,
 }: {
   caId: string;
+  // The server's clock when the page was sent, so a wrong device clock cannot
+  // change how much time is left (E-04).
+  serverNowMs?: number;
+  // Answers saved on the server (E-05). Used when this device has none.
+  serverDraft?: Record<string, string> | null;
+  saveDraftAction?: (answers: Record<string, string>) => Promise<boolean>;
   title: string;
   description: string;
   deadlineMs: number;
@@ -97,10 +106,12 @@ export function AssessmentRunner({
 
   /* Restore the local draft once on mount, then keep it saved on this device. */
   useEffect(() => {
+    const local = readDraft(caId);
+    const hasLocal = Object.values(local.answers).some((v) => v && v.length > 0);
     // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time restore from localStorage after mount
-    setDraft(readDraft(caId));
+    setDraft(!hasLocal && serverDraft ? { answers: serverDraft, flagged: local.flagged } : local);
     setRestored(true);
-  }, [caId]);
+  }, [caId, serverDraft]);
 
   useEffect(() => {
     try {
@@ -171,6 +182,35 @@ export function AssessmentRunner({
   // function (manual slide or countdown expiry) reads current values without
   // being rebuilt on every keystroke.
   const answersRef = useRef(answers);
+  // Difference between the server clock and this device's clock.
+  const clockOffsetRef = useRef(0);
+  useEffect(() => {
+    if (typeof serverNowMs === "number") clockOffsetRef.current = serverNowMs - Date.now();
+  }, [serverNowMs]);
+
+  // Save the answers on the server a few seconds after the last change, and
+  // whenever the tab is hidden, so nothing depends on this device surviving.
+  const lastSavedRef = useRef("");
+  useEffect(() => {
+    if (!restored || !saveDraftAction) return;
+    const save = () => {
+      const snapshot = JSON.stringify(answersRef.current);
+      if (snapshot === lastSavedRef.current || submittedRef.current) return;
+      lastSavedRef.current = snapshot;
+      saveDraftAction(answersRef.current).then((ok) => {
+        if (!ok) lastSavedRef.current = "";
+      });
+    };
+    const timer = setTimeout(save, 4000);
+    const onHide = () => {
+      if (document.visibilityState === "hidden") save();
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onHide);
+    };
+  }, [answers, restored, saveDraftAction]);
   const tabSwitchesRef = useRef(tabSwitches);
   useEffect(() => {
     answersRef.current = answers;
@@ -215,7 +255,7 @@ export function AssessmentRunner({
   useEffect(() => {
     if (!restored) return;
     const tick = () => {
-      const n = Date.now();
+      const n = Date.now() + clockOffsetRef.current;
       setNowMs(n);
       if (Math.round((deadlineMs - n) / 1000) <= 0) doSubmit("expiry");
     };

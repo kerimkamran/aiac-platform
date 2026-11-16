@@ -46,6 +46,9 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
 
   const switchLinks: NavLink[] = [];
+  // Managers asked to sign off a promotion review reach it from here too (E-10).
+  const { count: reports } = await supabase.from("profiles").select("id", { count: "exact", head: true }).eq("manager_id", user.id);
+  if ((reports ?? 0) > 0) switchLinks.push({ href: "/signoffs", label: "Sign-off requests", icon: "checkCircle" });
   if (isSystemAdmin) switchLinks.push({ href: "/admin", label: "Admin", icon: "command" });
   if ((myInvites ?? 0) > 0) switchLinks.push({ href: "/candidate", label: "My assessments", icon: "clipboard" });
 

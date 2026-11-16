@@ -8,6 +8,7 @@ import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
+import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
 
 export default async function CandidateReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -201,6 +202,10 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
   // had the migration yet just shows "none" instead of breaking this page.
   const { data: extraRow } = await supabase.from("candidate_assessments").select("extra_minutes").eq("id", id).maybeSingle();
   const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
+  // Migration 0021: set when the answers arrived after the time limit. Read on
+  // its own so the page works before the migration has been run.
+  const { data: lateRow } = await supabase.from("candidate_assessments").select("submitted_late").eq("id", id).maybeSingle();
+  const submittedLate = (lateRow as { submitted_late?: boolean } | null)?.submitted_late === true;
   const { data: limitRow } = await supabase.from("assessments").select("time_limit_minutes").eq("id", ca.assessment_id).maybeSingle();
   const limitMinutes = (limitRow as { time_limit_minutes?: number } | null)?.time_limit_minutes ?? 60;
 
@@ -240,6 +245,12 @@ export default async function CandidateReviewPage({ params }: { params: Promise<
           <PrintButton />
         </div>
       </div>
+
+      {submittedLate ? (
+        <Callout tone="warning" title="Submitted after the time limit" className="mb-6 no-print">
+          The answers arrived after the time limit, or were closed automatically when time ran out. They are kept as written, and you decide how to treat them.
+        </Callout>
+      ) : null}
 
       {/* Design-execution-plan Phase 5 / T5.1: the page now reads in the
           order a reviewer actually reasons in -- the evidence they'd want to

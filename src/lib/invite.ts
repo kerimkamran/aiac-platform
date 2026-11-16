@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendSetPasswordEmail } from "@/lib/supabase/mailer";
+import { assignmentEmail, emailConfigured, pickLang, sendEmail } from "@/lib/email";
 
 /**
  * One way to invite or assign, used by People, the builder, the approvals
@@ -53,6 +54,22 @@ export async function assignAssessment(
     p_body: `You've been assigned "${input.title || "an assessment"}". Sign in to take it.`,
     p_link: "/candidate/assessments",
   });
+  // An email too, when the company mail server is set up. Best effort: the
+  // in-app notice above is always sent.
+  if (emailConfigured()) {
+    const { data: person } = await supabase.from("profiles").select("email, full_name").eq("id", input.candidateId).maybeSingle();
+    const { data: test } = await supabase.from("assessments").select("content_language").eq("id", input.assessmentId).maybeSingle();
+    if (person?.email) {
+      const due = input.dueAt ? new Date(input.dueAt).toLocaleDateString("en-GB") : null;
+      const mail = assignmentEmail({
+        lang: pickLang((test as { content_language?: string | null } | null)?.content_language),
+        name: (person.full_name as string) || (person.email as string),
+        title: input.title || "an assessment",
+        due,
+      });
+      await sendEmail({ to: person.email as string, ...mail });
+    }
+  }
   return "assigned";
 }
 

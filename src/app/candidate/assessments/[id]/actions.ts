@@ -2,26 +2,33 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { scoreTextResponse, type CompetencyContext, type ScoringEngine } from "@/lib/scoring";
-import { isLevelKey } from "@/lib/levels";
+import { scoreAttempt } from "@/lib/score-attempt";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 
-type RunnerRow = {
-  section_id: string;
-  section_competency_id: string;
-  question_id: string;
-  question_type: string;
-  prompt: string;
-  weight: number;
-  question_competency_id: string | null;
-};
+const SUBMIT_FAILED = "We couldn't submit. Your answers are still here. Try again.";
 
 export async function startAssessment(candidateAssessmentId: string) {
   const supabase = await createClient();
-  // Server clock and ownership are checked inside start_attempt (migration 0019).
+  // Server clock, ownership and the due date are checked inside start_attempt.
   await supabase.rpc("start_attempt", { p_candidate_assessment_id: candidateAssessmentId });
   revalidatePath(`/candidate/assessments/${candidateAssessmentId}`);
+}
+
+// Saves the answers so far on the server (E-05), so a closed laptop or a dead
+// battery loses nothing and an expired attempt can be closed with what was
+// written. Never throws: the exam keeps its on-device copy either way.
+export async function saveDraft(candidateAssessmentId: string, answers: Record<string, string>): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase.rpc("save_attempt_draft", {
+      p_candidate_assessment_id: candidateAssessmentId,
+      p_answers: answers,
+    });
+    return !error;
+  } catch {
+    return false;
+  }
 }
 
 export async function submitAssessment(
@@ -30,208 +37,48 @@ export async function submitAssessment(
 ): Promise<{ error: string } | void> {
   const supabase = await createClient();
 
-  const { data: ca } = await supabase
-    .from("candidate_assessments")
-    .select("id, assessment_id, candidate_id, assessments(engine, target_level)")
-    .eq("id", candidateAssessmentId)
-    .single();
-
+  const { data: ca } = await supabase.from("candidate_assessments").select("id").eq("id", candidateAssessmentId).maybeSingle();
   if (!ca) redirect("/candidate");
 
   // Scores and the final status are written by the server, never by the
-  // candidate's own session (migration 0019). Without the service key the
-  // answers are kept on the device and the candidate can try again later.
+  // candidate's own session. Without the service key the answers stay on the
+  // device and the candidate can try again.
   const db = createAdminClient();
-  if (!db) {
-    return { error: "We couldn't submit right now. Your answers are still here. Try again in a moment." };
-  }
+  if (!db) return { error: "We couldn't submit right now. Your answers are still here. Try again in a moment." };
 
   // Locks the attempt and moves it to "submitted" exactly once. A second tab or
   // a retry after a failed scoring is safe: scored work is never touched again.
   const { data: before, error: gateError } = await supabase.rpc("begin_submit", {
     p_candidate_assessment_id: candidateAssessmentId,
   });
-  if (gateError) {
-    return { error: "We couldn't submit. Your answers are still here. Try again." };
-  }
+  if (gateError) return { error: SUBMIT_FAILED };
   if (before === "scored" || before === "reviewed") {
     redirect(`/candidate/assessments/${candidateAssessmentId}/submitted`);
   }
 
-  // Score already stored for a question (a retry after a partial failure).
-  async function storedScore(questionId: string): Promise<number | null> {
-    const { data } = await db!
-      .from("candidate_responses")
-      .select("score")
-      .eq("candidate_assessment_id", candidateAssessmentId)
-      .eq("question_id", questionId)
-      .maybeSingle();
-    return data && data.score !== null ? Number(data.score) : null;
+  // The answers in the form win; the saved draft fills any the form lacks.
+  const { data: draftRow } = await db
+    .from("candidate_assessments")
+    .select("draft_answers")
+    .eq("id", candidateAssessmentId)
+    .maybeSingle();
+  const answers: Record<string, string> = {};
+  for (const [k, v] of Object.entries((draftRow?.draft_answers as Record<string, string> | null) ?? {})) {
+    answers[k] = String(v ?? "");
   }
-
-  const caAssessment = ca.assessments as unknown as { engine: string | null; target_level: string | null } | null;
-  const engineRaw = caAssessment?.engine || null;
-  const targetLevel = isLevelKey(caAssessment?.target_level) ? caAssessment.target_level : null;
-  const engine: ScoringEngine | null =
-    engineRaw === "claude" || engineRaw === "fugu" || engineRaw === "kimi" ? engineRaw : null;
-
-  // The AI-provider API key never touches this action's own RLS-scoped
-  // client: generation_engines is staff-only, and get_engine_api_key_for_scoring
-  // is revoked from authenticated/anon at the grant level (see
-  // supabase/migrations/0012_secure_mcq_scoring.sql) -- only the
-  // service-role admin client can call it. No engine configured, or no
-  // service role key in this environment, just means text scoring falls
-  // back to the heuristic below; it never blocks the submission.
-  let apiKey: string | null = null;
-  if (engine) {
-    const admin = createAdminClient();
-    if (admin) {
-      const { data } = await admin.rpc("get_engine_api_key_for_scoring", { p_engine_key: engine });
-      apiKey = (data as string | null) || null;
+  for (const [key, value] of formData.entries()) {
+    if (key.startsWith("q_")) {
+      const text = String(value ?? "");
+      if (text !== "" || !(key.slice(2) in answers)) answers[key.slice(2)] = text;
     }
   }
-
-  // Enumerates this assessment's questions through the same SECURITY
-  // DEFINER RPC the runner page uses -- the base `questions` table is
-  // staff-only now, and this action never needs `options` at all (MCQ
-  // grading happens inside submit_mcq_answer, entirely in Postgres).
-  const { data: runnerRows } = await supabase.rpc("get_runner_questions", {
-    p_candidate_assessment_id: candidateAssessmentId,
-  });
-
-  const rows = (runnerRows || []) as unknown as RunnerRow[];
-
-  // Preload competency name/description/behavioural indicators for every
-  // competency referenced -- text scoring grades against these, not a
-  // generic rubric. (competencies/competency_indicators stay readable by
-  // any authenticated user, unlike questions.)
-  const competencyIds = Array.from(
-    new Set(rows.map((r) => r.question_competency_id || r.section_competency_id).filter(Boolean))
-  ) as string[];
-
-  const competencyMap = new Map<string, CompetencyContext>();
-  if (competencyIds.length > 0) {
-    const [{ data: comps }, { data: indicators }] = await Promise.all([
-      supabase.from("competencies").select("id, name, description").in("id", competencyIds),
-      supabase.from("competency_indicators").select("competency_id, level, indicator_text").in("competency_id", competencyIds),
-    ]);
-    for (const c of comps || []) {
-      competencyMap.set(c.id, { name: c.name, description: c.description, indicators: [], targetLevel });
-    }
-    for (const i of indicators || []) {
-      competencyMap.get(i.competency_id)?.indicators.push({ level: i.level, indicator_text: i.indicator_text });
-    }
-  }
-
-  const competencyTotals: Record<string, { weighted: number; totalWeight: number }> = {};
-  let overallWeighted = 0;
-  let overallWeight = 0;
-
-  for (const q of rows) {
-    let result: { score: number } | null = null;
-
-    if (q.question_type === "mcq") {
-      const selected = String(formData.get(`q_${q.question_id}`) || "") || null;
-      // Graded entirely inside Postgres -- the correct option never
-      // travels through this server action or the browser. A rejection
-      // (e.g. a retried submit hitting the one-response-per-question
-      // guard) just skips re-scoring this question rather than throwing
-      // the whole submission away; the first, successful call already
-      // recorded and counted its score.
-      const { data, error } = await supabase.rpc("submit_mcq_answer", {
-        p_candidate_assessment_id: candidateAssessmentId,
-        p_question_id: q.question_id,
-        p_selected_key: selected,
-      });
-      if (!error && data && data.length > 0) {
-        result = { score: Number(data[0].score) };
-      } else {
-        const kept = await storedScore(q.question_id);
-        if (kept !== null) result = { score: kept };
-      }
-    } else {
-      const text = String(formData.get(`q_${q.question_id}`) || "");
-      const competencyId = q.question_competency_id || q.section_competency_id;
-      const competency = (competencyId && competencyMap.get(competencyId)) || {
-        name: "General",
-        description: null,
-        indicators: [],
-        targetLevel,
-      };
-      const scored = await scoreTextResponse({ questionPrompt: q.prompt, responseText: text, competency, engine, apiKey });
-      const { error } = await db.from("candidate_responses").insert({
-        candidate_assessment_id: candidateAssessmentId,
-        question_id: q.question_id,
-        response_text: text,
-        score: scored.score,
-        ai_rationale: scored.rationale,
-        // Design-execution-plan Phase 0 / T0.3: this signal used to be
-        // computed by scoreTextResponse() and then dropped here -- the
-        // human-in-the-loop safeguard had no data behind it. Now persisted
-        // so reviewers can see (and eventually filter on) low-confidence
-        // scores. See supabase/migrations/0013_needs_review_flag.sql.
-        needs_review: scored.needsReview,
-      });
-      // 23505 = unique_violation -- a retried submit for a question already
-      // recorded. Same "skip, don't throw" handling as the MCQ branch above.
-      if (!error) result = { score: scored.score };
-      else if (error.code === "23505") {
-        const kept = await storedScore(q.question_id);
-        if (kept !== null) result = { score: kept };
-      } else {
-        return { error: "We couldn't submit. Your answers are still here. Try again." };
-      }
-    }
-
-    if (!result) continue;
-
-    const w = Number(q.weight) || 1;
-    competencyTotals[q.section_competency_id] = competencyTotals[q.section_competency_id] || {
-      weighted: 0,
-      totalWeight: 0,
-    };
-    competencyTotals[q.section_competency_id].weighted += result.score * w;
-    competencyTotals[q.section_competency_id].totalWeight += w;
-    overallWeighted += result.score * w;
-    overallWeight += w;
-  }
-
-  for (const [competencyId, totals] of Object.entries(competencyTotals)) {
-    const score = totals.totalWeight > 0 ? totals.weighted / totals.totalWeight : 0;
-    await db.from("candidate_competency_scores").upsert(
-      {
-        candidate_assessment_id: candidateAssessmentId,
-        competency_id: competencyId,
-        score: Math.round(score * 10) / 10,
-        level: score >= 85 ? "Exceeds" : score >= 70 ? "Fully Meets" : score >= 50 ? "Partially Meets" : "Does Not Meet",
-      },
-      { onConflict: "candidate_assessment_id,competency_id" }
-    );
-  }
-
-  const overallScore = overallWeight > 0 ? Math.round((overallWeighted / overallWeight) * 10) / 10 : 0;
 
   const tabSwitchCount = Number(formData.get("tab_switch_count") || 0) || 0;
+  const result = await scoreAttempt(db, { candidateAssessmentId, answers, tabSwitchCount });
+  if (!result.ok) return { error: SUBMIT_FAILED };
 
-  // Only an attempt still waiting to be scored can become "scored": a second
-  // submit can never overwrite a score or turn a reviewed result back.
-  const { error: finishError } = await db
-    .from("candidate_assessments")
-    .update({
-      status: "scored",
-      overall_score: overallScore,
-      tab_switch_count: tabSwitchCount,
-    })
-    .eq("id", candidateAssessmentId)
-    .eq("status", "submitted");
-  if (finishError) {
-    return { error: "We couldn't submit. Your answers are still here. Try again." };
-  }
-
-  // Design-execution-plan Phase 6 / T6.4: carries the runner's submit reason
-  // through to the confirmation page so it never celebrates a submission the
-  // countdown forced through at zero -- see the matching note on doSubmit in
-  // runner.tsx.
+  // The runner's submit reason reaches the confirmation page so it never
+  // celebrates a submission the countdown forced through at zero.
   const reason = String(formData.get("submit_reason") || "manual");
   const suffix = reason === "expiry" ? "?reason=expiry" : "";
   redirect(`/candidate/assessments/${candidateAssessmentId}/submitted${suffix}`);

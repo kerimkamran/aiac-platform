@@ -3,6 +3,7 @@ import { Card, PageHeader } from "@/components/ui";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { saveRoleMatrix } from "../actions";
 import { buttonClass } from "@/components/ui/Button";
+import { Callout } from "@/components/ui/Callout";
 
 const TOASTS: ToastSpec[] = [
   { param: "ok", variant: "success" },
@@ -29,9 +30,12 @@ export default async function AdminRolesPage({ searchParams }: { searchParams: P
     <div className="p-6 lg:p-10 max-w-5xl">
       <PageHeader
         title="Roles & Permissions"
-        subtitle="Module × action matrix per role. system_admin implicitly retains full access; per-user temporary overrides live on each user's page."
+        subtitle="Module × action matrix per role. The Super Admin keeps full access; per-user temporary overrides live on each user's page."
       />
       <ToastFromParams specs={TOASTS} />
+      <Callout tone="info" title="What this controls" className="mb-5">
+        These permissions apply to the Admin area and the API only. What people can open in the staff and candidate areas is set by their role, not by this table. The Super Admin role always has every permission.
+      </Callout>
 
       <div className="flex flex-wrap gap-2 mb-6" role="tablist" aria-label="Roles">
         {ROLE_ORDER.map((r) => (

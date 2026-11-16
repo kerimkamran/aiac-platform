@@ -47,7 +47,7 @@ export default async function CandidateLayout({ children }: { children: React.Re
     { href: "/candidate/results", label: "Results", icon: "award" },
   ];
   if ((directReportCount ?? 0) > 0) {
-    links.push({ href: "/candidate/signoffs", label: "Sign-off requests", icon: "checkCircle" });
+    links.push({ href: "/signoffs", label: "Sign-off requests", icon: "checkCircle" });
   }
 
   // Internal employees who are also candidates get a way back to their workspace.

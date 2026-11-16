@@ -22,5 +22,5 @@ export async function decideManagerSignoff(signoffId: string, decision: "approve
     .eq("id", signoffId)
     .eq("manager_id", user.id);
 
-  revalidatePath("/candidate/signoffs");
+  revalidatePath("/signoffs");
 }

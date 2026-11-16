@@ -17,6 +17,7 @@ import {
   bulkPeopleAction,
 } from "./actions";
 import { buttonClass } from "@/components/ui/Button";
+import { Callout } from "@/components/ui/Callout";
 
 const ROLE_LABEL: Record<string, string> = {
   system_admin: "Super Admin",
@@ -51,7 +52,7 @@ export default async function PeoplePage({
 }: {
   searchParams: Promise<{ error?: string; added?: string; q?: string; role?: string; status?: string; edit?: string }>;
 }) {
-  const { q = "", role: roleFilter = "", status: statusFilter = "", edit } = await searchParams;
+  const { q = "", role: roleFilter = "", status: statusFilter = "", edit, error: flashError } = await searchParams;
   const supabase = await createClient();
 
   const {
@@ -104,6 +105,12 @@ export default async function PeoplePage({
       />
 
       <ToastFromParams specs={TOAST_SPECS} />
+      {/* A failed send stays on the page: a 5-second toast is easy to miss (A-04). */}
+      {flashError ? (
+        <Callout tone="critical" role="alert" className="mb-5">
+          {flashError}
+        </Callout>
+      ) : null}
 
       {editingUser && (
         <Card className="p-6 mb-8 border-brand/20">

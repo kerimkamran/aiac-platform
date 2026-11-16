@@ -22,7 +22,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, status, overall_score, submitted_at, tab_switch_count, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
+      "id, assessment_id, status, overall_score, submitted_at, tab_switch_count, feedback_released_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
     )
     .eq("id", id)
     .single();
@@ -33,8 +33,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   // A candidate only gets the report once a person has reviewed it, and that
   // copy leaves out the AI rationale (plan v2, section 9, item 2). Row access
   // alone was not enough to stop an early download.
-  if (isCandidate && ca.status !== "reviewed") {
-    return NextResponse.json({ error: "Your report is available once it has been reviewed." }, { status: 403 });
+  // It also waits for HR to release the feedback (E-09), the same gate as the
+  // results page, and it carries only what the candidate may see there.
+  if (isCandidate && (ca.status !== "reviewed" || !ca.feedback_released_at)) {
+    return NextResponse.json({ error: "Your report is available once it has been reviewed and released." }, { status: 403 });
   }
 
   const candidate = ca.candidate as unknown as { full_name: string; email: string; department: string | null } | null;
@@ -91,6 +93,10 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       : null;
 
   type QOpt = { key: string; text: string };
+  // Reviewer-only content never goes into a candidate's copy: the talent-matrix
+  // placement, the recruiter summary, the integrity note, peer comparison and
+  // reviewer comments.
+  const reviewerView = !isCandidate;
   const data: ReportData = {
     candidateName: candidate?.full_name || "Candidate",
     candidateEmail: candidate?.email || "",
@@ -98,13 +104,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     vacancyTitle: assessment?.vacancy_title || null,
     department: candidate?.department || null,
     overallScore: ca.overall_score,
-    percentile,
-    peerAvg: benchmark.peerAvg,
-    peerCount,
-    boxLabel,
-    executiveSummary,
+    percentile: reviewerView ? percentile : null,
+    peerAvg: reviewerView ? benchmark.peerAvg : null,
+    peerCount: reviewerView ? peerCount : 0,
+    boxLabel: reviewerView ? boxLabel : null,
+    executiveSummary: reviewerView ? executiveSummary : null,
     submittedAt: ca.submitted_at,
-    tabSwitchCount: ca.tab_switch_count || 0,
+    tabSwitchCount: reviewerView ? ca.tab_switch_count || 0 : 0,
     competencies: competencyLines,
     responses: ((responses || []) as unknown as {
       response_text: string | null;
@@ -123,7 +129,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       rationale: r.ai_rationale,
       needsReview: !!r.needs_review,
     })),
-    decisions: ((reviews || []) as unknown as { decision: string; comment: string; created_at: string; reviewer: { full_name: string } | null }[]).map(
+    decisions: !reviewerView ? [] : ((reviews || []) as unknown as { decision: string; comment: string; created_at: string; reviewer: { full_name: string } | null }[]).map(
       (d) => ({ decision: d.decision, comment: d.comment, reviewer: d.reviewer?.full_name || "Reviewer", createdAt: d.created_at })
     ),
     generatedAt: new Date().toISOString(),
