@@ -165,7 +165,7 @@ export default async function BuilderDetailPage({
           />
         )}
         {assessment.status === "published" && (
-          <Link href="/staff/people" className={buttonClass({ size: "md" })}>
+          <Link href="/staff/invite" className={buttonClass({ size: "md" })}>
             Invite candidates
           </Link>
         )}
@@ -594,10 +594,10 @@ export default async function BuilderDetailPage({
           </p>
           <p className="text-xs text-muted mb-4">
             To invite or assign someone to this assessment, go to{" "}
-            <Link href="/staff/people" className="font-semibold text-accent-dark hover:underline">
-              People &amp; Access
+            <Link href="/staff/invite" className="font-semibold text-accent-dark hover:underline">
+              Invite a candidate
             </Link>{" "}
-            and pick this assessment as the package.
+            and pick this assessment.
           </p>
           <div className="space-y-2.5 max-h-96 overflow-y-auto">
             {(invitees || []).map((iv) => {

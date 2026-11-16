@@ -80,7 +80,7 @@ export const az: Dict = {
     steps: [
       { n: "01", t: "Qurun", b: "Vəzifəni təsvir edin və dəqiqələr içində qiymətləndirmə layihəsi alın. Redaktə edin, sonra dərc edin." },
       { n: "02", t: "Nəzərdən keçirin", b: "Hər cavabı balın arxasındakı sübutla yanaşı görün. Təsdiq edin və ya dəyişin." },
-      { n: "03", t: "Qərar verin", b: "Qərar verənlər eyni anda bir dosye alır: bal, sübut və rəy verənin qeydi." },
+      { n: "03", t: "Qərar verin", b: "Rəy verənlər eyni anda bir dosye alır: bal, sübut və rəy verənin qeydi." },
     ],
     fig: {
       answerLabel: "Namizədin cavabı",

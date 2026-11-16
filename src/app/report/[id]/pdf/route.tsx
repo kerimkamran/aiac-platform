@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     .eq("id", id)
     .single();
 
-  // RLS (candidate own / staff / assigned decision maker) already scoped the row away if unauthorized.
+  // RLS (candidate own / staff) already scoped the row away if unauthorized.
   if (!ca) return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 });
 
   // A candidate only gets the report once a person has reviewed it, and that

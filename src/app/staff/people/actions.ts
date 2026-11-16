@@ -3,187 +3,123 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { sendSetPasswordEmail } from "@/lib/supabase/mailer";
+import { assignAssessment, provisionAccount, sendInvite } from "@/lib/invite";
+import { STAFF_ROLES as ALL_STAFF_ROLES } from "@/lib/authz";
 
-async function requireAdmin() {
+async function currentRole() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-  if (!profile || (profile.role !== "hr_admin" && profile.role !== "system_admin")) {
-    redirect("/staff?error=" + encodeURIComponent("Only HR admins and the super admin can manage people."));
+  const { data: profile } = await supabase.from("profiles").select("role, status").eq("id", user.id).single();
+  return { supabase, user, role: profile?.status === "active" ? (profile.role as string) : null };
+}
+
+// People management (staff, roles, status) stays with HR admins and the super admin.
+async function requireAdmin() {
+  const { supabase, role } = await currentRole();
+  if (role !== "hr_admin" && role !== "system_admin") {
+    redirect("/staff?error=" + encodeURIComponent("Only HR admins and the Super Admin can manage people."));
   }
   return supabase;
 }
 
-// Returns a short, admin-facing reason when the invite email could not be
-// queued (e.g. Supabase's shared default mailer rate limit), or null on
-// success. Every caller must check this instead of assuming the email went
-// out -- the send can fail silently (rate limit, provider error) and
-// previously that failure was dropped on the floor, so admins were told
-// "invited by email" even when nothing was sent.
-//
-// The email is sent by a client that is not tied to this admin's browser
-// (see src/lib/supabase/mailer.ts), so the link works on the invitee's own
-// device.
-async function sendInviteEmail(email: string): Promise<string | null> {
-  return sendSetPasswordEmail(email);
-}
-
-// Supabase returns two distinct, unrelated errors here and admins shouldn't
-// have to know the difference: a per-email cooldown ("you can only request
-// this after N seconds" -- a normal anti-spam throttle, not a failure) and
-// a project-wide send-volume cap ("email rate limit exceeded"). Both have
-// the same real fix available right now: "Copy invite link" generates the
-// link directly and never touches the mailer, so it's unaffected by either.
-function friendlyInviteError(raw: string): string {
-  const cooldown = raw.match(/after (\d+) seconds?/i);
-  if (cooldown) {
-    return `Supabase's per-email cooldown is still active (wait ${cooldown[1]}s to resend by email) — or use "Copy invite link" now to skip the wait.`;
+// Inviting candidates is open to every active staff member (recruiters and
+// hiring managers included). It can never create staff or change roles.
+async function requireInviter() {
+  const { supabase, role } = await currentRole();
+  if (!role || !(ALL_STAFF_ROLES as readonly string[]).includes(role)) {
+    redirect("/staff?error=" + encodeURIComponent("You don't have access to invite candidates."));
   }
-  if (/rate limit/i.test(raw)) {
-    return `Supabase's shared email sending limit is temporarily exhausted — use "Copy invite link" now instead of waiting it out.`;
-  }
-  return raw;
+  return supabase;
 }
 
 export async function addCandidate(formData: FormData) {
-  const supabase = await requireAdmin();
+  const supabase = await requireInviter();
   const email = String(formData.get("email") || "").trim().toLowerCase();
   const fullName = String(formData.get("full_name") || "").trim();
   const department = String(formData.get("department") || "").trim() || null;
-  // Assessment package is optional here: an admin can create a bare account
-  // now and assign an assessment later (via the bulk "assign_assessment"
-  // action further down this file), or pick one right away so the invite
-  // email and the assessment assignment happen in a single step.
   const assessmentId = String(formData.get("assessment_id") || "").trim() || null;
+  // The invite page is open to every staff role; People is for admins only.
+  const base = String(formData.get("return_to") || "") === "invite" ? "/staff/invite" : "/staff/people";
+  const to = (kind: "error" | "added", message: string) => `${base}?${kind}=${encodeURIComponent(message)}`;
+
+  if (!email || !fullName) redirect(to("error", "Name and email are required."));
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) redirect(to("error", "That email address doesn't look right."));
+
+  let assessmentTitle = "";
   if (assessmentId) {
-    const { data: target } = await supabase.from("assessments").select("status").eq("id", assessmentId).maybeSingle();
+    const { data: target } = await supabase.from("assessments").select("status, title").eq("id", assessmentId).maybeSingle();
     if (!target || target.status !== "published") {
-      redirect("/staff/people?error=" + encodeURIComponent("Publish the assessment before assigning it to a candidate."));
+      redirect(to("error", "Publish the assessment before assigning it to a candidate."));
     }
+    assessmentTitle = target.title as string;
   }
 
-  if (!email || !fullName) {
-    redirect("/staff/people?error=" + encodeURIComponent("Name and email are required."));
-  }
-
-  const { data: provisioned, error } = await supabase.rpc("admin_provision_user", {
-    p_email: email,
-    p_full_name: fullName,
-    p_role: "candidate",
-    p_department: department,
-  });
-
-  if (error) {
-    redirect("/staff/people?error=" + encodeURIComponent(error.message));
-  }
-
-  const candidateId = provisioned?.[0]?.profile_id as string | undefined;
+  const account = await provisionAccount(supabase, { email, fullName, role: "candidate", department });
+  if (!account.ok) redirect(to("error", account.error));
 
   const dueDateRaw = String(formData.get("due_date") || "").trim();
   const dueAt = dueDateRaw ? new Date(`${dueDateRaw}T23:59:59Z`).toISOString() : null;
 
-  if (assessmentId && candidateId) {
-    const { error: linkError } = await supabase.from("candidate_assessments").insert({
-      assessment_id: assessmentId,
-      candidate_id: candidateId,
-      status: "invited",
-      due_at: dueAt,
-    });
-    // A duplicate link (candidate already assigned to this assessment) isn't
-    // worth failing the whole invite over -- the account is still created
-    // and the invite email still goes out below.
-    if (linkError && !linkError.message.includes("duplicate")) {
-      redirect("/staff/people?error=" + encodeURIComponent(`${fullName} was added, but couldn't be assigned the assessment: ${linkError.message}`));
+  // Somebody who already has an account is named, never silently skipped.
+  if (!account.created) {
+    const { data: existing } = await supabase.from("profiles").select("full_name, role").eq("id", account.id).maybeSingle();
+    const who = existing?.full_name || email;
+    if (existing && existing.role !== "candidate") {
+      redirect(to("error", `${who} already has a staff account with this email.`));
     }
+    if (!assessmentId) {
+      redirect(to("error", `${who} already has an account. Choose an assessment to add it to their account.`));
+    }
+    const added = await assignAssessment(supabase, { candidateId: account.id, assessmentId: assessmentId!, dueAt, title: assessmentTitle });
+    revalidatePath("/staff/people");
+    revalidatePath("/staff/reports/candidates");
+    if (typeof added === "object") redirect(to("error", `${who} already has an account, but the assessment couldn't be added: ${added.error}`));
+    redirect(
+      to(
+        "added",
+        added === "already_assigned"
+          ? `${who} already has an account and this assessment. Nothing was changed.`
+          : `${who} already has an account. The assessment was added to it and they were notified.`
+      )
+    );
   }
 
-  const inviteError = await sendInviteEmail(email);
+  let assignNote = "";
+  if (assessmentId) {
+    const assigned = await assignAssessment(supabase, { candidateId: account.id, assessmentId, dueAt, title: assessmentTitle });
+    if (typeof assigned === "object") {
+      redirect(to("error", `${fullName} was added, but couldn't be assigned the assessment: ${assigned.error}`));
+    }
+    assignNote = " and assigned their assessment";
+  }
+
+  const inviteError = await sendInvite(email);
 
   revalidatePath("/staff/people");
   revalidatePath("/staff/reports/candidates");
-  const assignedNote = assessmentId ? " and assigned their assessment" : "";
   redirect(
     inviteError
-      ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added${assignedNote}, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
-      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added${assignedNote} and invited by email.`)
-  );
-}
-
-export async function addDecisionMaker(formData: FormData) {
-  const supabase = await requireAdmin();
-  const email = String(formData.get("email") || "").trim().toLowerCase();
-  const fullName = String(formData.get("full_name") || "").trim();
-
-  if (!email || !fullName) {
-    redirect("/staff/people?error=" + encodeURIComponent("Name and email are required."));
-  }
-
-  const { error } = await supabase.rpc("admin_provision_user", {
-    p_email: email,
-    p_full_name: fullName,
-    p_role: "decision_maker",
-    p_department: null,
-  });
-
-  if (error) {
-    redirect("/staff/people?error=" + encodeURIComponent(error.message));
-  }
-
-  const inviteError = await sendInviteEmail(email);
-
-  revalidatePath("/staff/people");
-  redirect(
-    inviteError
-      ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
-      : "/staff/people?added=" + encodeURIComponent(`${fullName} was added and invited by email.`)
+      ? to("error", `${fullName} was added${assignNote}, but the invite email didn't go out. ${inviteError}`)
+      : to("added", `${fullName} was added${assignNote} and invited by email.`)
   );
 }
 
 export async function resendInvite(email: string) {
   "use server";
-  await requireAdmin();
-  const inviteError = await sendInviteEmail(email);
+  const supabase = await requireInviter();
+  // Staff accounts are re-invited by admins only.
+  const { data: target } = await supabase.from("profiles").select("role").eq("email", email.trim().toLowerCase()).maybeSingle();
+  if (target && target.role !== "candidate") await requireAdmin();
+  const inviteError = await sendInvite(email);
   revalidatePath("/staff/people");
   redirect(
     inviteError
-      ? "/staff/people?error=" + encodeURIComponent(friendlyInviteError(inviteError))
+      ? "/staff/people?error=" + encodeURIComponent(inviteError)
       : "/staff/people?added=" + encodeURIComponent("Invite email resent.")
   );
-}
-
-export async function assignDecisionMaker(candidateAssessmentId: string, formData: FormData) {
-  const supabase = await requireAdmin();
-  const profileId = String(formData.get("decision_maker_id") || "");
-  if (!profileId) return;
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  await supabase.from("candidate_decision_makers").insert({
-    candidate_assessment_id: candidateAssessmentId,
-    profile_id: profileId,
-    assigned_by: user!.id,
-  });
-
-  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
-}
-
-export async function unassignDecisionMaker(candidateAssessmentId: string, profileId: string) {
-  "use server";
-  const supabase = await requireAdmin();
-  await supabase
-    .from("candidate_decision_makers")
-    .delete()
-    .eq("candidate_assessment_id", candidateAssessmentId)
-    .eq("profile_id", profileId);
-  revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
 }
 
 function parseCsv(text: string): Record<string, string>[] {
@@ -232,7 +168,7 @@ function parseCsv(text: string): Record<string, string>[] {
 }
 
 export async function bulkAddCandidates(formData: FormData) {
-  const supabase = await requireAdmin();
+  const supabase = await requireInviter();
   const file = formData.get("csv") as File | null;
 
   if (!file || file.size === 0) {
@@ -261,21 +197,20 @@ export async function bulkAddCandidates(formData: FormData) {
       continue;
     }
 
-    const { data: provisioned, error } = await supabase.rpc("admin_provision_user", {
-      p_email: email,
-      p_full_name: fullName || email.split("@")[0],
-      p_role: "candidate",
-      p_department: department,
+    const account = await provisionAccount(supabase, {
+      email,
+      fullName: fullName || email.split("@")[0],
+      role: "candidate",
+      department,
     });
 
-    if (error) {
-      failed.push(`${email} (${error.message})`);
+    if (!account.ok) {
+      failed.push(`${email} (${account.error})`);
       continue;
     }
 
-    const wasCreated = provisioned?.[0]?.created as boolean | undefined;
-    if (wasCreated) {
-      const inviteError = await sendInviteEmail(email);
+    if (account.created) {
+      const inviteError = await sendInvite(email);
       if (inviteError) inviteFailed.push(email);
       added++;
     } else {
@@ -295,7 +230,7 @@ export async function bulkAddCandidates(formData: FormData) {
 /* ---------------- Advanced user management ---------------- */
 
 const STAFF_ROLES = ["recruiter", "hiring_manager", "hr_admin", "system_admin"] as const;
-const ALL_ROLES = ["candidate", "decision_maker", ...STAFF_ROLES] as const;
+const ALL_ROLES = ["candidate", ...STAFF_ROLES] as const;
 
 export async function addStaffMember(formData: FormData) {
   const supabase = await requireAdmin();
@@ -311,24 +246,18 @@ export async function addStaffMember(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent("Choose a valid role."));
   }
 
-  const { error } = await supabase.rpc("admin_provision_user", {
-    p_email: email,
-    p_full_name: fullName,
-    p_role: role,
-    p_department: department,
-  });
-
-  if (error) {
-    redirect("/staff/people?error=" + encodeURIComponent(error.message));
+  const account = await provisionAccount(supabase, { email, fullName, role, department });
+  if (!account.ok) redirect("/staff/people?error=" + encodeURIComponent(account.error));
+  if (!account.created) {
+    redirect("/staff/people?error=" + encodeURIComponent(`${email} already has an account. Change their role from the list instead.`));
   }
 
-  const inviteError = await sendInviteEmail(email);
+  const inviteError = await sendInvite(email);
 
   revalidatePath("/staff/people");
   redirect(
     inviteError
-      ? "/staff/people?error=" +
-          encodeURIComponent(`${fullName} was added, but the invite email failed to send. ${friendlyInviteError(inviteError)}`)
+      ? "/staff/people?error=" + encodeURIComponent(`${fullName} was added, but the invite email didn't go out. ${inviteError}`)
       : "/staff/people?added=" + encodeURIComponent(`${fullName} was added as ${role.replace(/_/g, " ")} and invited by email.`)
   );
 }
@@ -444,23 +373,12 @@ export async function bulkPeopleAction(formData: FormData) {
       } else if (action === "resend_invite") {
         const { data: row } = await supabase.from("profiles").select("email").eq("id", id).single();
         if (!row?.email) throw new Error("No email on file.");
-        const inviteError = await sendInviteEmail(row.email);
+        const inviteError = await sendInvite(row.email);
         if (inviteError) throw new Error(inviteError);
       } else if (action === "assign_assessment") {
-        const { error } = await supabase
-          .from("candidate_assessments")
-          .insert({ assessment_id: bulkAssessmentId, candidate_id: id, status: "invited" });
-        if (error) {
-          if (!error.message.includes("duplicate")) throw error;
-          // Already assigned -- count it a no-op success, but don't re-notify.
-        } else {
-          await supabase.from("notifications").insert({
-            user_id: id,
-            title: "New assessment assigned",
-            body: `You've been assigned "${assessmentTitle}". Log in to take it.`,
-            link: "/candidate/assessments",
-          });
-        }
+        const result = await assignAssessment(supabase, { candidateId: id, assessmentId: bulkAssessmentId, title: assessmentTitle });
+        if (typeof result === "object") throw new Error(result.error);
+        // "already_assigned" counts as done, and nobody is notified twice.
       }
       succeeded++;
     } catch {

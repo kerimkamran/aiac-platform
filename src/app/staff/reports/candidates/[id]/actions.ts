@@ -7,10 +7,7 @@ import { requireRole, STAFF_ROLES } from "@/lib/authz";
 import { clampExtra } from "@/lib/exam-time";
 
 export async function submitReview(candidateAssessmentId: string, formData: FormData) {
-  // Shared with decision/candidates/[id]/actions.ts, so decision makers are
-  // allowed here too; RLS's is_assigned_decision_maker() scopes which
-  // specific candidate_assessment a given decision maker may actually write.
-  await requireRole(...STAFF_ROLES, "decision_maker");
+  await requireRole(...STAFF_ROLES);
   const supabase = await createClient();
   const {
     data: { user },
@@ -18,6 +15,27 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
 
   const decision = String(formData.get("decision") || "");
   const comment = String(formData.get("comment") || "");
+  const back = `/staff/reports/candidates/${candidateAssessmentId}`;
+
+  const { data: target } = await supabase
+    .from("candidate_assessments")
+    .select("status, candidate_id")
+    .eq("id", candidateAssessmentId)
+    .maybeSingle();
+  if (!target) redirect("/staff/reports/candidates?error=" + encodeURIComponent("That assessment was not found."));
+
+  // Nobody decides on their own assessment.
+  if (target.candidate_id === user!.id) {
+    redirect(`${back}?error=` + encodeURIComponent("This is your own assessment. Another reviewer needs to decide."));
+  }
+  // A decision needs a submitted assessment. Deciding earlier would lock the
+  // candidate out of a test they have not taken yet.
+  if (!["submitted", "scored", "reviewed"].includes(target.status)) {
+    redirect(`${back}?error=` + encodeURIComponent("The candidate hasn't submitted yet, so a decision can't be recorded."));
+  }
+  if (!["shortlist", "hold", "reject"].includes(decision)) {
+    redirect(`${back}?error=` + encodeURIComponent("Choose shortlist, hold or reject."));
+  }
 
   await supabase.from("candidate_reviews").insert({
     candidate_assessment_id: candidateAssessmentId,

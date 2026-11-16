@@ -1,13 +1,11 @@
 // Where each role lands (Clear Horizon plan, section 9): candidate to their
-// path, decision maker to the decision deck, system admin to the system
-// horizon, and every other staff role to the staff home. Pure, so the
+// path, system admin to the system horizon, and every other staff role to the
+// staff home. Pure, so the
 // middleware, server components and tests can all use it.
 export function homeFor(role: string | null | undefined): string {
   switch (role) {
     case "candidate":
       return "/candidate";
-    case "decision_maker":
-      return "/decision";
     case "system_admin":
       return "/admin";
     case "recruiter":

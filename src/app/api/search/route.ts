@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
   if (!profile) {
     return NextResponse.json({ results: [] }, { status: 401, headers: NO_STORE });
   }
-  if (profile.status !== "active" || ["candidate", "decision_maker"].includes(profile.role)) {
+  if (profile.status !== "active" || profile.role === "candidate") {
     return NextResponse.json({ results: [] }, { status: 403, headers: NO_STORE });
   }
 

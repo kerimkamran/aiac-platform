@@ -24,7 +24,7 @@ export function ProctoredAssessmentRunner({
   deadlineMs: number;
   totalQuestions: number;
   sections: RunnerSection[];
-  submitAction: (formData: FormData) => Promise<void>;
+  submitAction: (formData: FormData) => Promise<void | { error: string }>;
   watermarkLabel: string;
   storageBackend: "supabase" | "local";
   contentLanguage?: string | null;
@@ -113,7 +113,7 @@ export function ProctoredAssessmentRunner({
   const wrappedSubmitAction = useCallback(
     async (formData: FormData) => {
       await stopAndUpload();
-      await submitAction(formData);
+      return submitAction(formData);
     },
     [stopAndUpload, submitAction]
   );
@@ -129,7 +129,7 @@ export function ProctoredAssessmentRunner({
           <p className="text-sm text-muted leading-relaxed mb-2">
             This assessment records video for integrity review by the hiring team.{" "}
             {storageBackend === "supabase"
-              ? "Your recording is uploaded securely and only visible to authorized staff and assigned decision makers."
+              ? "Your recording is uploaded securely and only visible to authorized staff."
               : "Your recording stays on this device only and is not uploaded or stored centrally."}
           </p>
           <p className="text-xs text-muted leading-relaxed mb-6">

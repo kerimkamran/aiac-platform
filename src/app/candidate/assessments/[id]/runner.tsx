@@ -61,7 +61,7 @@ export function AssessmentRunner({
   description: string;
   deadlineMs: number;
   sections: RunnerSection[];
-  submitAction: (formData: FormData) => Promise<void>;
+  submitAction: (formData: FormData) => Promise<void | { error: string }>;
   watermarkLabel?: string;
   totalQuestions: number;
   // The exam chrome is English; prompts and options are generated in the
@@ -90,6 +90,8 @@ export function AssessmentRunner({
   const [nowMs, setNowMs] = useState<number | null>(null);
   const [isPending, startTransition] = useTransition();
   const submittedRef = useRef(false);
+  // A failed submit keeps every answer on this device and offers a retry.
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const answers = draft.answers;
   const flaggedSet = useMemo(() => new Set(draft.flagged), [draft.flagged]);
 
@@ -185,13 +187,25 @@ export function AssessmentRunner({
       for (const s of steps) fd.set(`q_${s.q.id}`, answersRef.current[s.q.id] || "");
       fd.set("tab_switch_count", String(tabSwitchesRef.current));
       fd.set("submit_reason", reason);
-      try {
-        localStorage.removeItem(draftKey(caId));
-        localStorage.removeItem(`aiac-answers-${caId}`);
-      } catch {}
-      startTransition(() => submitAction(fd));
+      setSubmitError(null);
+      // The draft stays on this device until the server confirms. The
+      // confirmation page clears it (see ClearDraft).
+      startTransition(async () => {
+        try {
+          const res = await submitAction(fd);
+          if (res && "error" in res) {
+            submittedRef.current = false;
+            setSubmitError(res.error);
+          }
+        } catch (e) {
+          // A redirect to the confirmation page is not a failure.
+          if (e && typeof e === "object" && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_REDIRECT")) throw e;
+          submittedRef.current = false;
+          setSubmitError("We couldn't submit. Your answers are still here. Try again.");
+        }
+      });
     },
-    [steps, caId, submitAction]
+    [steps, submitAction]
   );
 
   /* Countdown: the single timer on screen, and the single source of truth for
@@ -305,6 +319,15 @@ export function AssessmentRunner({
           </div>
         ))}
       </div>
+
+      {submitError ? (
+        <div role="alert" className="sticky top-0 z-40 border-b border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
+          {submitError}{" "}
+          <button type="button" className="font-semibold underline" onClick={() => doSubmit("manual")}>
+            Try again
+          </button>
+        </div>
+      ) : null}
 
       {/* One header: title, autosave status, the progress chain and the one timer. */}
       <header className="sticky top-0 z-30 border-b border-line bg-background/95 backdrop-blur">

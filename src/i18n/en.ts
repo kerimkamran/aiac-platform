@@ -81,7 +81,7 @@ export const en = {
     steps: [
       { n: "01", t: "Build", b: "Describe the role and get a draft assessment in minutes. Edit it, then publish." },
       { n: "02", t: "Review", b: "See each answer beside the evidence behind its score. Confirm or adjust." },
-      { n: "03", t: "Decide", b: "Decision makers get one dossier at a time: score, evidence and a reviewer's note." },
+      { n: "03", t: "Decide", b: "Reviewers get one dossier at a time: score, evidence and a reviewer's note." },
     ],
     fig: {
       answerLabel: "Candidate answer",

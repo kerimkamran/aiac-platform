@@ -11,7 +11,7 @@ const TOASTS: ToastSpec[] = [
 ];
 
 const PAGE_SIZE = 25;
-const ROLES = ["candidate", "recruiter", "assessor", "hiring_manager", "decision_maker", "client_user", "hr_admin", "org_admin", "system_admin"];
+const ROLES = ["candidate", "recruiter", "assessor", "hiring_manager", "client_user", "hr_admin", "org_admin", "system_admin"];
 
 export default async function AdminUsersPage({
   searchParams,

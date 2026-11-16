@@ -1,5 +1,6 @@
 "use server";
 
+import { assignAssessment as assignToCandidate } from "@/lib/invite";
 import { createClient } from "@/lib/supabase/server";
 import { requireRole, requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
@@ -695,7 +696,7 @@ export async function moveQuestion(questionId: string, sectionId: string, assess
 }
 
 // Lets staff assign an assessment (draft or published) to any existing account
-// (candidate, decision maker, staff, admin) directly from its row in the
+// (candidate, staff, admin) directly from its row in the
 // Builder list -- an alternative to the candidate-only "Add a candidate"
 // flow in People & Access, for cases where the account already exists
 // and just needs this assessment attached.
@@ -734,15 +735,15 @@ export async function assignAssessment(assessmentId: string, formData: FormData)
   const dueDateRaw = String(formData.get("due_date") || "").trim();
   const dueAt = dueDateRaw ? new Date(`${dueDateRaw}T23:59:59Z`).toISOString() : null;
 
-  const { error } = await supabase.from("candidate_assessments").insert({
-    assessment_id: assessmentId,
-    candidate_id: userId,
-    status: "invited",
-    due_at: dueAt,
+  const { data: titleRow } = await supabase.from("assessments").select("title").eq("id", assessmentId).maybeSingle();
+  const result = await assignToCandidate(supabase, {
+    candidateId: userId,
+    assessmentId,
+    dueAt,
+    title: (titleRow?.title as string | undefined) ?? undefined,
   });
-
-  if (error) {
-    redirect("/staff/builder?error=" + encodeURIComponent(error.message));
+  if (typeof result === "object") {
+    redirect("/staff/builder?error=" + encodeURIComponent(result.error));
   }
 
   revalidatePath("/staff/builder");

@@ -19,15 +19,15 @@ type RunnerRow = {
 
 export async function startAssessment(candidateAssessmentId: string) {
   const supabase = await createClient();
-  await supabase
-    .from("candidate_assessments")
-    .update({ status: "in_progress", started_at: new Date().toISOString() })
-    .eq("id", candidateAssessmentId)
-    .eq("status", "invited");
+  // Server clock and ownership are checked inside start_attempt (migration 0019).
+  await supabase.rpc("start_attempt", { p_candidate_assessment_id: candidateAssessmentId });
   revalidatePath(`/candidate/assessments/${candidateAssessmentId}`);
 }
 
-export async function submitAssessment(candidateAssessmentId: string, formData: FormData) {
+export async function submitAssessment(
+  candidateAssessmentId: string,
+  formData: FormData
+): Promise<{ error: string } | void> {
   const supabase = await createClient();
 
   const { data: ca } = await supabase
@@ -37,6 +37,37 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
     .single();
 
   if (!ca) redirect("/candidate");
+
+  // Scores and the final status are written by the server, never by the
+  // candidate's own session (migration 0019). Without the service key the
+  // answers are kept on the device and the candidate can try again later.
+  const db = createAdminClient();
+  if (!db) {
+    return { error: "We couldn't submit right now. Your answers are still here. Try again in a moment." };
+  }
+
+  // Locks the attempt and moves it to "submitted" exactly once. A second tab or
+  // a retry after a failed scoring is safe: scored work is never touched again.
+  const { data: before, error: gateError } = await supabase.rpc("begin_submit", {
+    p_candidate_assessment_id: candidateAssessmentId,
+  });
+  if (gateError) {
+    return { error: "We couldn't submit. Your answers are still here. Try again." };
+  }
+  if (before === "scored" || before === "reviewed") {
+    redirect(`/candidate/assessments/${candidateAssessmentId}/submitted`);
+  }
+
+  // Score already stored for a question (a retry after a partial failure).
+  async function storedScore(questionId: string): Promise<number | null> {
+    const { data } = await db!
+      .from("candidate_responses")
+      .select("score")
+      .eq("candidate_assessment_id", candidateAssessmentId)
+      .eq("question_id", questionId)
+      .maybeSingle();
+    return data && data.score !== null ? Number(data.score) : null;
+  }
 
   const caAssessment = ca.assessments as unknown as { engine: string | null; target_level: string | null } | null;
   const engineRaw = caAssessment?.engine || null;
@@ -114,6 +145,9 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
       });
       if (!error && data && data.length > 0) {
         result = { score: Number(data[0].score) };
+      } else {
+        const kept = await storedScore(q.question_id);
+        if (kept !== null) result = { score: kept };
       }
     } else {
       const text = String(formData.get(`q_${q.question_id}`) || "");
@@ -125,7 +159,7 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
         targetLevel,
       };
       const scored = await scoreTextResponse({ questionPrompt: q.prompt, responseText: text, competency, engine, apiKey });
-      const { error } = await supabase.from("candidate_responses").insert({
+      const { error } = await db.from("candidate_responses").insert({
         candidate_assessment_id: candidateAssessmentId,
         question_id: q.question_id,
         response_text: text,
@@ -141,7 +175,12 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
       // 23505 = unique_violation -- a retried submit for a question already
       // recorded. Same "skip, don't throw" handling as the MCQ branch above.
       if (!error) result = { score: scored.score };
-      else if (error.code !== "23505") throw error;
+      else if (error.code === "23505") {
+        const kept = await storedScore(q.question_id);
+        if (kept !== null) result = { score: kept };
+      } else {
+        return { error: "We couldn't submit. Your answers are still here. Try again." };
+      }
     }
 
     if (!result) continue;
@@ -159,27 +198,35 @@ export async function submitAssessment(candidateAssessmentId: string, formData: 
 
   for (const [competencyId, totals] of Object.entries(competencyTotals)) {
     const score = totals.totalWeight > 0 ? totals.weighted / totals.totalWeight : 0;
-    await supabase.from("candidate_competency_scores").insert({
-      candidate_assessment_id: candidateAssessmentId,
-      competency_id: competencyId,
-      score: Math.round(score * 10) / 10,
-      level: score >= 85 ? "Exceeds" : score >= 70 ? "Fully Meets" : score >= 50 ? "Partially Meets" : "Does Not Meet",
-    });
+    await db.from("candidate_competency_scores").upsert(
+      {
+        candidate_assessment_id: candidateAssessmentId,
+        competency_id: competencyId,
+        score: Math.round(score * 10) / 10,
+        level: score >= 85 ? "Exceeds" : score >= 70 ? "Fully Meets" : score >= 50 ? "Partially Meets" : "Does Not Meet",
+      },
+      { onConflict: "candidate_assessment_id,competency_id" }
+    );
   }
 
   const overallScore = overallWeight > 0 ? Math.round((overallWeighted / overallWeight) * 10) / 10 : 0;
 
   const tabSwitchCount = Number(formData.get("tab_switch_count") || 0) || 0;
 
-  await supabase
+  // Only an attempt still waiting to be scored can become "scored": a second
+  // submit can never overwrite a score or turn a reviewed result back.
+  const { error: finishError } = await db
     .from("candidate_assessments")
     .update({
       status: "scored",
-      submitted_at: new Date().toISOString(),
       overall_score: overallScore,
       tab_switch_count: tabSwitchCount,
     })
-    .eq("id", candidateAssessmentId);
+    .eq("id", candidateAssessmentId)
+    .eq("status", "submitted");
+  if (finishError) {
+    return { error: "We couldn't submit. Your answers are still here. Try again." };
+  }
 
   // Design-execution-plan Phase 6 / T6.4: carries the runner's submit reason
   // through to the confirmation page so it never celebrates a submission the

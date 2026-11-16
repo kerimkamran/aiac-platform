@@ -18,11 +18,11 @@ export default async function StaffLayout({ children }: { children: React.ReactN
     .single();
 
   if (!profile) redirect("/login");
-  if (profile.status === "deactivated") {
+  if (profile.status !== "active") {
     await supabase.auth.signOut();
-    redirect("/login?error=deactivated");
+    redirect("/login?error=inactive");
   }
-  if (profile.role === "candidate" || profile.role === "decision_maker") redirect(homeFor(profile.role));
+  if (profile.role === "candidate") redirect(homeFor(profile.role));
 
   const isAdmin = profile.role === "hr_admin" || profile.role === "system_admin" || profile.role === "org_admin";
   const isSystemAdmin = profile.role === "system_admin";
@@ -50,8 +50,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   if ((myInvites ?? 0) > 0) switchLinks.push({ href: "/candidate", label: "My assessments", icon: "clipboard" });
 
   const actions: NavLink[] = [{ href: "/staff/builder/new", label: "New assessment", icon: "plus" }];
+  actions.push({ href: "/staff/invite", label: "Invite a candidate", icon: "plus" });
   if (isAdmin) {
-    actions.push({ href: "/staff/people#add-candidate", label: "Add a candidate", icon: "plus" });
     actions.push({ href: "/staff/people#add-staff", label: "Add a staff member", icon: "plus" });
     actions.push({ href: "/staff/people#bulk-upload", label: "Bulk-add candidates (CSV)", icon: "download" });
   }

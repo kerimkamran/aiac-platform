@@ -9,7 +9,7 @@ const TOASTS: ToastSpec[] = [
   { param: "error", variant: "error" },
 ];
 
-const ROLE_ORDER = ["system_admin", "org_admin", "hr_admin", "recruiter", "assessor", "hiring_manager", "decision_maker", "client_user", "candidate"];
+const ROLE_ORDER = ["system_admin", "org_admin", "hr_admin", "recruiter", "assessor", "hiring_manager", "client_user", "candidate"];
 
 export default async function AdminRolesPage({ searchParams }: { searchParams: Promise<{ role?: string }> }) {
   const { role = "recruiter" } = await searchParams;

@@ -100,7 +100,7 @@ export default async function AdminApprovalsPage() {
             <input name="full_name" placeholder="Full name" className={input} aria-label="Full name" />
             <input name="email" type="email" required placeholder="user@azerconnect.az" className={input} aria-label="Email" />
             <select name="role" className={input} aria-label="Role">
-              {["candidate", "recruiter", "assessor", "hiring_manager", "decision_maker", "client_user", "hr_admin"].map((r) => (
+              {["candidate", "recruiter", "assessor", "hiring_manager", "client_user", "hr_admin"].map((r) => (
                 <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
               ))}
             </select>

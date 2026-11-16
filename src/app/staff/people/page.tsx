@@ -9,7 +9,6 @@ import { SelectAllCheckbox } from "@/components/SelectAllCheckbox";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import {
   addCandidate,
-  addDecisionMaker,
   addStaffMember,
   resendInvite,
   bulkAddCandidates,
@@ -24,7 +23,6 @@ const ROLE_LABEL: Record<string, string> = {
   hr_admin: "Admin",
   recruiter: "Recruiter",
   hiring_manager: "Hiring Manager",
-  decision_maker: "Decision Maker",
   candidate: "Candidate",
 };
 
@@ -34,7 +32,7 @@ const TOAST_SPECS: ToastSpec[] = [
 ];
 
 const STAFF_ROLE_OPTIONS = ["recruiter", "hiring_manager", "hr_admin", "system_admin"] as const;
-const ALL_ROLE_OPTIONS = ["candidate", "decision_maker", ...STAFF_ROLE_OPTIONS] as const;
+const ALL_ROLE_OPTIONS = ["candidate", ...STAFF_ROLE_OPTIONS] as const;
 
 type ProfileRow = {
   id: string;
@@ -67,7 +65,7 @@ export default async function PeoplePage({
   }
   const isSuperAdmin = ownProfile.role === "system_admin";
   const grantableStaffRoles = isSuperAdmin ? STAFF_ROLE_OPTIONS : (["recruiter", "hiring_manager"] as const);
-  const grantableAllRoles = isSuperAdmin ? ALL_ROLE_OPTIONS : (["candidate", "decision_maker", "recruiter", "hiring_manager"] as const);
+  const grantableAllRoles = isSuperAdmin ? ALL_ROLE_OPTIONS : (["candidate", "recruiter", "hiring_manager"] as const);
 
   const [{ data: profiles }, { data: assessmentOptions }] = await Promise.all([
     supabase
@@ -102,7 +100,7 @@ export default async function PeoplePage({
     <div className="p-6 lg:p-10 max-w-6xl">
       <PageHeader
         title="People & Access"
-        subtitle="Manage every account — candidates, staff, and decision makers — with role changes, deactivation, and a full activity log. Accounts are created by invitation only."
+        subtitle="Manage every account — candidates and staff — with role changes, deactivation, and a full activity log. Accounts are created by invitation only."
       />
 
       <ToastFromParams specs={TOAST_SPECS} />
@@ -215,25 +213,6 @@ export default async function PeoplePage({
             </button>
           </form>
         </Card>
-
-        <Card className="p-6">
-          <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
-            <Icon name="shield" className="w-4 h-4 text-accent-dark" />
-            Add a decision maker
-          </p>
-          <p className="text-xs text-muted mb-4">
-            External or internal stakeholders who can review specific candidates and submit a decision. Assign them to
-            a candidate from that candidate&apos;s review page.
-          </p>
-          <form action={addDecisionMaker} className="space-y-3">
-            <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <button className={buttonClass({ size: "md" })}>
-              <Icon name="plus" className="w-4 h-4" />
-              Add & invite decision maker
-            </button>
-          </form>
-        </Card>
       </div>
 
       <Card id="add-staff" className="p-6 mb-5 scroll-mt-6">
@@ -312,7 +291,6 @@ export default async function PeoplePage({
               {ROLE_LABEL[r]}
             </option>
           ))}
-          <option value="decision_maker">Decision Maker</option>
         </select>
         <select name="status" defaultValue={statusFilter} className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
           <option value="">Any status</option>
@@ -330,7 +308,7 @@ export default async function PeoplePage({
       </form>
 
       <Card className="p-0 overflow-hidden mb-8">
-        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team & decision makers ({staffRows.length})</p>
+        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team ({staffRows.length})</p>
         <form
           id="bulk-staff-form"
           action={bulkPeopleAction}
@@ -339,8 +317,13 @@ export default async function PeoplePage({
           <span className="text-xs font-semibold text-muted">Bulk action:</span>
           <select
             name="bulk_action"
+            defaultValue=""
+            required
             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
           >
+            <option value="" disabled>
+              Choose an action…
+            </option>
             <option value="set_role">Change role to…</option>
             <option value="activate">Activate</option>
             <option value="deactivate">Deactivate</option>
@@ -459,8 +442,13 @@ export default async function PeoplePage({
           <span className="text-xs font-semibold text-muted">Bulk action:</span>
           <select
             name="bulk_action"
+            defaultValue=""
+            required
             className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
           >
+            <option value="" disabled>
+              Choose an action…
+            </option>
             <option value="activate">Activate</option>
             <option value="deactivate">Deactivate</option>
             <option value="resend_invite">Resend invite</option>

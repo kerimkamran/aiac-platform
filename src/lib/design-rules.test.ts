@@ -50,3 +50,25 @@ describe("design rules", () => {
     });
   }
 });
+
+// The decision-maker role was removed (Vantage UAT plan, A6). It may only be
+// named in the database migrations, which have to talk about the old value.
+describe("decision-maker role", () => {
+  it("does not appear in the app", () => {
+    const hits: string[] = [];
+    const all: string[] = [];
+    (function collect(dir: string) {
+      for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+        const full = path.join(dir, e.name);
+        if (e.isDirectory()) collect(full);
+        else if (/\.(ts|tsx)$/.test(e.name) && !e.name.endsWith("design-rules.test.ts")) all.push(full);
+      }
+    })(SRC);
+    for (const file of all) {
+      fs.readFileSync(file, "utf8").split("\n").forEach((line, i) => {
+        if (/decision_maker|decision maker|DecisionMaker/i.test(line)) hits.push(`${path.relative(SRC, file)}:${i + 1}`);
+      });
+    }
+    expect(hits, hits.join("\n")).toEqual([]);
+  });
+});

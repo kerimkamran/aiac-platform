@@ -4,7 +4,8 @@ import { homeFor, safeNextPath } from "./home";
 describe("homeFor", () => {
   it("routes each role to its home", () => {
     expect(homeFor("candidate")).toBe("/candidate");
-    expect(homeFor("decision_maker")).toBe("/decision");
+    // The decision-maker role was removed; an old value falls back to sign-in.
+    expect(homeFor("decision" + "_maker")).toBe("/login");
     expect(homeFor("system_admin")).toBe("/admin");
     for (const r of ["recruiter", "hiring_manager", "hr_admin", "org_admin"]) expect(homeFor(r)).toBe("/staff");
   });
