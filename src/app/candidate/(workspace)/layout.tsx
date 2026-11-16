@@ -43,15 +43,14 @@ export default async function CandidateLayout({ children }: { children: React.Re
 
   const links: NavLink[] = [
     { href: "/candidate", label: "Home", icon: "home", exact: true },
-    { href: "/candidate/assessments", label: "My assessments", icon: "clipboard" },
-    { href: "/candidate/results", label: "Results", icon: "award" },
+    { href: "/candidate/assessments", label: "My tests", icon: "clipboard" },
+    { href: "/candidate/results", label: "My results", icon: "award" },
   ];
-  if ((directReportCount ?? 0) > 0) {
-    links.push({ href: "/signoffs", label: "Sign-off requests", icon: "checkCircle" });
-  }
 
   // Internal employees who are also candidates get a way back to their workspace.
   const switchLinks: NavLink[] = isInternal ? [{ href: homeFor(profile.role), label: "Back to workspace", icon: "arrowLeft" }] : [];
+  // Managers asked to sign off a promotion review reach it from the account menu.
+  if ((directReportCount ?? 0) > 0) switchLinks.push({ href: "/signoffs", label: "Sign-off requests", icon: "checkCircle" });
 
   return (
     <AppShell role={profile.role} name={profile.full_name} homeHref="/candidate" links={links} switchLinks={switchLinks} defaultCanvas="cream">

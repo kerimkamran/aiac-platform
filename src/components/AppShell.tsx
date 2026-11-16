@@ -58,7 +58,15 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const roleLabel = role.replace(/_/g, " ");
+  const ROLE_LABELS: Record<string, string> = {
+    candidate: "Candidate",
+    recruiter: "Recruiter",
+    hiring_manager: "Hiring manager",
+    hr_admin: "HR admin",
+    org_admin: "Organisation admin",
+    system_admin: "Super admin",
+  };
+  const roleLabel = ROLE_LABELS[role] ?? role.replace(/_/g, " ");
 
   const isActive = (l: NavLink) => (l.exact ? pathname === l.href : pathname === l.href || pathname.startsWith(l.href + "/"));
 
@@ -115,7 +123,7 @@ export function AppShell({
 
   return (
     <ToastProvider>
-      <div className="min-h-screen flex flex-col bg-background">
+      <div lang="en" className="min-h-screen flex flex-col bg-background">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:bg-brand focus:text-on-primary focus:px-4 focus:py-2.5 focus:rounded-md focus:text-sm focus:font-semibold"
