@@ -262,9 +262,37 @@ export function AppShell({
           </div>
         </Sheet>
 
-        <main id="main-content" tabIndex={-1} className="flex-1 min-w-0 focus:outline-none">
+        <main id="main-content" tabIndex={-1} className={`flex-1 min-w-0 focus:outline-none ${links.length > 0 && links.length <= 5 ? "pb-20 md:pb-0" : ""}`}>
           {children}
         </main>
+
+        {/* Phones: the main places sit in a bar at the thumb (plan B9). */}
+        {links.length > 0 && links.length <= 5 && (
+          <nav
+            aria-label="Main"
+            className="md:hidden no-print fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
+          >
+            <ul className="flex">
+              {links.map((l) => {
+                const active = isActive(l);
+                return (
+                  <li key={l.href} className="flex-1 min-w-0">
+                    <Link
+                      href={l.href}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex flex-col items-center justify-center gap-0.5 min-h-14 px-1 text-xs ${
+                        active ? "font-semibold text-foreground" : "font-medium text-muted"
+                      }`}
+                    >
+                      <Icon name={l.icon} className={`w-6 h-6 ${active ? "text-brand" : "text-muted"}`} />
+                      <span className="truncate max-w-full">{l.label}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </nav>
+        )}
 
         <footer className="border-t border-line-soft no-print">
           <div className="container-page py-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-muted">

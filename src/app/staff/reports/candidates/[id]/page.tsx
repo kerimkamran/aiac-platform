@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, reviewAnswer } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { FALLBACK_RATIONALE_PREFIX } from "@/lib/scoring";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
@@ -182,6 +183,7 @@ export default async function CandidateReviewPage({
     } | null;
   }[];
   const needsReviewCount = responseRows.filter((r) => r.needs_review).length;
+  const fallbackCount = responseRows.filter((r) => (r.ai_rationale || "").startsWith(FALLBACK_RATIONALE_PREFIX)).length;
 
   // Who confirmed or changed each answer (migration 0023). Read on its own and
   // tolerant of the columns not existing yet: a failed read shows no history.
@@ -311,6 +313,13 @@ export default async function CandidateReviewPage({
           first and the candidate's actual answers were buried below all of
           it; a reviewer had to trust the number before ever seeing what it
           was based on. */}
+
+      {fallbackCount > 0 && (
+        <Callout tone="warning" title="Some answers were not read by the AI scorer" className="mb-6 no-print">
+          {fallbackCount} {fallbackCount === 1 ? "answer was" : "answers were"} scored by a fallback that only counts length and sentences. Please read{" "}
+          {fallbackCount === 1 ? "it" : "them"} yourself and agree with or change {fallbackCount === 1 ? "the score" : "each score"}.
+        </Callout>
+      )}
 
       {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" />}
 
