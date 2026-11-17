@@ -23,7 +23,7 @@ export function RoleLevelPicker({
   return (
     <section className="rounded-card border border-line bg-surface p-5 space-y-5">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="font-bold text-foreground">1 · Who is it for?</h2>
+        <h2 className="font-bold text-foreground">Which role and level?</h2>
         <span className="text-xs font-semibold text-muted">Required</span>
       </header>
 

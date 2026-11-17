@@ -87,7 +87,7 @@ export function MeasureCard({
   return (
     <section className="rounded-card border border-line bg-surface p-5 space-y-5">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="font-bold text-foreground">3 · What to measure</h2>
+        <h2 className="font-bold text-foreground">What should it measure?</h2>
         <span className="text-xs font-semibold text-muted">
           {competencyIds.length} of {MAX_COMPETENCIES} competencies
         </span>

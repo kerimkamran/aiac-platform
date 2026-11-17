@@ -44,8 +44,8 @@ export default async function NewAssessmentPage() {
   return (
     <div className="p-6 lg:p-10 max-w-5xl">
       <PageHeader
-        title="New assessment"
-        subtitle="Choose the job title and level. Add context if you have it. Generate one draft per level, then review each draft before publishing."
+        title="New test"
+        subtitle="Four short steps. You review every question before the test is published."
       />
       <NewAssessmentForm
         competencies={catalogCompetencies}
@@ -59,7 +59,9 @@ export default async function NewAssessmentPage() {
               ? "Your role isn't allowed to generate AI drafts. You can still create empty drafts and ask an HR admin for generated ones."
               : usedCount >= policy.monthlyQuota
                 ? "The monthly AI quota is used up. You can still create empty drafts."
-                : null
+                : !catalogEngines.some((e) => e.enabled && e.configured)
+                  ? "No AI engine is set up yet. Ask an admin to add an API key in AI & data. You can still create empty drafts."
+                  : null
         }
         quota={{ used: usedCount, total: policy.monthlyQuota }}
       />

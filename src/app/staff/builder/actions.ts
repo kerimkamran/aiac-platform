@@ -160,7 +160,7 @@ export async function publishAssessment(assessmentId: string, formData?: FormDat
   }
   revalidatePath(`/staff/builder/${assessmentId}`);
   revalidatePath("/staff/builder");
-  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent("Assessment published. Candidates can now be invited."));
+  redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent("Your test is ready. You can invite candidates to it now."));
 }
 
 export async function updateProctoringSettings(assessmentId: string, formData: FormData) {

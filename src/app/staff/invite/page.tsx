@@ -16,15 +16,18 @@ const TOAST_SPECS: ToastSpec[] = [
 export default async function InviteCandidatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; added?: string }>;
+  searchParams: Promise<{ error?: string; added?: string; test?: string }>;
 }) {
-  const { error, added } = await searchParams;
+  const { error, added, test } = await searchParams;
   const supabase = await createClient();
   const { data: tests } = await supabase
     .from("assessments")
     .select("id, title")
     .eq("status", "published")
     .order("title");
+  // Opened from a test ("Invite candidates to this test"): preselect it, but only
+  // when it really is one of the published tests.
+  const preselected = (tests || []).some((t) => t.id === test) ? (test as string) : "";
 
   return (
     <div className="p-6 lg:p-10 max-w-xl">
@@ -46,7 +49,7 @@ export default async function InviteCandidatesPage({
           </div>
           <div>
             <FieldLabel htmlFor="invite-test">Assessment</FieldLabel>
-            <Select id="invite-test" name="assessment_id" defaultValue="">
+            <Select id="invite-test" name="assessment_id" defaultValue={preselected}>
               <option value="">Choose later</option>
               {(tests || []).map((t) => (
                 <option key={t.id} value={t.id}>

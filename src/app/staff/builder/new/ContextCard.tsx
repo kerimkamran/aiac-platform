@@ -99,7 +99,7 @@ export function ContextCard({
   return (
     <section className="rounded-card border border-line bg-surface p-5 space-y-5">
       <header className="flex items-baseline justify-between gap-3">
-        <h2 className="font-bold text-foreground">2 · Help the AI understand the role</h2>
+        <h2 className="font-bold text-foreground">Help the AI understand the role</h2>
         <span className="text-xs font-semibold text-muted">Optional</span>
       </header>
 

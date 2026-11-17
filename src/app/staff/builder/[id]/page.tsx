@@ -166,8 +166,8 @@ export default async function BuilderDetailPage({
           />
         )}
         {assessment.status === "published" && (
-          <Link href="/staff/invite" className={buttonClass({ size: "md" })}>
-            Invite candidates
+          <Link href={`/staff/invite?test=${id}`} className={buttonClass({ size: "md" })}>
+            Invite candidates to this test
           </Link>
         )}
         {isAdmin && (
@@ -592,7 +592,7 @@ export default async function BuilderDetailPage({
           </p>
           <p className="text-xs text-muted mb-4">
             To invite or assign someone to this assessment, go to{" "}
-            <Link href="/staff/invite" className="font-semibold text-accent-dark hover:underline">
+            <Link href={`/staff/invite?test=${id}`} className="font-semibold text-accent-dark hover:underline">
               Invite a candidate
             </Link>{" "}
             and pick this assessment.

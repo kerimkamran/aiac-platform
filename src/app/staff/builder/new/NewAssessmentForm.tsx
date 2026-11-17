@@ -10,10 +10,11 @@ import { RoleLevelPicker } from "./RoleLevelPicker";
 import { ContextCard } from "./ContextCard";
 import { MeasureCard } from "./MeasureCard";
 import { GenerationProgress } from "./GenerationProgress";
-import type { AssessmentLength, GenerationLanguage, QuestionMix } from "@/lib/generation";
+import { LENGTH_TOTALS, type AssessmentLength, type GenerationLanguage, type QuestionMix } from "@/lib/generation";
 import type { EngineKey } from "@/lib/ai-engine";
 import { EMPTY_ROLE_CONTEXT, MAX_COMPETENCIES, type CatalogCompetency, type CatalogEngine, type Combo, type Job, type OneOff, type RoleContext } from "./types";
 import { buttonClass } from "@/components/ui/Button";
+import { ProgressBar } from "@/components/ui";
 
 export type { CatalogCompetency, CatalogEngine } from "./types";
 
@@ -25,6 +26,10 @@ const CONCURRENCY = 2;
 // Core competencies pre-selected; two places are kept free for Leadership.
 const CORE_DEFAULT = 6;
 const LEADERSHIP_SEED = 2;
+
+// The four steps of "New test" (plan flow F4). Each asks one question.
+const STEPS = ["Role and level", "What to measure", "Help the AI", "Check and create"] as const;
+const LAST_STEP = STEPS.length - 1;
 
 type Saved = {
   jobTitle: string;
@@ -97,6 +102,7 @@ export function NewAssessmentForm({
   const [formError, setFormError] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
   const batchId = useRef<string>("");
+  const [step, setStep] = useState(0);
 
   // Restore the form for this browser session (not across sessions), so an
   // error or a refresh does not lose what the admin typed.
@@ -170,6 +176,44 @@ export function NewAssessmentForm({
     if (ctx.jobDescription.length > JD_MAX_CHARS) return "The job description is too long.";
     if (ctx.notes.length > NOTES_MAX_CHARS) return "The notes are too long.";
     return null;
+  }
+
+  // Each step is checked when the person presses Next, so the message is
+  // about the thing on screen and not about a card they cannot see.
+  function stepError(from: number): string | null {
+    if (from === 0) {
+      if (jobTitle.trim().length < 2) return "Type the job title first.";
+      if (levels.length === 0) return "Choose at least one level.";
+    }
+    if (from === 1 && competencyIds.length === 0) return "Choose at least one competency.";
+    if (from === 2) {
+      if (instructions.length > INSTRUCTIONS_MAX_CHARS) return `The shared instructions are longer than ${INSTRUCTIONS_MAX_CHARS.toLocaleString()} characters.`;
+      if (ctx.jobDescription.length > JD_MAX_CHARS) return "The job description is too long.";
+      if (ctx.notes.length > NOTES_MAX_CHARS) return "The notes are too long.";
+    }
+    return null;
+  }
+
+  function goNext() {
+    const err = stepError(step);
+    if (err) {
+      setFormError(err);
+      return;
+    }
+    setFormError(null);
+    setStep((s) => Math.min(LAST_STEP, s + 1));
+    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function goBack() {
+    setFormError(null);
+    setStep((s) => Math.max(0, s - 1));
+  }
+
+  function startNewBatch() {
+    setJobs({});
+    setFormError(null);
+    setStep(0);
   }
 
   function buildInput(combo: Combo, attempt: number, empty: boolean): DraftInput {
@@ -270,101 +314,172 @@ export function NewAssessmentForm({
   }, [allFinished]);
 
   const contextEngine = engines.find((e) => e.key === (engine || defaultEngine));
+  const started = Object.keys(jobs).length > 0;
+  const chosenCompetencies = competencies.filter((c) => competencyIds.includes(c.id));
+  const engineName = engines.find((e) => e.key === (engine || defaultEngine))?.displayName ?? (engine || defaultEngine);
 
   return (
     <div className="space-y-6">
+      <div>
+        <div className="flex items-baseline justify-between gap-3 mb-2">
+          <p className="text-sm font-semibold text-foreground">{STEPS[step]}</p>
+          <p className="text-xs font-semibold text-muted" aria-live="polite">
+            Step {step + 1} of {STEPS.length}
+          </p>
+        </div>
+        <ProgressBar value={((step + 1) / STEPS.length) * 100} barClass="bg-brand" />
+      </div>
+
       {formError && (
         <div role="alert" className="rounded-xl border border-critical/30 bg-critical-soft text-critical text-sm px-4 py-3">
           {formError}
         </div>
       )}
 
-      <RoleLevelPicker jobTitle={jobTitle} setJobTitle={setJobTitle} levels={levels} setLevels={changeLevels} />
+      {step === 0 && <RoleLevelPicker jobTitle={jobTitle} setJobTitle={setJobTitle} levels={levels} setLevels={changeLevels} />}
 
-      <ContextCard
-        ctx={ctx}
-        setCtx={setCtx}
-        instructions={instructions}
-        setInstructions={setInstructions}
-        oneOffs={oneOffs}
-        setOneOffs={setOneOffs}
-        contextEngine={contextEngine}
-      />
-
-      <MeasureCard
-        competencies={competencies}
-        competencyIds={competencyIds}
-        setCompetencyIds={setCompetencyIds}
-        customTitle={customTitle}
-        setCustomTitle={setCustomTitle}
-        draftCount={includedCombos.length}
-        length={length}
-        setLength={setLength}
-        mix={mix}
-        setMix={setMix}
-        purpose={purpose}
-        setPurpose={setPurpose}
-        language={language}
-        setLanguage={setLanguage}
-        engine={engine}
-        setEngine={setEngine}
-        engines={engines}
-        defaultEngine={defaultEngine}
-        levelsIncluded={levels}
-      />
-
-      <section className="rounded-card border border-line bg-surface p-5 flex flex-wrap items-center justify-between gap-4">
-        <div className="text-sm text-muted">
-          <p className="font-semibold text-foreground">
-            {includedCombos.length} draft{includedCombos.length === 1 ? "" : "s"} ready
-          </p>
-          <p className="text-xs mt-0.5">
-            {quota.total > 0 ? `${remainingQuota} of ${quota.total} AI actions left this month.` : "AI quota is set to 0."}{" "}
-            {includedCombos.length > 0 && (
-              <>
-                Context budget: up to {CONTEXT_BUDGET_CHARS.toLocaleString()} characters per draft. Every draft is reviewed by a person before it is published.
-              </>
-            )}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          <button
-            type="button"
-            onClick={onEmptyDrafts}
-            disabled={running || includedCombos.length === 0}
-            className="text-sm font-semibold border border-line rounded-xl px-4 py-2.5 hover:border-accent disabled:opacity-50"
-          >
-            Create empty draft{includedCombos.length === 1 ? "" : "s"}
-          </button>
-          <button
-            type="button"
-            onClick={onGenerate}
-            disabled={running || includedCombos.length === 0 || !aiPossible}
-            className={buttonClass({ size: "md", className: "disabled:opacity-50" })}
-          >
-            {running ? "Generating…" : "Generate"}
-          </button>
-        </div>
-      </section>
-
-      {!aiPossible && aiDisabledReason && <p className="text-xs text-muted">{aiDisabledReason}</p>}
-
-      <GenerationProgress combos={includedCombos} jobTitle={jobTitle.trim()} jobs={jobs} running={running} onRetry={retry} />
-
-      {allFinished && doneJobs.length > 1 && (
-        <section className="rounded-card border border-line bg-surface p-5">
-          <p className="font-semibold text-foreground mb-3">Drafts ready to review</p>
-          <ul className="space-y-2">
-            {doneJobs.map(([key, j]) => (
-              <li key={key}>
-                <Link href={`/staff/builder/${j.assessmentId}`} className="text-sm text-accent-dark hover:underline">
-                  {jobTitle.trim()} — {LEVELS[combos.find((c) => c.key === key)!.level].label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
+      {step === 1 && (
+        <MeasureCard
+          competencies={competencies}
+          competencyIds={competencyIds}
+          setCompetencyIds={setCompetencyIds}
+          customTitle={customTitle}
+          setCustomTitle={setCustomTitle}
+          draftCount={includedCombos.length}
+          length={length}
+          setLength={setLength}
+          mix={mix}
+          setMix={setMix}
+          purpose={purpose}
+          setPurpose={setPurpose}
+          language={language}
+          setLanguage={setLanguage}
+          engine={engine}
+          setEngine={setEngine}
+          engines={engines}
+          defaultEngine={defaultEngine}
+          levelsIncluded={levels}
+        />
       )}
+
+      {step === 2 && (
+        <ContextCard
+          ctx={ctx}
+          setCtx={setCtx}
+          instructions={instructions}
+          setInstructions={setInstructions}
+          oneOffs={oneOffs}
+          setOneOffs={setOneOffs}
+          contextEngine={contextEngine}
+        />
+      )}
+
+      {step === LAST_STEP && (
+        <>
+          <section className="rounded-card border border-line bg-surface p-5 space-y-4">
+            <header className="flex items-baseline justify-between gap-3">
+              <h2 className="font-bold text-foreground">Check and create</h2>
+              <span className="text-xs font-semibold text-muted">
+                {includedCombos.length} draft{includedCombos.length === 1 ? "" : "s"}
+              </span>
+            </header>
+            <dl className="grid sm:grid-cols-[10rem_1fr] gap-x-4 gap-y-2.5 text-sm">
+              <dt className="text-muted">Job title</dt>
+              <dd className="font-semibold text-foreground">{jobTitle.trim()}</dd>
+              <dt className="text-muted">Levels</dt>
+              <dd className="text-foreground">{sortLevels(levels).map((l) => LEVELS[l].label).join(", ")}</dd>
+              <dt className="text-muted">Measures</dt>
+              <dd className="text-foreground">{chosenCompetencies.map((c) => c.name).join(", ")}</dd>
+              <dt className="text-muted">Purpose and length</dt>
+              <dd className="text-foreground capitalize">
+                {purpose}, {length} ({LENGTH_TOTALS[length]} questions)
+              </dd>
+              <dt className="text-muted">Language</dt>
+              <dd className="text-foreground">{language === "en" ? "English" : language === "az" ? "Azərbaycan dili" : "Русский"}</dd>
+              <dt className="text-muted">Context for the AI</dt>
+              <dd className="text-foreground">
+                {ctx.jobDescription.trim() || ctx.notes.trim() || ctx.files.length > 0 || instructions.trim()
+                  ? [ctx.jobDescription.trim() && "job description", ctx.notes.trim() && "notes", ctx.files.length > 0 && `${ctx.files.length} file${ctx.files.length === 1 ? "" : "s"}`, instructions.trim() && "instructions"]
+                      .filter(Boolean)
+                      .join(", ")
+                  : "None added. That is fine."}
+              </dd>
+              <dt className="text-muted">AI engine</dt>
+              <dd className="text-foreground">{engineName}</dd>
+            </dl>
+            <p className="text-xs text-muted">
+              {quota.total > 0 ? `${remainingQuota} of ${quota.total} AI actions left this month. ` : "AI quota is set to 0. "}
+              Context budget: up to {CONTEXT_BUDGET_CHARS.toLocaleString()} characters per draft. A person reviews every draft before it is published.
+            </p>
+          </section>
+
+          {!aiPossible && aiDisabledReason && (
+            <div role="status" className="rounded-xl border border-line bg-surface-sunken text-sm text-foreground px-4 py-3">
+              {aiDisabledReason}
+            </div>
+          )}
+
+          <GenerationProgress combos={includedCombos} jobTitle={jobTitle.trim()} jobs={jobs} running={running} onRetry={retry} />
+
+          {allFinished && doneJobs.length > 1 && (
+            <section className="rounded-card border border-line bg-surface p-5">
+              <p className="font-semibold text-foreground mb-1">Your tests are ready to review</p>
+              <p className="text-sm text-muted mb-3">Open each draft, check the questions, then publish. After publishing you can invite candidates.</p>
+              <ul className="space-y-2">
+                {doneJobs.map(([key, j]) => (
+                  <li key={key}>
+                    <Link href={`/staff/builder/${j.assessmentId}`} className="text-sm text-accent-dark hover:underline">
+                      {jobTitle.trim()} — {LEVELS[combos.find((c) => c.key === key)!.level].label}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+        </>
+      )}
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          {step > 0 && !started && (
+            <button type="button" onClick={goBack} className={buttonClass({ variant: "ghost", size: "md" })}>
+              Back
+            </button>
+          )}
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          {step === 2 && (
+            <button type="button" onClick={goNext} className={buttonClass({ variant: "ghost", size: "md" })}>
+              Skip
+            </button>
+          )}
+          {step < LAST_STEP && (
+            <button type="button" onClick={goNext} className={buttonClass({ size: "md" })}>
+              Next
+            </button>
+          )}
+          {step === LAST_STEP && !started && (
+            <>
+              <button
+                type="button"
+                onClick={onEmptyDrafts}
+                disabled={running || includedCombos.length === 0}
+                className={buttonClass({ variant: "secondary", size: "md" })}
+              >
+                Create empty draft{includedCombos.length === 1 ? "" : "s"}
+              </button>
+              <button type="button" onClick={onGenerate} disabled={running || includedCombos.length === 0 || !aiPossible} className={buttonClass({ size: "md" })}>
+                Generate test{includedCombos.length === 1 ? "" : "s"}
+              </button>
+            </>
+          )}
+          {step === LAST_STEP && started && (
+            <button type="button" onClick={startNewBatch} disabled={running} className={buttonClass({ variant: "secondary", size: "md" })}>
+              {running ? "Generating…" : "Start a new test"}
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

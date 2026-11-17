@@ -7,6 +7,7 @@ import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { LEVELS, isLevelKey } from "@/lib/levels";
 import { buttonClass } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -155,19 +156,24 @@ export default async function BuilderListPage({
                   </p>
                 </Link>
                 <div className="mt-3 pt-3 border-t border-line flex flex-wrap items-center gap-x-4 gap-y-2">
-                  {a.status !== "archived" && (
-                    <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />
+                  {a.status === "published" && <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />}
+                  {a.status === "draft" && (
+                    <Link href={`/staff/builder/${a.id}`} className="text-xs font-semibold text-accent-dark hover:underline">
+                      Review and publish to assign
+                    </Link>
                   )}
                   <form action={duplicateAssessment.bind(null, a.id)}>
-                    <button className="text-xs font-semibold text-accent-dark hover:underline">Duplicate</button>
+                    <SubmitButton variant="ghost" size="sm" pendingLabel="Copying…">
+                      Duplicate
+                    </SubmitButton>
                   </form>
                   <form action={setAssessmentArchived.bind(null, a.id, a.status !== "archived")}>
-                    <button className="text-xs font-semibold text-muted hover:text-foreground hover:underline">
+                    <SubmitButton variant="ghost" size="sm" pendingLabel={a.status === "archived" ? "Restoring…" : "Archiving…"}>
                       {a.status === "archived" ? "Restore" : "Archive"}
-                    </button>
+                    </SubmitButton>
                   </form>
                   {a.status === "draft" && (
-                    <span className="text-xs text-muted ml-auto">Still a draft — assigned people won&apos;t see it until you publish.</span>
+                    <span className="text-xs text-muted ml-auto">Still a draft. Candidates can&apos;t see it until you publish.</span>
                   )}
                 </div>
                 {isAdmin && (
@@ -188,7 +194,7 @@ export default async function BuilderListPage({
           {(!assessments || assessments.length === 0) && (
             <Card className="p-8 text-center">
               <p className="font-semibold text-foreground">No assessments yet</p>
-              <p className="text-sm text-muted mt-1">Start one with the New assessment card on the right.</p>
+              <p className="text-sm text-muted mt-1">Start one with New test on the right.</p>
             </Card>
           )}
         </div>
@@ -197,7 +203,7 @@ export default async function BuilderListPage({
           <Card className="p-6 space-y-4">
             <p className="font-bold text-foreground text-sm flex items-center gap-2">
               <Icon name="plus" className="w-4 h-4 text-accent-dark" />
-              New assessment
+              New test
             </p>
             <p className="text-xs text-muted">
               Start from a job title and a level. Add the job description or notes if you have them, and the AI drafts questions you review before anything is published.
@@ -206,7 +212,7 @@ export default async function BuilderListPage({
               href="/staff/builder/new"
               className={buttonClass({ size: "md", className: "block text-center" })}
             >
-              Start a new assessment
+              Start a new test
             </Link>
           </Card>
 
