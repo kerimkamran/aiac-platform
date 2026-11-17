@@ -353,7 +353,13 @@ const RECOMMENDATION_TONE_CLS: Record<ExecutiveSummary["recommendationTone"], st
   red: "bg-critical-soft text-critical ring-critical/30",
 };
 
-export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary }) {
+const SUMMARY_FOOTER: Record<string, string> = {
+  hiring: "AI-assisted synthesis, human review required — not a sole basis for a hiring decision.",
+  promotion: "AI-assisted synthesis, human review required — not a sole basis for a promotion decision.",
+  development: "AI-assisted synthesis, human review required — it supports a development conversation and decides nothing on its own.",
+};
+
+export function ExecutiveSummaryCard({ summary, purpose = "hiring" }: { summary: ExecutiveSummary; purpose?: string }) {
   return (
     <Card className="p-6 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
@@ -402,7 +408,7 @@ export function ExecutiveSummaryCard({ summary }: { summary: ExecutiveSummary })
         <p className="text-xs text-muted border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
       )}
       <p className="text-xs text-muted/80 mt-3 italic">
-        AI-assisted synthesis, human review required — not a sole basis for a hiring decision.
+        {SUMMARY_FOOTER[purpose] ?? SUMMARY_FOOTER.hiring}
       </p>
     </Card>
   );

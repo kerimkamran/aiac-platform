@@ -23,6 +23,23 @@ import { LEVELS, type LevelKey } from "./levels";
 // which answers were not read by the AI scorer.
 export const FALLBACK_RATIONALE_PREFIX = "Heuristic fallback scoring";
 
+// Answers scored by the very first engine carry a stored note that starts with
+// this text. It reads like a product spec, so reviewers see a plain version.
+const LEGACY_RATIONALE_PREFIX = "Phase-1 rule-based scoring";
+
+export function isUnreadByAi(rationale: string | null | undefined): boolean {
+  const r = rationale || "";
+  return r.startsWith(FALLBACK_RATIONALE_PREFIX) || r.startsWith(LEGACY_RATIONALE_PREFIX);
+}
+
+/** The rationale as a reviewer should read it. Only the old engine's note is reworded. */
+export function readableRationale(rationale: string | null | undefined): string {
+  const r = rationale || "";
+  if (!r.startsWith(LEGACY_RATIONALE_PREFIX)) return r;
+  const counts = r.match(/:\s*([^.]*?signal\(s\) detected)/i)?.[1];
+  return `Not read by the AI scorer: an automatic length and keyword check gave this score${counts ? ` (${counts.replace(/\s+against.*$/i, "")})` : ""}. Read the answer yourself and set the score.`;
+}
+
 export type ScoreResult = { score: number; rationale: string; needsReview: boolean };
 
 export type CompetencyContext = {

@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CandidateReportDocument, type ReportData } from "@/lib/pdf-report";
 import { buildExecutiveSummary, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { normalizePurpose } from "@/lib/purpose";
+import { readableRationale } from "@/lib/scoring";
 
 export const runtime = "nodejs";
 
@@ -129,7 +130,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           ? r.questions?.options?.find((o) => o.key === r.selected_option)?.text || r.selected_option || ""
           : r.response_text || "",
       score: r.score,
-      rationale: r.ai_rationale,
+      rationale: readableRationale(r.ai_rationale),
       needsReview: !!r.needs_review,
     })),
     decisions: !reviewerView ? [] : ((reviews || []) as unknown as { decision: string; comment: string; created_at: string; reviewer: { full_name: string } | null }[]).map(

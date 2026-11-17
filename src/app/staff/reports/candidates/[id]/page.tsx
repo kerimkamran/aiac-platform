@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, setDeadline, reviewAnswer } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
-import { FALLBACK_RATIONALE_PREFIX } from "@/lib/scoring";
+import { isUnreadByAi, readableRationale } from "@/lib/scoring";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
@@ -184,7 +184,7 @@ export default async function CandidateReviewPage({
     } | null;
   }[];
   const needsReviewCount = responseRows.filter((r) => r.needs_review).length;
-  const fallbackCount = responseRows.filter((r) => (r.ai_rationale || "").startsWith(FALLBACK_RATIONALE_PREFIX)).length;
+  const fallbackCount = responseRows.filter((r) => isUnreadByAi(r.ai_rationale)).length;
 
   // Who confirmed or changed each answer (migration 0023). Read on its own and
   // tolerant of the columns not existing yet: a failed read shows no history.
@@ -402,7 +402,7 @@ export default async function CandidateReviewPage({
                   )}
                   <p className="text-xs text-muted leading-relaxed flex items-start gap-2">
                     <Icon name="wand" className="w-3.5 h-3.5 shrink-0 mt-0.5 text-accent-dark" />
-                    {r.ai_rationale}
+                    {readableRationale(r.ai_rationale)}
                   </p>
                   {(() => {
                     const info = reviewInfo.get(r.id);
@@ -524,7 +524,7 @@ export default async function CandidateReviewPage({
       {/* ---------- The AI's contribution ---------- */}
       {ca.overall_score !== null ? (
         <>
-          {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} />}
+          {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} purpose={purpose} />}
 
           {/* T5.1 (radar demotion, confirmed): the sorted bar list is the
               primary at-a-glance read next to the score, not the radar --
