@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Icon, PageHeader } from "@/components/ui";
 import { CandidateExportTable, type CandidateExportRow } from "@/components/CandidateExportTable";
+import { Callout } from "@/components/ui/Callout";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { getSessionProfile } from "@/lib/authz";
 
@@ -37,7 +38,7 @@ export default async function StaffCandidatesPage({
     .order("invited_at", { ascending: false });
   if (status) query = query.eq("status", status);
 
-  const { data: rows } = await query;
+  const { data: rows, error: loadError } = await query;
 
   let list = (rows || []) as unknown as {
     id: string;
@@ -50,6 +51,12 @@ export default async function StaffCandidatesPage({
     assessments: { title: string; vacancy_title: string | null } | null;
   }[];
 
+  // The filter lists offer every value in the set being narrowed, not only what is left after narrowing (STF-B-13).
+  const departments = Array.from(new Set(list.map((r) => r.candidate?.department).filter(Boolean))) as string[];
+  const vacancies = Array.from(
+    new Set(list.map((r) => r.assessments?.vacancy_title || r.assessments?.title).filter(Boolean))
+  ) as string[];
+
   if (q) {
     const needle = q.toLowerCase();
     list = list.filter(
@@ -61,11 +68,6 @@ export default async function StaffCandidatesPage({
   }
   if (department) list = list.filter((r) => r.candidate?.department === department);
   if (vacancy) list = list.filter((r) => (r.assessments?.vacancy_title || r.assessments?.title) === vacancy);
-
-  const departments = Array.from(new Set(list.map((r) => r.candidate?.department).filter(Boolean))) as string[];
-  const vacancies = Array.from(
-    new Set(list.map((r) => r.assessments?.vacancy_title || r.assessments?.title).filter(Boolean))
-  ) as string[];
 
   const qs = (overrides: Record<string, string>) => {
     const params = new URLSearchParams({ status, q, department, vacancy, ...overrides });
@@ -171,6 +173,11 @@ export default async function StaffCandidatesPage({
       </div>
 
       <ToastFromParams specs={TOAST_SPECS} />
+      {loadError ? (
+        <Callout tone="critical" role="alert" className="mb-5">
+          The list could not be loaded, so what you see may be incomplete. Refresh the page; if it keeps happening, tell your administrator.
+        </Callout>
+      ) : null}
       <CandidateExportTable rows={exportRows} exportBase={exportBase} canCopyLink={canCopyLink} />
     </div>
   );

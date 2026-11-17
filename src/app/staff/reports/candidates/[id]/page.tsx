@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, reviewAnswer } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, setDeadline, reviewAnswer } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { FALLBACK_RATIONALE_PREFIX } from "@/lib/scoring";
@@ -9,6 +9,7 @@ import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
 import { buildExecutiveSummary, categoryRollups, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { DECISION_OPTIONS, PURPOSE_META, normalizePurpose } from "@/lib/purpose";
+import { orgToday } from "@/lib/deadline";
 import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -96,7 +97,7 @@ export default async function CandidateReviewPage({
       .eq("candidate_assessment_id", id),
     supabase
       .from("candidate_reviews")
-      .select("decision, comment, created_at, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
+      .select("decision, comment, created_at, reviewer_id, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
       .eq("candidate_assessment_id", id)
       .order("created_at", { ascending: false }),
   ]);
@@ -225,6 +226,8 @@ export default async function CandidateReviewPage({
   // had the migration yet just shows "none" instead of breaking this page.
   const { data: extraRow } = await supabase.from("candidate_assessments").select("extra_minutes").eq("id", id).maybeSingle();
   const extraMinutes = (extraRow as { extra_minutes?: number } | null)?.extra_minutes ?? 0;
+  const { data: dueRow } = await supabase.from("candidate_assessments").select("due_at").eq("id", id).maybeSingle();
+  const currentDue = (dueRow as { due_at?: string | null } | null)?.due_at ?? null;
   // Migration 0021: set when the answers arrived after the time limit. Read on
   // its own so the page works before the migration has been run.
   const { data: lateRow } = await supabase.from("candidate_assessments").select("submitted_late").eq("id", id).maybeSingle();
@@ -671,6 +674,27 @@ export default async function CandidateReviewPage({
         <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
       )}
 
+      {["invited", "in_progress"].includes(ca.status) && (
+        <Card className="p-5">
+          <p className="text-sm font-bold text-foreground mb-1">Deadline</p>
+          <p className="text-xs text-muted mb-3">
+            {currentDue ? `Now ends the evening of ${new Date(currentDue).toLocaleDateString("en-GB", { timeZone: "Asia/Baku" })}.` : "No deadline is set."} Pick a new date to
+            extend it, or leave it empty to remove it.
+          </p>
+          <form action={setDeadline.bind(null, id)} className="flex flex-wrap items-end gap-2">
+            <input
+              type="date"
+              name="due_date"
+              min={orgToday()}
+              defaultValue={currentDue ? new Date(currentDue).toLocaleDateString("en-CA", { timeZone: "Asia/Baku" }) : ""}
+              aria-label="Deadline"
+              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            />
+            <button className={buttonClass({ size: "sm" })}>Save deadline</button>
+          </form>
+        </Card>
+      )}
+
       {/* Manager sign-off (promotion only) */}
       {purpose === "promotion" && (
         <Card className="p-6 mb-6 no-print">
@@ -762,10 +786,17 @@ export default async function CandidateReviewPage({
             decision: string;
             comment: string;
             created_at: string;
+            reviewer_id: string | null;
             reviewer: { full_name: string } | null;
           }[];
-          const distinctDecisions = Array.from(new Set(reviewRows.map((r) => r.decision)));
-          const diverges = reviewRows.length >= 2 && distinctDecisions.length > 1;
+          // Disagreement means different reviewers, so only each reviewer's latest
+          // decision counts (rows are newest first). One person changing their own
+          // mind is not a disagreement (STF-B-09).
+          const latestPerReviewer = new Map<string, string>();
+          for (const r of reviewRows) if (r.reviewer_id && !latestPerReviewer.has(r.reviewer_id)) latestPerReviewer.set(r.reviewer_id, r.decision);
+          const decisionName = (v: string) => decisionOptions.find((o) => o.v === v)?.label ?? v.replace(/_/g, " ");
+          const distinctDecisions = Array.from(new Set(latestPerReviewer.values())).map(decisionName);
+          const diverges = latestPerReviewer.size >= 2 && distinctDecisions.length > 1;
           return (
             <div className="mt-6 space-y-3 border-t border-line pt-5">
               <p className="text-sm font-semibold text-muted">

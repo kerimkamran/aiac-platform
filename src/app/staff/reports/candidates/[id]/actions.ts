@@ -1,5 +1,6 @@
 "use server";
 
+import { deadlineFromDate } from "@/lib/deadline";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -152,6 +153,28 @@ export async function setExtraTime(candidateAssessmentId: string, formData: Form
     .eq("id", candidateAssessmentId)
     .in("status", ["invited", "in_progress"]);
   revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
+}
+
+// Move or clear one candidate's deadline (CAN-X-01). The candidate page tells
+// people to ask HR for more time; this is the control behind that sentence.
+export async function setDeadline(candidateAssessmentId: string, formData: FormData) {
+  const staff = await requireRole(...STAFF_ROLES);
+  const supabase = await createClient();
+  const back = `/staff/reports/candidates/${candidateAssessmentId}`;
+  const result = deadlineFromDate(String(formData.get("due_date") || ""));
+  if (!result.ok) redirect(`${back}?error=` + encodeURIComponent(result.error));
+  const { error } = await supabase
+    .from("candidate_assessments")
+    .update({ due_at: result.iso })
+    .eq("id", candidateAssessmentId)
+    .in("status", ["invited", "in_progress"]);
+  if (error) redirect(`${back}?error=` + encodeURIComponent(error.message));
+  await supabase.from("admin_audit_log").insert({
+    actor_id: staff.id,
+    action: "deadline_changed",
+    details: { candidate_assessment_id: candidateAssessmentId, due_at: result.iso },
+  });
+  revalidatePath(back);
 }
 
 // A reviewer confirms (agree) or corrects (change) the score for one answer.

@@ -29,6 +29,11 @@ function pathFor(status: string, steps: string[]): PathStep[] {
 // Candidate home (Clear Horizon plan, section 11): one next step, your place on
 // the path, and plain-language statuses. A person reviews every score, so the
 // words "AI scored" never appear here.
+// Kept outside the component so the page stays a pure function of its inputs.
+function isPastDue(dueAt: string | null | undefined): boolean {
+  return !!dueAt && new Date(dueAt).getTime() < Date.now();
+}
+
 export default async function CandidateHome() {
   const { lang, t } = await getT();
   const h = t.candidate.home;
@@ -49,7 +54,9 @@ export default async function CandidateHome() {
   const list = (assessments || []) as unknown as Row[];
   const extra = await extraMinutesFor(supabase, list.map((a) => a.id));
   const minutesOf = (a: Row) => (a.assessments?.time_limit_minutes ?? 0) + (extra.get(a.id) ?? 0);
-  const next = list.find((a) => a.status === "in_progress") || list.find((a) => a.status === "invited");
+  // A test whose deadline has passed can no longer be started, so it is not offered as the next step (CAN-B-29).
+  const overdue = (a: Row) => isPastDue(a.due_at);
+  const next = list.find((a) => a.status === "in_progress") || list.find((a) => a.status === "invited" && !overdue(a));
   const focus = next || list[0];
   const firstName = (profile?.full_name || "").split(" ")[0];
 

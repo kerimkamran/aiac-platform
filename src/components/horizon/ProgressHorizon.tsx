@@ -7,6 +7,7 @@ export function ProgressHorizon({
   current,
   className = "",
   label,
+  answeredFlags,
 }: {
   total: number;
   answered: number;
@@ -14,6 +15,8 @@ export function ProgressHorizon({
   className?: string;
   // The whole sentence in the person's language. English is used when absent.
   label?: string;
+  // Whether each question has an answer, in order. Dots fill by this, not by position (CAN-X-04).
+  answeredFlags?: boolean[];
 }) {
   const pct = total > 1 ? (current / (total - 1)) * 100 : 0;
   const dots = total <= 40;
@@ -34,7 +37,7 @@ export function ProgressHorizon({
             {Array.from({ length: total }, (_, i) => (
               <span
                 key={i}
-                className={`rounded-full ${i === current ? "w-3 h-3 bg-surface ring-2 ring-accent" : i < current ? "w-1.5 h-1.5 bg-accent" : "w-1.5 h-1.5 bg-line-control"}`}
+                className={`rounded-full ${i === current ? "w-3 h-3 bg-surface ring-2 ring-accent" : (answeredFlags ? answeredFlags[i] : i < current) ? "w-1.5 h-1.5 bg-accent" : "w-1.5 h-1.5 bg-line-control"}`}
               />
             ))}
           </div>

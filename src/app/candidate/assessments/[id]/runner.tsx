@@ -451,6 +451,7 @@ export function AssessmentRunner({
               answered={answered}
               current={reviewing ? total - 1 : idx}
               label={fillText(text.progress, { current: (reviewing ? total - 1 : idx) + 1, total, answered })}
+              answeredFlags={steps.map((s) => (answers[s.q.id] || "").trim().length > 0)}
               className="min-w-0 flex-1"
             />
             <button

@@ -17,18 +17,21 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const { data: viewer } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  const isCandidate = viewer?.role === "candidate";
+  const viewerIsCandidateRole = viewer?.role === "candidate";
 
   const { data: ca } = await supabase
     .from("candidate_assessments")
     .select(
-      "id, assessment_id, status, overall_score, submitted_at, tab_switch_count, feedback_released_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
+      "id, assessment_id, candidate_id, status, overall_score, submitted_at, tab_switch_count, feedback_released_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title, purpose)"
     )
     .eq("id", id)
     .single();
 
   // RLS (candidate own / staff) already scoped the row away if unauthorized.
   if (!ca) return NextResponse.json({ error: "Not found or not authorized" }, { status: 404 });
+  // Anyone looking at their own test gets the candidate copy, whatever their role
+  // (a staff member taking an internal test is a candidate for that test) (CAN-B-21).
+  const isCandidate = viewerIsCandidateRole || ca.candidate_id === user.id;
 
   // A candidate only gets the report once a person has reviewed it, and that
   // copy leaves out the AI rationale (plan v2, section 9, item 2). Row access
