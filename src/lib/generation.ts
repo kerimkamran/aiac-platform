@@ -32,6 +32,9 @@ export type GenerationReport = {
   // single correct answer, empty prompt). They are dropped, never repaired.
   droppedQuestions: number;
   droppedReasons: string[];
+  // Valid questions left out only because the test would have been longer than
+  // the Length the reviewer chose. Not an error, so counted separately.
+  trimmedQuestions?: number;
 };
 
 export type GenerationLanguage = "en" | "az" | "ru";
@@ -208,6 +211,49 @@ export function validateGenerated(data: unknown): { assessment: GeneratedAssessm
   return { assessment: { sections }, report };
 }
 
+// Fits the model's answer to what was asked for: sections whose competency code
+// was not in the request are dropped (their questions counted as dropped),
+// repeated codes are merged into one section, and the total is trimmed to the
+// chosen length by taking from the longest section first, so every competency
+// keeps its share.
+export function shapeGenerated(
+  assessment: GeneratedAssessment,
+  report: GenerationReport,
+  allowedCodes: string[],
+  total: number
+): { assessment: GeneratedAssessment; report: GenerationReport } {
+  const canonical = new Map(allowedCodes.map((c) => [c.trim().toLowerCase(), c]));
+  const merged = new Map<string, GeneratedQuestion[]>();
+  const dropped = { count: report.droppedQuestions, reasons: [...report.droppedReasons] };
+
+  for (const sec of assessment.sections) {
+    const code = canonical.get(sec.competencyCode.trim().toLowerCase());
+    if (!code) {
+      dropped.count += sec.questions.length;
+      dropped.reasons.push(`section for unknown competency "${sec.competencyCode}"`);
+      continue;
+    }
+    merged.set(code, [...(merged.get(code) ?? []), ...sec.questions]);
+  }
+
+  const sections: GeneratedSection[] = [...merged.entries()].map(([competencyCode, questions]) => ({ competencyCode, questions }));
+  let count = sections.reduce((n, s) => n + s.questions.length, 0);
+  let trimmed = 0;
+  while (count > total) {
+    let longest = sections[0];
+    for (const s of sections) if (s.questions.length > longest.questions.length) longest = s;
+    if (!longest || longest.questions.length <= 1) break;
+    longest.questions.pop();
+    count -= 1;
+    trimmed += 1;
+  }
+
+  return {
+    assessment: { sections },
+    report: { droppedQuestions: dropped.count, droppedReasons: dropped.reasons, trimmedQuestions: trimmed },
+  };
+}
+
 export type GenerationResult = { assessment: GeneratedAssessment; report: GenerationReport; usage: EngineUsage };
 
 export async function generateAssessmentContent(
@@ -228,7 +274,13 @@ export async function generateAssessmentContent(
     buildUserPrompt(competencies, options)
   );
 
-  const { assessment, report } = validateGenerated(extractJson(text));
+  const validated = validateGenerated(extractJson(text));
+  const { assessment, report } = shapeGenerated(
+    validated.assessment,
+    validated.report,
+    competencies.map((c) => c.code),
+    options.questionTotal
+  );
 
   const totalQuestions = assessment.sections.reduce((n, s) => n + s.questions.length, 0);
   if (totalQuestions < MIN_TOTAL_QUESTIONS) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { validateGenerated } from "./generation";
+import { shapeGenerated, validateGenerated } from "./generation";
 
 const four = (correctIndex: number | null) =>
   ["A", "B", "C", "D"].map((t, i) => ({ text: `option ${t}`, correct: i === correctIndex }));
@@ -56,5 +56,37 @@ describe("validateGenerated", () => {
       positions.add(assessment.sections[0].questions[0].options!.findIndex((o) => o.correct));
     }
     expect(positions.size).toBeGreaterThan(1);
+  });
+});
+
+describe("shapeGenerated", () => {
+  const q = (n: number) => Array.from({ length: n }, (_, i) => ({ type: "text" as const, prompt: `Question number ${i}` }));
+
+  it("drops unknown codes, matches case-insensitively and merges repeats", () => {
+    const { assessment, report } = shapeGenerated(
+      { sections: [{ competencyCode: "c1", questions: q(2) }, { competencyCode: "ZZ", questions: q(3) }, { competencyCode: "C1", questions: q(1) }] },
+      { droppedQuestions: 0, droppedReasons: [] },
+      ["C1", "C2"],
+      20
+    );
+    expect(assessment.sections).toHaveLength(1);
+    expect(assessment.sections[0].competencyCode).toBe("C1");
+    expect(assessment.sections[0].questions).toHaveLength(3);
+    expect(report.droppedQuestions).toBe(3);
+    expect(report.droppedReasons[0]).toMatch(/unknown competency/);
+  });
+
+  it("trims to the chosen length from the longest section first", () => {
+    const { assessment, report } = shapeGenerated(
+      { sections: [{ competencyCode: "A", questions: q(6) }, { competencyCode: "B", questions: q(4) }] },
+      { droppedQuestions: 0, droppedReasons: [] },
+      ["A", "B"],
+      7
+    );
+    const total = assessment.sections.reduce((n, s) => n + s.questions.length, 0);
+    expect(total).toBe(7);
+    expect(assessment.sections.map((s) => s.questions.length)).toEqual([3, 4]);
+    expect(report.trimmedQuestions).toBe(3);
+    expect(report.droppedQuestions).toBe(0);
   });
 });

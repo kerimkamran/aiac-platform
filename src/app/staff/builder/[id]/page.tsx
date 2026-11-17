@@ -17,6 +17,7 @@ import {
   regenerateOneQuestion,
   createTranslatedVersion,
   duplicateAssessment,
+  setAssessmentArchived,
 } from "../actions";
 import { PublishChecklist } from "./PublishChecklist";
 import { publishChecks as publishChecksFor, type CheckQuestion, type PublishCheck } from "@/lib/publish-checks";
@@ -157,13 +158,18 @@ export default async function BuilderDetailPage({
           <Icon name="eye" className="w-4 h-4" />
           Preview as candidate
         </Link>
-        {assessment.status !== "published" && (
+        {assessment.status === "draft" && (
           <PublishChecklist
             title={assessment.title}
             checks={publishChecks}
             aiDraft={!!assessment.generated_by}
             action={publishAssessment.bind(null, id)}
           />
+        )}
+        {assessment.status === "archived" && (
+          <form action={setAssessmentArchived.bind(null, id, false)}>
+            <SubmitButton pendingLabel="Restoring…">Restore this test</SubmitButton>
+          </form>
         )}
         {assessment.status === "published" && (
           <Link href={`/staff/invite?test=${id}`} className={buttonClass({ size: "md" })}>

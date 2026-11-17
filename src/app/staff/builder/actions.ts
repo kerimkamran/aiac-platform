@@ -629,6 +629,18 @@ export async function updateAssessmentMeta(assessmentId: string, formData: FormD
   const timeLimit = Number(formData.get("time_limit_minutes") || 60);
 
   if (!title) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("Title can't be empty."));
+  if (!Number.isFinite(timeLimit) || timeLimit < 1 || timeLimit > 480) {
+    redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent("The time limit must be between 1 and 480 minutes."));
+  }
+
+  // Candidates who started under one limit must not see it change mid-attempt.
+  const { data: before } = await supabase.from("assessments").select("time_limit_minutes").eq("id", assessmentId).maybeSingle();
+  if (before && before.time_limit_minutes !== timeLimit && (await isLockedForEditing(supabase, assessmentId))) {
+    redirect(
+      `/staff/builder/${assessmentId}?error=` +
+        encodeURIComponent("Candidates have started this test, so its time limit can't change. Make a copy to use a different limit.")
+    );
+  }
 
   const { error } = await supabase
     .from("assessments")
@@ -920,8 +932,14 @@ export async function setAssessmentArchived(assessmentId: string, archived: bool
     ? await supabase.from("assessments").update({ status: "archived" }).eq("id", assessmentId)
     : await supabase.rpc("restore_archived_assessment", { p_assessment_id: assessmentId });
   if (error) redirect("/staff/builder?error=" + encodeURIComponent(error.message));
+  let restoredAs = "draft";
+  if (!archived) {
+    const { data: now } = await supabase.from("assessments").select("status").eq("id", assessmentId).maybeSingle();
+    if (now?.status === "published") restoredAs = "published";
+  }
   revalidatePath("/staff/builder");
-  redirect("/staff/builder?added=" + encodeURIComponent(archived ? "Assessment archived." : "Assessment restored to draft."));
+  revalidatePath(`/staff/builder/${assessmentId}`);
+  redirect("/staff/builder?added=" + encodeURIComponent(archived ? "Assessment archived." : `Assessment restored as ${restoredAs}.`));
 }
 
 // ---------------------------------------------------------------------------
@@ -1215,6 +1233,15 @@ export async function createTranslatedVersion(assessmentId: string, formData: Fo
     await finishGenerationRun(supabase, runId, { error: message });
     fail(message);
     return;
+  }
+
+  // The translated copy keeps the camera settings of the original.
+  const { data: srcProctoring } = await supabase.from("proctoring_settings").select("*").eq("assessment_id", src!.id).maybeSingle();
+  if (srcProctoring) {
+    const rest: Record<string, unknown> = { ...(srcProctoring as Record<string, unknown>) };
+    delete rest.id;
+    delete rest.assessment_id;
+    await supabase.from("proctoring_settings").upsert({ ...rest, assessment_id: created.id }, { onConflict: "assessment_id" });
   }
 
   await finishGenerationRun(supabase, runId, { assessmentId: created.id, usage: { ...translated.usage } });
