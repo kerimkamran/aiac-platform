@@ -3,6 +3,10 @@
 //   Aysel Mammadova <aysel@example.com>
 //   aysel@example.com            (the name is guessed from the address)
 // Lines that cannot be read are returned so the screen can say which ones.
+// How many people one invitation can cover. Lives here because a server-action
+// file may only export async functions.
+export const MAX_PEOPLE_PER_INVITE = 20;
+
 export type PastedPerson = { name: string; email: string };
 
 const EMAIL = /[^\s,;<>"']+@[^\s,;<>"']+\.[^\s,;<>"']+/;

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionProfile, STAFF_ROLES } from "@/lib/authz";
 import { assignAssessment, provisionAccount, sendInvite } from "@/lib/invite";
+import { MAX_PEOPLE_PER_INVITE } from "@/lib/invite-paste";
 
 // One result per person, so the last screen can say exactly what happened to
 // each of them. "Sent" is only claimed when the email really went out.
@@ -18,7 +19,6 @@ export type InviteInput = {
   dueDate?: string;
 };
 
-export const MAX_PEOPLE_PER_INVITE = 20;
 const EMAIL_RE = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 
 export async function sendInvitations(input: InviteInput): Promise<InviteResult> {

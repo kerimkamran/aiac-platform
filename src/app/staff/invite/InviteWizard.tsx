@@ -7,8 +7,8 @@ import { Button, buttonClass } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { FieldLabel, Input, Textarea } from "@/components/ui/Field";
 import { CopyInviteLinkButton } from "@/components/CopyInviteLinkButton";
-import { parsePeopleList } from "@/lib/invite-paste";
-import { sendInvitations, MAX_PEOPLE_PER_INVITE, type InviteResult, type PersonResult } from "./actions";
+import { parsePeopleList, MAX_PEOPLE_PER_INVITE } from "@/lib/invite-paste";
+import { sendInvitations, type InviteResult, type PersonResult } from "./actions";
 
 export type InviteTest = { id: string; title: string; minutes: number; level: string | null; language: string | null };
 
