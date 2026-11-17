@@ -6,7 +6,8 @@ import { REFERENCE_FILE_MAX_CHARS } from "@/lib/ai-context";
 
 export const TEXT_EXTENSIONS = [".md", ".txt"] as const;
 export const DOCX_EXTENSION = ".docx";
-export const DOCX_MAX_BYTES = 5 * 1024 * 1024;
+// 4 MB: Vercel refuses request bodies above 4.5 MB, so a larger file could never arrive.
+export const DOCX_MAX_BYTES = 4 * 1024 * 1024;
 
 export type UploadCheck = { ok: true; text: string; name: string } | { ok: false; error: string };
 

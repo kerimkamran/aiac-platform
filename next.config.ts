@@ -17,6 +17,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Word job descriptions go through a server action. The default limit is 1 MB;
+  // Vercel itself refuses request bodies above 4.5 MB, so 4 MB is the most that works.
+  experimental: { serverActions: { bodySizeLimit: "4mb" } },
   // The decision-maker portal was removed. Old links land on the staff pages.
   async redirects() {
     return [

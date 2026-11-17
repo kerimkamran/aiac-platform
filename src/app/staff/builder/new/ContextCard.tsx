@@ -81,7 +81,7 @@ export function ContextCard({
   async function onReferenceFile(file: File | undefined) {
     if (!file) return;
     setNotice(null);
-    if (ctx.files.length >= MAX_REFERENCE_FILES) return setNotice(`At most ${MAX_REFERENCE_FILES} reference files. Remove one first.`);
+    if (ctx.files.length + oneOffs.length >= MAX_REFERENCE_FILES) return setNotice(`At most ${MAX_REFERENCE_FILES} files in total, reference and one-off together. Remove one first.`);
     const r = await readTextFile(file);
     if (!r.ok) return setNotice(r.error);
     patchCtx({ files: [...ctx.files, { name: r.name, text: r.text }] });
@@ -90,7 +90,7 @@ export function ContextCard({
   async function onOneOff(file: File | undefined) {
     if (!file) return;
     setNotice(null);
-    if (oneOffs.length >= MAX_REFERENCE_FILES) return setNotice(`At most ${MAX_REFERENCE_FILES} one-off files per batch.`);
+    if (ctx.files.length + oneOffs.length >= MAX_REFERENCE_FILES) return setNotice(`At most ${MAX_REFERENCE_FILES} files in total, reference and one-off together. Remove one first.`);
     const r = await readTextFile(file);
     if (!r.ok) return setNotice(r.error);
     setOneOffs((o) => [...o, { name: r.name, text: r.text }]);

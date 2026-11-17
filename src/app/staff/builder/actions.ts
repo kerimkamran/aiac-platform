@@ -1,6 +1,5 @@
 "use server";
 
-import { assignAssessment as assignToCandidate } from "@/lib/invite";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireRole, requireStaff } from "@/lib/authz";
@@ -84,16 +83,19 @@ export async function addSection(assessmentId: string, formData: FormData) {
   const title = String(formData.get("title") || "");
   const competencyId = String(formData.get("competency_id") || "");
 
-  const { count } = await supabase
+  const { data: lastSection } = await supabase
     .from("assessment_sections")
-    .select("id", { count: "exact", head: true })
-    .eq("assessment_id", assessmentId);
+    .select("sequence")
+    .eq("assessment_id", assessmentId)
+    .order("sequence", { ascending: false })
+    .limit(1)
+    .maybeSingle();
 
   await supabase.from("assessment_sections").insert({
     assessment_id: assessmentId,
     title,
     competency_id: competencyId || null,
-    sequence: (count || 0) + 1,
+    sequence: ((lastSection as { sequence?: number } | null)?.sequence ?? 0) + 1,
   });
 
   revalidatePath(`/staff/builder/${assessmentId}`);
@@ -354,7 +356,8 @@ async function insertGeneratedAssessment(
       const comp = params.competencies.find((c) => c.code === section.competencyCode);
       return {
         assessment_id: assessment.id,
-        title: comp?.name || section.competencyCode,
+        // A Azerbaijani or Russian test gets a heading in its own language.
+        title: section.sectionTitle || comp?.name || section.competencyCode,
         competency_id: comp?.id || null,
         sequence: i + 1,
         target_score: passMark,
@@ -661,6 +664,7 @@ export async function deleteSection(sectionId: string, assessmentId: string) {
   }
   const { error } = await supabase.from("assessment_sections").delete().eq("id", sectionId);
   if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+  await resequence("assessment_sections", "assessment_id", assessmentId);
   revalidatePath(`/staff/builder/${assessmentId}`);
 }
 
@@ -672,8 +676,8 @@ export async function deleteQuestion(questionId: string, sectionId: string, asse
   }
   const { error } = await supabase.from("questions").delete().eq("id", questionId);
   if (error) redirect(`/staff/builder/${assessmentId}?error=` + encodeURIComponent(error.message));
+  await resequence("questions", "section_id", sectionId);
   revalidatePath(`/staff/builder/${assessmentId}`);
-  void sectionId;
 }
 
 // Design-execution-plan Phase 5 / T5.3: there was no reorder capability at
@@ -703,12 +707,29 @@ async function moveRow(
   const swapWith = direction === "up" ? idx - 1 : idx + 1;
   if (idx === -1 || swapWith < 0 || swapWith >= ordered.length) return; // already at an edge -- no-op
 
-  const a = ordered[idx];
-  const b = ordered[swapWith];
-  await Promise.all([
-    supabase.from(table).update({ sequence: b.sequence }).eq("id", a.id),
-    supabase.from(table).update({ sequence: a.sequence }).eq("id", b.id),
-  ]);
+  // Rewrite the whole order as 1..n with the two rows swapped. Swapping the two
+  // stored numbers is not enough: after a delete the numbers can repeat, and
+  // swapping two equal numbers changes nothing.
+  const next = [...ordered];
+  [next[idx], next[swapWith]] = [next[swapWith], next[idx]];
+  await Promise.all(
+    next
+      .map((r, i) => ({ id: r.id, from: r.sequence, to: i + 1 }))
+      .filter((r) => r.from !== r.to)
+      .map((r) => supabase.from(table).update({ sequence: r.to }).eq("id", r.id))
+  );
+}
+
+// Closes the gap left by a delete, so the order stays 1..n.
+async function resequence(table: "assessment_sections" | "questions", parentColumn: "assessment_id" | "section_id", parentId: string) {
+  const supabase = await createClient();
+  const { data: rows } = await supabase.from(table).select("id, sequence").eq(parentColumn, parentId).order("sequence");
+  await Promise.all(
+    ((rows || []) as { id: string; sequence: number }[])
+      .map((r, i) => ({ id: r.id, from: r.sequence, to: i + 1 }))
+      .filter((r) => r.from !== r.to)
+      .map((r) => supabase.from(table).update({ sequence: r.to }).eq("id", r.id))
+  );
 }
 
 export async function moveSection(sectionId: string, assessmentId: string, direction: "up" | "down") {
@@ -727,62 +748,6 @@ export async function moveQuestion(questionId: string, sectionId: string, assess
   }
   await moveRow("questions", "section_id", sectionId, questionId, direction);
   revalidatePath(`/staff/builder/${assessmentId}`);
-}
-
-// Lets staff assign an assessment (draft or published) to any existing account
-// (candidate, staff, admin) directly from its row in the
-// Builder list -- an alternative to the candidate-only "Add a candidate"
-// flow in People & Access, for cases where the account already exists
-// and just needs this assessment attached.
-export async function assignAssessment(assessmentId: string, formData: FormData) {
-  await requireStaff();
-  const supabase = await createClient();
-  const userId = String(formData.get("user_id") || "").trim();
-
-  if (!userId) {
-    redirect("/staff/builder?error=" + encodeURIComponent("Choose someone to assign this to."));
-  }
-
-  // Drafts are never assigned: candidates would see an unreviewed test.
-  const { data: target } = await supabase.from("assessments").select("status").eq("id", assessmentId).maybeSingle();
-  if (!target || target.status !== "published") {
-    redirect("/staff/builder?error=" + encodeURIComponent("Publish the assessment before assigning it."));
-  }
-
-  // No DB-level uniqueness on (assessment_id, candidate_id), so check first
-  // rather than rely on an insert error -- keeps repeated clicks idempotent
-  // (same person already has this exact assessment) instead of creating
-  // duplicate rows silently.
-  const { data: existing } = await supabase
-    .from("candidate_assessments")
-    .select("id")
-    .eq("assessment_id", assessmentId)
-    .eq("candidate_id", userId)
-    .maybeSingle();
-
-  if (existing) {
-    redirect("/staff/builder?added=" + encodeURIComponent("Already assigned to that assessment."));
-  }
-
-  // Optional deadline: date-only input, stored as end-of-day UTC so the
-  // candidate has the full final day.
-  const dueDateRaw = String(formData.get("due_date") || "").trim();
-  const dueAt = dueDateRaw ? new Date(`${dueDateRaw}T23:59:59Z`).toISOString() : null;
-
-  const { data: titleRow } = await supabase.from("assessments").select("title").eq("id", assessmentId).maybeSingle();
-  const result = await assignToCandidate(supabase, {
-    candidateId: userId,
-    assessmentId,
-    dueAt,
-    title: (titleRow?.title as string | undefined) ?? undefined,
-  });
-  if (typeof result === "object") {
-    redirect("/staff/builder?error=" + encodeURIComponent(result.error));
-  }
-
-  revalidatePath("/staff/builder");
-  revalidatePath("/staff/people");
-  redirect("/staff/builder?added=" + encodeURIComponent("Assessment assigned."));
 }
 
 // Sets (or clears) the target competency level for one section -- the bar

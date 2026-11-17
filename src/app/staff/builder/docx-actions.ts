@@ -11,8 +11,12 @@ export async function extractDocxText(formData: FormData): Promise<UploadCheck> 
   if (!(file instanceof File)) return { ok: false, error: "Choose a file to upload." };
   const name = cleanFileName(file.name);
   if (extensionOf(name) !== DOCX_EXTENSION) return { ok: false, error: "Only .docx files can be read here." };
-  if (file.size > DOCX_MAX_BYTES) return { ok: false, error: `"${name}" is larger than 5 MB.` };
-  const mammoth = await import("mammoth");
-  const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
-  return checkTextBytes(new TextEncoder().encode(value), name);
+  if (file.size > DOCX_MAX_BYTES) return { ok: false, error: `"${name}" is larger than 4 MB.` };
+  try {
+    const mammoth = await import("mammoth");
+    const { value } = await mammoth.extractRawText({ arrayBuffer: await file.arrayBuffer() });
+    return checkTextBytes(new TextEncoder().encode(value), name);
+  } catch {
+    return { ok: false, error: `Couldn't read "${name}". Save it again as a .docx from Word, or paste the text into the box instead.` };
+  }
 }

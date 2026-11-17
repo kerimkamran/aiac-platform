@@ -16,6 +16,11 @@ export async function readDocxText(file: File): Promise<{ ok: true; text: string
   if (extensionOf(file.name) !== ".docx") return { ok: false, error: "Choose a .docx file." };
   const fd = new FormData();
   fd.set("file", file);
-  const result = await extractDocxText(fd);
+  let result: Awaited<ReturnType<typeof extractDocxText>>;
+  try {
+    result = await extractDocxText(fd);
+  } catch {
+    return { ok: false, error: "Couldn't upload that file. It may be too large (the limit is 4 MB) or the connection dropped. Paste the text into the box instead." };
+  }
   return result.ok ? { ok: true, text: result.text } : { ok: false, error: result.error };
 }

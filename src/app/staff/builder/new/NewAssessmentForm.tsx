@@ -236,7 +236,8 @@ export function NewAssessmentForm({
       instructions,
       jobDescription: ctx.jobDescription,
       notes: ctx.notes,
-      files: ctx.files,
+      // One-off files used to be shown but never sent. Both kinds go to the AI now.
+      files: [...ctx.files, ...oneOffs],
       customTitle: includedCombos.length === 1 ? customTitle : undefined,
       emptyDraft: empty,
     };

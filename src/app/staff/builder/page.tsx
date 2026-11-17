@@ -1,7 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { createAssessment, deleteAssessment, assignAssessment, duplicateAssessment, setAssessmentArchived } from "./actions";
-import { AssignAssessmentButton } from "@/components/AssignAssessmentButton";
+import { createAssessment, deleteAssessment, duplicateAssessment, setAssessmentArchived } from "./actions";
 import { Card, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
@@ -48,19 +47,14 @@ export default async function BuilderListPage({
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
   const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
 
-  const [{ data: assessments }, { data: assignableUsers }] = await Promise.all([
+  const { data: assessments } = await Promise.resolve(
     supabase
       .from("assessments")
       .select(
         "id, title, description, status, time_limit_minutes, created_at, mode, engine, generated_at, purpose, content_language, target_level, vacancy_title, assessment_sections(id), questions:assessment_sections(questions(id)), generator:profiles!assessments_generated_by_fkey(full_name)"
       )
-      .order("created_at", { ascending: false }),
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, role")
-      .eq("status", "active")
-      .order("full_name"),
-  ]);
+      .order("created_at", { ascending: false })
+  );
 
   const listed = (assessments || []).filter((a) => (showArchived ? a.status === "archived" : a.status !== "archived"));
   const visible = listed.filter((a) => {
@@ -68,11 +62,6 @@ export default async function BuilderListPage({
     return true;
   });
   const archivedTotal = (assessments || []).filter((x) => x.status === "archived").length;
-
-  const userOptions = (assignableUsers || []).map((u) => ({
-    id: u.id,
-    label: `${u.full_name} — ${u.email}`,
-  }));
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -156,7 +145,11 @@ export default async function BuilderListPage({
                   </p>
                 </Link>
                 <div className="mt-3 pt-3 border-t border-line flex flex-wrap items-center gap-x-4 gap-y-2">
-                  {a.status === "published" && <AssignAssessmentButton action={assignAssessment.bind(null, a.id)} users={userOptions} />}
+                  {a.status === "published" && (
+                    <Link href={`/staff/invite?test=${a.id}`} className="text-xs font-semibold text-accent-dark hover:underline">
+                      Invite or assign
+                    </Link>
+                  )}
                   {a.status === "draft" && (
                     <Link href={`/staff/builder/${a.id}`} className="text-xs font-semibold text-accent-dark hover:underline">
                       Review and publish to assign

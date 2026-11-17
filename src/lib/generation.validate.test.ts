@@ -90,3 +90,28 @@ describe("shapeGenerated", () => {
     expect(report.droppedQuestions).toBe(0);
   });
 });
+
+describe("section titles", () => {
+  const q = [{ type: "text", prompt: "Describe a time you led a team through change." }];
+
+  it("keeps a translated section title and drops an absurdly long one", () => {
+    const { assessment } = validateGenerated({
+      sections: [
+        { competencyCode: "C1", sectionTitle: "  Komanda rəhbərliyi ", questions: q },
+        { competencyCode: "C2", sectionTitle: "x".repeat(200), questions: q },
+      ],
+    });
+    expect(assessment.sections[0].sectionTitle).toBe("Komanda rəhbərliyi");
+    expect(assessment.sections[1].sectionTitle).toBeUndefined();
+  });
+
+  it("carries the title through shaping", () => {
+    const { assessment } = shapeGenerated(
+      { sections: [{ competencyCode: "c1", sectionTitle: "Лидерство", questions: [{ type: "text", prompt: "Q number one" }] }] },
+      { droppedQuestions: 0, droppedReasons: [] },
+      ["C1"],
+      10
+    );
+    expect(assessment.sections[0].sectionTitle).toBe("Лидерство");
+  });
+});
