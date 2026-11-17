@@ -1,10 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Card, Icon, PageHeader, ScoreRing, ScoringDisclosure, bandFor, bandLabelFor, categoryStyle } from "@/components/ui";
+import { Card, Icon, PageHeader, ScoreRing, bandFor, bandLabelFor, categoryStyle } from "@/components/ui";
 import { RadarChart } from "@/components/charts";
 import { buildDevelopmentFeedback } from "@/lib/reporting";
 import { buttonClass } from "@/components/ui/Button";
+import { Callout } from "@/components/ui/Callout";
 import { getT } from "@/i18n/server";
 import { fillNodes } from "@/lib/fill-nodes";
 import { fillText } from "@/lib/dates";
@@ -71,7 +72,9 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
         </a>
       </div>
 
-      <ScoringDisclosure className="mb-6" />
+      <Callout tone="info" className="mb-6">
+        {w.howNote}
+      </Callout>
 
       <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
         <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">

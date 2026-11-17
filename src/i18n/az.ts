@@ -341,7 +341,7 @@ export const az: Dict = {
     },
     results: {
       title: "Nəticələrim",
-      subtitle: "Nəticələr, süni intellektin köməyi ilə verilmiş ballarınızı insan rəy verən təsdiq etdikdən sonra açılır.",
+      subtitle: "Nəticələr, bir insan cavablarınızı nəzərdən keçirib ballarınızı təsdiq etdikdən sonra açılır.",
       emptyTitle: "Hələ nəticə yoxdur",
       emptyBody: "Qiymətləndirməni tamamlayın, səriştə profiliniz nəzərdən keçirildikdən sonra burada görünəcək.",
       goToTests: "Qiymətləndirmələrimə keç",
@@ -494,6 +494,7 @@ export const az: Dict = {
       back: "Bütün nəticələr",
       resultFallback: "Nəticə",
       subtitle: "Bu qiymətləndirmə üzrə yoxlanılmış səriştə profiliniz.",
+      howNote: "Necə oxumalı: hər bal cavablarınızı həmin səriştənin davranış göstəriciləri ilə müqayisə edir və bir insan onu nəzərdən keçirib təsdiq edib.",
       download: "PDF yüklə",
       overall: "Vəzifəyə ümumi uyğunluq",
       radar: "Səriştə radarı",

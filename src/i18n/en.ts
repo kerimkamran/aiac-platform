@@ -342,7 +342,7 @@ export const en = {
     },
     results: {
       title: "My results",
-      subtitle: "Results unlock once a human reviewer has confirmed your AI-assisted scores.",
+      subtitle: "Results unlock once a person has reviewed your answers and confirmed your scores.",
       emptyTitle: "No results yet",
       emptyBody: "Complete an assessment and your competency profile will appear here after review.",
       goToTests: "Go to my assessments",
@@ -495,6 +495,7 @@ export const en = {
       back: "All results",
       resultFallback: "Result",
       subtitle: "Your reviewed competency profile for this assessment.",
+      howNote: "How to read this: each score compares your answers with the behavioural indicators for that competency, and a person has reviewed and confirmed it.",
       download: "Download PDF",
       overall: "Overall role fit",
       radar: "Competency radar",

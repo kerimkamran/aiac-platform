@@ -236,9 +236,9 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
               {band?.label || "Not yet scored"}
             </Text>
             <Text style={{ fontSize: 8.5, color: MUTED, lineHeight: 1.5 }}>
-              Weighted average across all mapped competencies, combining AI-assisted scoring of situational and
-              behavioral responses. This assessment is designed to be reviewed alongside interview evidence and
-              is not intended as a sole basis for a hiring or promotion decision.
+              {showRationale
+                ? "Weighted average across all mapped competencies, combining AI-assisted scoring of situational and behavioral responses. This assessment is designed to be reviewed alongside interview evidence and is not intended as a sole basis for a hiring or promotion decision."
+                : "Weighted average across all mapped competencies. Each score was reviewed and confirmed by a person."}
               {data.percentile !== null && data.percentile !== undefined
                 ? ` Scored higher than ${data.percentile}% of the ${data.peerCount} candidate(s) assessed for this role${
                     data.peerAvg !== null && data.peerAvg !== undefined ? ` (peer average: ${data.peerAvg})` : ""

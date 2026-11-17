@@ -47,6 +47,14 @@ describe("dictionaries", () => {
     });
   }
 
+  it("never tells a candidate that AI scored their work (candidate pages)", () => {
+    const ai = /\bAI\b|artificial|\bИИ\b|süni intellekt/i;
+    for (const [lang, dict] of Object.entries(ALL_DICTS)) {
+      const hits = strings((dict as unknown as { candidate: Json }).candidate).filter((x) => ai.test(x));
+      expect(hits, lang).toEqual([]);
+    }
+  });
+
   it("uses sentence case for the English headlines (no all-caps labels)", () => {
     const shouting = strings(en as unknown as Json).filter((s) => s.length > 3 && s === s.toUpperCase() && /[A-Z]/.test(s) && !/\d/.test(s));
     expect(shouting).toEqual([]);
