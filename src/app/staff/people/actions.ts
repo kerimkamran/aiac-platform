@@ -5,7 +5,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { assignAssessment, provisionAccount, sendInvite } from "@/lib/invite";
 import { STAFF_ROLES as ALL_STAFF_ROLES } from "@/lib/authz";
-import { parseCsv } from "@/lib/csv";
+import { decodeCsvBytes, parseCsv } from "@/lib/csv";
+import { deadlineFromDate } from "@/lib/deadline";
 
 async function currentRole() {
   const supabase = await createClient();
@@ -62,7 +63,9 @@ export async function addCandidate(formData: FormData) {
   if (!account.ok) redirect(to("error", account.error));
 
   const dueDateRaw = String(formData.get("due_date") || "").trim();
-  const dueAt = dueDateRaw ? new Date(`${dueDateRaw}T23:59:59Z`).toISOString() : null;
+  const deadline = deadlineFromDate(dueDateRaw);
+  if (!deadline.ok) redirect(to("error", deadline.error));
+  const dueAt = deadline.iso;
 
   // Somebody who already has an account is named, never silently skipped.
   if (!account.created) {
@@ -152,7 +155,7 @@ export async function bulkAddCandidates(formData: FormData) {
     redirect("/staff/people?error=" + encodeURIComponent("Choose a CSV file first."));
   }
 
-  const text = await file!.text();
+  const text = decodeCsvBytes(new Uint8Array(await file!.arrayBuffer()));
   const rows = parseCsvRecords(text);
 
   if (rows.length === 0) {
@@ -330,7 +333,9 @@ export async function bulkPeopleAction(formData: FormData) {
   }
 
   let succeeded = 0;
-  let failed = 0;
+  const failures: string[] = [];
+  const { data: whoRows } = await supabase.from("profiles").select("id, full_name, email").in("id", userIds);
+  const whoById = new Map((whoRows || []).map((r) => [r.id as string, (r.full_name as string) || (r.email as string) || "someone"]));
 
   for (const id of userIds) {
     try {
@@ -358,10 +363,12 @@ export async function bulkPeopleAction(formData: FormData) {
         // "already_assigned" counts as done, and nobody is notified twice.
       }
       succeeded++;
-    } catch {
-      failed++;
+    } catch (e) {
+      const reason = e instanceof Error ? e.message : typeof e === "object" && e && "message" in e ? String((e as { message: unknown }).message) : "it didn't work";
+      failures.push(`${whoById.get(id) ?? "Someone"} (${reason})`);
     }
   }
+  const failed = failures.length;
 
   revalidatePath("/staff/people");
 
@@ -379,7 +386,8 @@ export async function bulkPeopleAction(formData: FormData) {
   const summary =
     failed === 0
       ? `${succeeded} ${succeeded === 1 ? "person" : "people"} ${actionLabel}.`
-      : `${succeeded} ${actionLabel}, ${failed} failed.`;
+      : `${succeeded} ${actionLabel}, ${failed} failed: ${failures.slice(0, 5).join("; ")}${failures.length > 5 ? "…" : ""}.`;
 
-  redirect("/staff/people?added=" + encodeURIComponent(summary));
+  // A failure is never reported in a green toast (INV-B-18).
+  redirect(`/staff/people?${failed === 0 ? "added" : "error"}=` + encodeURIComponent(summary));
 }

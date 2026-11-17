@@ -18,6 +18,7 @@ import {
   bulkPeopleAction,
 } from "./actions";
 import { buttonClass } from "@/components/ui/Button";
+import { orgToday } from "@/lib/deadline";
 import { Callout } from "@/components/ui/Callout";
 
 const ROLE_LABEL: Record<string, string> = {
@@ -214,6 +215,7 @@ export default async function PeoplePage({
               <input
                 type="date"
                 name="due_date"
+                min={orgToday()}
                 title="Candidate is reminded 3 days before and can't start after this date"
                 className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
@@ -319,7 +321,7 @@ export default async function PeoplePage({
         )}
       </form>
 
-      <Card className="p-0 overflow-hidden mb-8">
+      <Card className="p-0 mb-8">
         <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team ({staffRows.length})</p>
         <form
           id="bulk-staff-form"
@@ -359,7 +361,8 @@ export default async function PeoplePage({
           </ConfirmSubmitButton>
           <span className="text-xs text-muted">Select people in the table below, then apply.</span>
         </form>
-        <table className="w-full text-sm">
+        <div className="max-lg:overflow-x-auto max-lg:pb-28">
+<table className="w-full text-sm">
           <thead className="text-muted text-sm border-y border-line">
             <tr>
               <th className="px-6 py-3 w-8">
@@ -450,9 +453,10 @@ export default async function PeoplePage({
             )}
           </tbody>
         </table>
+</div>
       </Card>
 
-      <Card className="p-0 overflow-hidden mb-8">
+      <Card className="p-0 mb-8">
         <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Candidates ({candidateRows.length})</p>
         <form
           id="bulk-candidates-form"
@@ -506,7 +510,8 @@ export default async function PeoplePage({
           </ConfirmSubmitButton>
           <span className="text-xs text-muted">Select candidates in the table below, then apply.</span>
         </form>
-        <table className="w-full text-sm">
+        <div className="max-lg:overflow-x-auto max-lg:pb-28">
+<table className="w-full text-sm">
           <thead className="text-muted text-sm border-y border-line">
             <tr>
               <th className="px-6 py-3 w-8">
@@ -592,6 +597,7 @@ export default async function PeoplePage({
             )}
           </tbody>
         </table>
+</div>
       </Card>
 
     </div>

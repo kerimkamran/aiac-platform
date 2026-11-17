@@ -24,7 +24,8 @@ export default async function StaffLayout({ children }: { children: React.ReactN
   }
   if (profile.role === "candidate") redirect(homeFor(profile.role));
 
-  const isAdmin = profile.role === "hr_admin" || profile.role === "system_admin" || profile.role === "org_admin";
+  // People and Settings refuse everyone but HR admins and the super admin, so only they see the links (INV-B-32).
+  const isAdmin = profile.role === "hr_admin" || profile.role === "system_admin";
   const isSystemAdmin = profile.role === "system_admin";
 
   const { count: myInvites } = await supabase

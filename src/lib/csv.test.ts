@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { csvCell, csvLine, parseCsv } from "./csv";
+import { csvCell, csvLine, decodeCsvBytes, parseCsv } from "./csv";
 
 describe("csvCell", () => {
   it("quotes commas, quotes and newlines", () => {
@@ -35,5 +35,15 @@ describe("parseCsv", () => {
       ["name", "email"],
       ["Doe, Jane", "j@x.az"],
     ]);
+  });
+});
+
+describe("decodeCsvBytes", () => {
+  it("reads UTF-8 as is", () => {
+    expect(decodeCsvBytes(new TextEncoder().encode("Əli,ali@example.az"))).toBe("Əli,ali@example.az");
+  });
+  it("falls back to Windows-1251 for files saved by older Excel", () => {
+    // "Иван" in Windows-1251
+    expect(decodeCsvBytes(new Uint8Array([0xc8, 0xe2, 0xe0, 0xed]))).toBe("Иван");
   });
 });

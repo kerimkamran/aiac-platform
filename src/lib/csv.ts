@@ -56,3 +56,18 @@ export function parseCsv(text: string): string[][] {
   if (row.some((c) => c.trim() !== "")) rows.push(row);
   return rows.map((r) => r.map((c) => c.trim()));
 }
+
+
+/**
+ * Reads uploaded CSV bytes as text. UTF-8 first; a file saved by older Excel in
+ * a Russian or Azerbaijani Windows locale (Windows-1251) is not valid UTF-8, so
+ * it is decoded as Windows-1251 instead of turning every letter into "�"
+ * (INV-B-19).
+ */
+export function decodeCsvBytes(bytes: Uint8Array): string {
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return new TextDecoder("windows-1251").decode(bytes);
+  }
+}
