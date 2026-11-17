@@ -141,25 +141,5 @@ export async function callEngine(
   };
 }
 
-// The grounding playbook fed to the model for both case-library generation and
-// assessment generation. Synthesized from a research pass (Hogan, Mercer|Mettl,
-// WTW/Saville, Korn Ferry, McLean & Company) covering only publicly published
-// methodology; it never asks the model to reproduce anyone's actual items.
-export const CASE_DESIGN_PLAYBOOK = `Ground every case in a stress, ambiguity, or change trigger rather than a routine day — derailment research Hogan Assessments popularized (tracing to Center for Creative Leadership studies) shows that judgment differences between strong and weak performers surface under pressure, fatigue, or transition, not under calm conditions. A good case should put a normally competent person under a believable strain.
-
-Reuse the scenario archetypes that recur, independently, across Mercer|Mettl, WTW/Saville "Situations", and Korn Ferry's assessment-center exercise literature, because convergence across unrelated vendors is itself evidence these patterns are well-validated:
-- an overloaded inbox / in-basket triage under time pressure with conflicting priorities
-- a difficult conversation with an underperforming-but-tenured or previously strong team member
-- a cross-functional or cross-team resource/priority conflict requiring negotiation
-- a strategic decision that must be made on incomplete or ambiguous data
-- an ethical or integrity gray area where a shortcut would relieve pressure
-- a change-management rollout facing visible team resistance
-- a cross-level communication challenge (translating a decision for both senior stakeholders and frontline staff at once)
-
-For multiple-choice cases, write four response options that are all genuinely plausible actions a real manager might take, varying in effectiveness — never one obviously correct answer against three absurd distractors. Mercer|Mettl explicitly frames SJT items this way: "select or rank the best response from several plausible options."
-
-Where relevant, separate what a person can competently DO from who they are UNDER STRESS — Korn Ferry's KF4D "whole-person" model and Hogan's bright-side/dark-side split both argue that competence alone is an incomplete predictor of how someone will actually perform in the moment described.
-
-Every case must be traceable to a single named competency with a specific behavioral anchor, not a vague "shows good judgment" — McLean & Company's research treats leveled, behaviorally-anchored content as the non-negotiable mechanism that makes a competency actually assessable rather than just a label.
-
-Vary the industry context, stakeholders, and specific situation across cases for the same competency — do not reuse the same premise twice.`;
+// The master prompt for writing cases and questions lives in case-playbook.ts.
+export { CASE_DESIGN_PLAYBOOK } from "@/lib/case-playbook";

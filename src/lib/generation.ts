@@ -1,4 +1,5 @@
-import { CASE_DESIGN_PLAYBOOK, callEngine, extractJson, type EngineKey, type EngineUsage } from "@/lib/ai-engine";
+import { callEngine, extractJson, type EngineKey, type EngineUsage } from "@/lib/ai-engine";
+import { CASE_DESIGN_PLAYBOOK } from "@/lib/case-playbook";
 import type { ContextItem } from "@/lib/ai-context";
 import { LEVELS, type LevelKey } from "@/lib/levels";
 
@@ -79,7 +80,7 @@ export type GenerationOptions = {
   context: ContextItem[];
 };
 
-function systemInstructions(questionsPerCompetency: number, options: GenerationOptions): string {
+export function systemInstructions(questionsPerCompetency: number, options: GenerationOptions): string {
   const level = LEVELS[options.level];
   const purposeLine: Record<AssessmentPurposeKey, string> = {
     hiring: "The assessment supports a hiring decision.",
@@ -96,9 +97,9 @@ ${purposeLine[options.purpose]}
 ${MIX_INSTRUCTION[options.mix]}
 
 Rules you must follow:
-- Ground every case strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts, statistics, company names, or claims not implied by the provided competency material.
+- Ground every question strictly in the competency name, description, and behavioral indicators provided to you. Do not invent facts about the competency, or name real companies, laws, standards or statistics. Fictional scenario details (people, figures, dates) are expected.
 - Indicators tagged "target" are the ones to write to for this level. Indicators tagged "reference" describe other levels: use them only for context.
-- Write realistic, workplace-grounded situational judgment cases (3-6 sentences of context, enough to establish real complexity) followed by a clear question, in the register and rigor of a professional assessment center — not generic trivia or textbook questions.
+- Write realistic, workplace-grounded situational judgment cases (3-6 sentences of context, longer only where the level needs several stakeholders and figures) followed by one clear question, in the register and rigor of a professional assessment center — not generic trivia or textbook questions.
 - For multiple-choice questions, write exactly 4 response options that represent genuinely plausible managerial responses of varying effectiveness (not one obviously-correct and three absurd distractors). Mark exactly one as the most effective response.
 - For open-ended questions, ask the candidate to describe a specific past situation (behavioral/STAR-style) or how they would handle a hypothetical scenario, appropriate for this level.
 - Do not repeat the same scenario premise across questions — vary the industry context, stakeholders, and situation type across the set.
@@ -108,6 +109,27 @@ Rules you must follow:
 {"sections": [{"competencyCode": string${options.language === "en" ? "" : ', "sectionTitle": string'}, "questions": [{"type": "mcq" | "text", "prompt": string, "options"?: [{"text": string, "correct"?: boolean}]}]}]}
 ${options.language === "en" ? "" : "\nsectionTitle is the competency name translated into the test language, at most 60 characters. competencyCode stays exactly as given.\n"}
 Generate about ${questionsPerCompetency} questions per competency provided. The assessment must contain at least ${MIN_TOTAL_QUESTIONS} questions in total across all competencies — this is a hard requirement.${LANGUAGE_INSTRUCTION[options.language]}`;
+}
+
+// Mechanical quality gate for situational-judgment options (the master prompt
+// asks for the same things; this catches the model slipping). A question that
+// fails is dropped, never repaired.
+export function mcqQualityProblem(opts: { text: string; correct?: boolean }[]): string | null {
+  if (opts.some((o) => /\b(all|none) of the (above|these)\b/i.test(o.text))) {
+    return 'multiple-choice question used "all/none of the above"';
+  }
+  const normal = opts.map((o) => o.text.toLowerCase().replace(/\s+/g, " ").trim());
+  if (new Set(normal).size !== normal.length) return "multiple-choice question had duplicate options";
+  const keyed = opts.find((o) => o.correct);
+  const others = opts.filter((o) => !o.correct);
+  if (keyed && others.length > 0) {
+    const mean = others.reduce((n, o) => n + o.text.length, 0) / others.length;
+    // A keyed answer far longer than the rest is a giveaway.
+    if (mean > 0 && keyed.text.length > mean * 1.8 && keyed.text.length > 80) {
+      return "the correct option was much longer than the others (a giveaway)";
+    }
+  }
+  return null;
 }
 
 function indicatorLines(c: CompetencyForPrompt, level: LevelKey): string {
@@ -201,6 +223,12 @@ export function validateGenerated(data: unknown): { assessment: GeneratedAssessm
       }
       if (opts.filter((o) => o.correct).length !== 1) {
         drop("multiple-choice question did not have exactly one correct answer");
+        continue;
+      }
+
+      const weak = mcqQualityProblem(opts);
+      if (weak) {
+        drop(weak);
         continue;
       }
 
@@ -332,7 +360,7 @@ Level for this question: ${level.label}. ${level.scenarioGuidance}
 ${options.purpose === "development" ? "The assessment is for development feedback." : ""}
 
 Rules you must follow:
-- Ground the question strictly in the competency name, description and behavioural indicators provided. Do not invent facts or claims.
+- Ground the question strictly in the competency name, description and behavioural indicators provided. Do not invent facts about the competency, or name real companies, laws or statistics. Fictional scenario details are expected.
 - Write one realistic workplace case (3-6 sentences of context) followed by a clear question, or a behavioural question that asks for a specific past situation.
 - ${request.type === "mcq" ? "Write exactly 4 response options that are genuinely plausible, of varying effectiveness. Mark exactly one as the most effective." : 'Use type "text" with no options.'}
 - The new question must not repeat the premise of the question it replaces.
