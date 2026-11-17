@@ -3,6 +3,14 @@ import Link from "next/link";
 import { WelcomeMark } from "@/components/WelcomeMark";
 import { Avatar, ScoreBadge, StatusBadge } from "@/components/ui";
 import { HomeLauncher, type LauncherTile } from "@/components/HomeLauncher";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+
+// Other pages send people here with a message (for example "Only HR admins can manage people"),
+// so the home page has to show it.
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "added", variant: "success" },
+];
 import { ageLabel, daysSince, greeting, REVIEW_TARGET_DAYS } from "@/lib/dates";
 
 // Staff home (Clear Horizon plan, section 10): a statement of what needs a
@@ -114,6 +122,7 @@ export default async function StaffHomePage() {
 
   return (
     <div className="container-page py-8 lg:py-12">
+      <ToastFromParams specs={TOAST_SPECS} />
       <div className="flex items-center gap-3">
         <WelcomeMark />
         <p className="text-base font-semibold text-muted">

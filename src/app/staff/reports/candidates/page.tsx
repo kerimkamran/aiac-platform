@@ -2,6 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { Icon, PageHeader } from "@/components/ui";
 import { CandidateExportTable, type CandidateExportRow } from "@/components/CandidateExportTable";
+import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+import { getSessionProfile } from "@/lib/authz";
+
+const TOAST_SPECS: ToastSpec[] = [
+  { param: "error", variant: "error" },
+  { param: "added", variant: "success" },
+];
 
 const FILTERS = [
   { key: "", label: "All" },
@@ -19,11 +26,13 @@ export default async function StaffCandidatesPage({
 }) {
   const { status = "", q = "", department = "", vacancy = "" } = await searchParams;
   const supabase = await createClient();
+  const me = await getSessionProfile();
+  const canCopyLink = me?.role === "hr_admin" || me?.role === "system_admin";
 
   let query = supabase
     .from("candidate_assessments")
     .select(
-      "id, status, overall_score, invited_at, submitted_at, due_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department), assessments(title, vacancy_title)"
+      "id, status, overall_score, invited_at, submitted_at, due_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department, last_login_at), assessments(title, vacancy_title)"
     )
     .order("invited_at", { ascending: false });
   if (status) query = query.eq("status", status);
@@ -37,7 +46,7 @@ export default async function StaffCandidatesPage({
     invited_at: string;
     submitted_at: string | null;
     due_at: string | null;
-    candidate: { full_name: string; email: string; department: string | null } | null;
+    candidate: { full_name: string; email: string; department: string | null; last_login_at: string | null } | null;
     assessments: { title: string; vacancy_title: string | null } | null;
   }[];
 
@@ -88,6 +97,7 @@ export default async function StaffCandidatesPage({
     submitted_at: r.submitted_at,
     flags: flagCount.get(r.id) ?? 0,
     candidate: r.candidate ? { full_name: r.candidate.full_name, email: r.candidate.email } : null,
+    lastLoginAt: r.candidate?.last_login_at ?? null,
     assessments: r.assessments ? { title: r.assessments.title } : null,
   }));
 
@@ -160,7 +170,8 @@ export default async function StaffCandidatesPage({
         </form>
       </div>
 
-      <CandidateExportTable rows={exportRows} exportBase={exportBase} />
+      <ToastFromParams specs={TOAST_SPECS} />
+      <CandidateExportTable rows={exportRows} exportBase={exportBase} canCopyLink={canCopyLink} />
     </div>
   );
 }

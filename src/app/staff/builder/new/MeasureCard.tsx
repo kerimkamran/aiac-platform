@@ -78,6 +78,7 @@ export function MeasureCard({
   const leadershipApplies = levelsIncluded.some((l) => includesLeadership(l));
   const atLimit = competencyIds.length >= MAX_COMPETENCIES;
   const defaultEngineName = engines.find((e) => e.key === defaultEngine)?.displayName ?? defaultEngine;
+  const defaultUsable = engines.some((e) => e.key === defaultEngine && e.enabled && e.configured);
 
   function toggleCompetency(id: string) {
     if (competencyIds.includes(id)) setCompetencyIds(competencyIds.filter((x) => x !== id));
@@ -232,7 +233,9 @@ export function MeasureCard({
             onChange={(e) => setEngine(e.target.value as EngineKey | "")}
             className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
-            <option value="">Default ({defaultEngineName})</option>
+            <option value="" disabled={!defaultUsable}>
+              Default ({defaultEngineName}){defaultUsable ? "" : " — not available"}
+            </option>
             {engines.map((e) => (
               <option key={e.key} value={e.key} disabled={!e.enabled || !e.configured}>
                 {e.displayName}

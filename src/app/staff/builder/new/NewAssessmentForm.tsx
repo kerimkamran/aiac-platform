@@ -166,6 +166,11 @@ export function NewAssessmentForm({
   const includedCombos = combos.filter((c) => c.included);
   const remainingQuota = Math.max(0, quota.total - quota.used);
   const aiPossible = canUseAi && engines.some((e) => e.enabled && e.configured);
+  // When the default engine cannot be used (no key, or switched off), the first
+  // engine that can is used instead, so a draft never fails for that reason.
+  const defaultUsable = engines.some((e) => e.key === defaultEngine && e.enabled && e.configured);
+  const fallbackEngine = defaultUsable ? null : engines.find((e) => e.enabled && e.configured)?.key ?? null;
+  const effectiveEngine: EngineKey | "" = engine || fallbackEngine || "";
 
   function validate(): string | null {
     if (jobTitle.trim().length < 2) return "Type the job title first.";
@@ -227,7 +232,7 @@ export function NewAssessmentForm({
       competencyIds,
       length,
       mix,
-      engine: engine || null,
+      engine: effectiveEngine || null,
       instructions,
       jobDescription: ctx.jobDescription,
       notes: ctx.notes,
@@ -313,10 +318,10 @@ export function NewAssessmentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allFinished]);
 
-  const contextEngine = engines.find((e) => e.key === (engine || defaultEngine));
+  const contextEngine = engines.find((e) => e.key === (effectiveEngine || defaultEngine));
   const started = Object.keys(jobs).length > 0;
   const chosenCompetencies = competencies.filter((c) => competencyIds.includes(c.id));
-  const engineName = engines.find((e) => e.key === (engine || defaultEngine))?.displayName ?? (engine || defaultEngine);
+  const engineName = engines.find((e) => e.key === (effectiveEngine || defaultEngine))?.displayName ?? (effectiveEngine || defaultEngine);
 
   return (
     <div className="space-y-6">
@@ -354,7 +359,7 @@ export function NewAssessmentForm({
           setPurpose={setPurpose}
           language={language}
           setLanguage={setLanguage}
-          engine={engine}
+          engine={effectiveEngine}
           setEngine={setEngine}
           engines={engines}
           defaultEngine={defaultEngine}

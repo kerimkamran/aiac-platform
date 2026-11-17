@@ -109,7 +109,15 @@ export async function addCandidate(formData: FormData) {
 }
 
 export async function resendInvite(email: string) {
-  "use server";
+  return resendInviteAndReturn(email, "/staff/people");
+}
+
+// Same as above for the Candidates list, which stays on that page afterwards.
+export async function resendCandidateInvite(email: string) {
+  return resendInviteAndReturn(email, "/staff/reports/candidates");
+}
+
+async function resendInviteAndReturn(email: string, base: string) {
   const supabase = await requireInviter();
   // Staff accounts are re-invited by admins only.
   const { data: target } = await supabase.from("profiles").select("role").eq("email", email.trim().toLowerCase()).maybeSingle();
@@ -118,8 +126,8 @@ export async function resendInvite(email: string) {
   revalidatePath("/staff/people");
   redirect(
     inviteError
-      ? "/staff/people?error=" + encodeURIComponent(inviteError)
-      : "/staff/people?added=" + encodeURIComponent("Invite email resent.")
+      ? `${base}?error=` + encodeURIComponent(inviteError)
+      : `${base}?added=` + encodeURIComponent("Invite email resent.")
   );
 }
 
