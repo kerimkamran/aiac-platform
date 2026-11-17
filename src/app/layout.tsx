@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { headers } from "next/headers";
 import { getLang } from "@/i18n/server";
+import { getDict } from "@/i18n/dictionaries";
+import { ShellTextProvider } from "@/components/shell-i18n";
 import "./globals.css";
 
 // Clear Horizon type system (design plan, section 6). Inter is a variable font
@@ -63,7 +65,11 @@ export default async function RootLayout({
           }}
         />
       </head>
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <ShellTextProvider lang={lang} text={getDict(lang).shell}>
+          {children}
+        </ShellTextProvider>
+      </body>
     </html>
   );
 }

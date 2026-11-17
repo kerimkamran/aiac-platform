@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@/components/ui";
 import type { NavLink } from "@/components/AppShell";
+import { useShellText } from "@/components/shell-i18n";
 
 const RECENTS_KEY = "aiac-recent-nav";
 const MAX_RECENTS = 5;
-const GROUP_ORDER = ["Recent", "Quick actions", "Pages", "People & assessments"] as const;
+// Group keys; the visible names come from the shell text.
+const GROUP_ORDER = ["recent", "quickActions", "pages", "people"] as const;
 
 type Group = (typeof GROUP_ORDER)[number];
 type Item = NavLink & { group: Group; sublabel?: string };
@@ -62,6 +64,7 @@ function HighlightMatch({ text, positions }: { text: string; positions: number[]
 }
 
 export function CommandPalette({ links, actions = [] }: { links: NavLink[]; actions?: NavLink[] }) {
+  const { text } = useShellText();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [activeIdx, setActiveIdx] = useState(0);
@@ -144,9 +147,9 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
   const items: Item[] = useMemo(() => {
     // Recents are stored per browser, so keep only places this person can open.
     const allowed = new Set([...links, ...actions].map((l) => l.href));
-    const recentItems: Item[] = recents.filter((r) => allowed.has(r.href)).map((r) => ({ ...r, group: "Recent" }));
-    const actionItems: Item[] = actions.map((a) => ({ ...a, group: "Quick actions" }));
-    const pageItems: Item[] = links.map((l) => ({ ...l, group: "Pages" }));
+    const recentItems: Item[] = recents.filter((r) => allowed.has(r.href)).map((r) => ({ ...r, group: "recent" }));
+    const actionItems: Item[] = actions.map((a) => ({ ...a, group: "quickActions" }));
+    const pageItems: Item[] = links.map((l) => ({ ...l, group: "pages" }));
     return [...recentItems, ...actionItems, ...pageItems];
   }, [recents, actions, links]);
 
@@ -173,7 +176,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
     for (const r of remote) {
       if (seen.has(r.href)) continue;
       seen.add(r.href);
-      withScore.push({ ...r, group: "People & assessments", score: 0, positions: [] });
+      withScore.push({ ...r, group: "people", score: 0, positions: [] });
     }
     return GROUP_ORDER.flatMap((g) => withScore.filter((it) => it.group === g));
   }, [items, query, remote]);
@@ -192,17 +195,17 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
         <button
           type="button"
           onClick={openPalette}
-          aria-label="Search or jump to"
+          aria-label={text.search.label.replace("…", "")}
           className="press hidden lg:flex items-center gap-2 h-10 text-sm text-muted hover:text-foreground px-3 rounded-md border border-line hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           <Icon name="search" className="w-4 h-4" />
-          <span className="w-36 text-left">Search or jump to…</span>
+          <span className="w-36 text-left">{text.search.label}</span>
           <kbd className="text-mono-label text-muted">⌘K</kbd>
         </button>
         <button
           type="button"
           onClick={openPalette}
-          aria-label="Search or jump to"
+          aria-label={text.search.label.replace("…", "")}
           className="press lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-muted hover:text-foreground hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
           <Icon name="search" className="w-5 h-5" />
@@ -221,7 +224,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
   return (
     <div className="fixed inset-0 z-[60] flex items-start justify-center pt-24 px-4">
       <div className="absolute inset-0 bg-foreground/50 anim-fade-in" onClick={closePalette} />
-      <div role="dialog" aria-modal="true" aria-label="Search or jump to" className="relative w-full max-w-lg bg-surface text-foreground rounded-dialog shadow-lg border border-line overflow-hidden anim-sheet">
+      <div role="dialog" aria-modal="true" aria-label={text.search.label.replace("…", "")} className="relative w-full max-w-lg bg-surface text-foreground rounded-dialog shadow-lg border border-line overflow-hidden anim-sheet">
         <div className="flex items-center gap-3 px-4 py-3.5 border-b border-line">
           <Icon name="search" className="w-4 h-4 text-muted shrink-0" />
           <input
@@ -250,7 +253,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
                 go(displayList[active].href);
               }
             }}
-            placeholder="Search or jump to…"
+            placeholder={text.search.label}
             className="flex-1 bg-transparent text-base outline-none placeholder:text-muted"
           />
           <kbd className="text-mono-label text-muted border border-line rounded-sm px-1.5 py-0.5">Esc</kbd>
@@ -259,8 +262,8 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
           {groups.map(({ label, rows }) => (
             <div key={label} className="mb-1.5 last:mb-0">
               <p className="px-3 pt-2.5 pb-1 text-xs font-semibold text-muted flex items-center gap-1.5">
-                {label === "Recent" && <Icon name="history" className="w-3 h-3" />}
-                {label}
+                {label === "recent" && <Icon name="history" className="w-3 h-3" />}
+                {text.search[label]}
               </p>
               {rows.map((l) => (
                 <button
@@ -282,10 +285,10 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
           ))}
           {searching && (
             <p className="px-3 py-2.5 text-sm text-muted">
-              Searching people &amp; assessments…
+              {text.search.searching}
             </p>
           )}
-          {displayList.length === 0 && !searching && <p className="px-3 py-6 text-center text-sm text-muted">No matches.</p>}
+          {displayList.length === 0 && !searching && <p className="px-3 py-6 text-center text-sm text-muted">{text.search.noMatches}</p>}
         </div>
       </div>
     </div>

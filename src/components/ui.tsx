@@ -93,9 +93,19 @@ const STATUS_META: Record<string, { label: string; candidate?: string; tone: Pil
   signoff_declined: { label: "Manager declined", tone: "critical" },
 };
 
-export function StatusBadge({ status, audience = "staff" }: { status: string; audience?: "staff" | "candidate" }) {
+export function StatusBadge({
+  status,
+  audience = "staff",
+  labels,
+}: {
+  status: string;
+  audience?: "staff" | "candidate";
+  // Translated wording for this audience, keyed by status; falls back to English.
+  labels?: Record<string, string>;
+}) {
   const meta = STATUS_META[status];
-  const label = meta ? (audience === "candidate" && meta.candidate ? meta.candidate : meta.label) : status.replace(/_/g, " ");
+  const english = meta ? (audience === "candidate" && meta.candidate ? meta.candidate : meta.label) : status.replace(/_/g, " ");
+  const label = labels?.[status] ?? english;
   return <StatusPill tone={meta?.tone ?? "neutral"}>{label}</StatusPill>;
 }
 

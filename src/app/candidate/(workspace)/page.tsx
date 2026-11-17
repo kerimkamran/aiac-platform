@@ -8,7 +8,8 @@ import { Icon } from "@/components/ui/Icon";
 import { HomeLauncher } from "@/components/HomeLauncher";
 import { ListRow, PrimaryCard } from "@/components/ui/Surfaces";
 import { PathHorizon, type PathStep } from "@/components/horizon/PathHorizon";
-import { dueLabel, greeting } from "@/lib/dates";
+import { dueLabelIn, fillText, formatDateIn, greetingIn } from "@/lib/dates";
+import { getT } from "@/i18n/server";
 
 type Row = {
   id: string;
@@ -18,18 +19,19 @@ type Row = {
   assessments: { title: string; time_limit_minutes: number } | null;
 };
 
-const STEPS = ["Invited", "Taking it", "Submitted", "Being reviewed", "Result"];
 const CURRENT: Record<string, number> = { invited: 0, in_progress: 1, submitted: 2, scored: 3, reviewed: 4 };
 
-function pathFor(status: string): PathStep[] {
+function pathFor(status: string, steps: string[]): PathStep[] {
   const cur = CURRENT[status] ?? 0;
-  return STEPS.map((label, i) => ({ label, state: i < cur ? "done" : i === cur ? "current" : "todo" }));
+  return steps.map((label, i) => ({ label, state: i < cur ? "done" : i === cur ? "current" : "todo" }));
 }
 
 // Candidate home (Clear Horizon plan, section 11): one next step, your place on
 // the path, and plain-language statuses. A person reviews every score, so the
 // words "AI scored" never appear here.
 export default async function CandidateHome() {
+  const { lang, t } = await getT();
+  const h = t.candidate.home;
   const supabase = await createClient();
   const {
     data: { user },
@@ -56,7 +58,7 @@ export default async function CandidateHome() {
       <div className="flex items-center gap-3">
         <WelcomeMark />
         <p className="text-base font-semibold text-muted">
-          {greeting()}
+          {greetingIn(t.dates)}
           {firstName ? `, ${firstName}` : ""}
         </p>
       </div>
@@ -65,60 +67,60 @@ export default async function CandidateHome() {
         <div className="mt-6">
           <EmptyState
             icon="clipboard"
-            title="No invitations yet"
-            body="When you are invited to an assessment, it will appear here. Invitations are sent to this account's email address."
+            title={h.emptyTitle}
+            body={h.emptyBody}
           />
         </div>
       ) : (
         <>
           <h1 className="mt-2 text-display text-foreground measure">
-            {next ? (next.status === "in_progress" ? "Pick up where you left off." : "Your next step is ready.") : "Thank you. Here is where things stand."}
+            {next ? (next.status === "in_progress" ? h.headingInProgress : h.headingNext) : h.headingDone}
           </h1>
 
-          {focus && <PathHorizon steps={pathFor(focus.status)} className="mt-8" />}
+          {focus && <PathHorizon steps={pathFor(focus.status, h.pathSteps)} className="mt-8" />}
 
           {next && (
             <PrimaryCard className="mt-8 p-6 sm:p-8">
-              <p className="text-mono-label text-muted">{next.status === "in_progress" ? "In progress" : "Up next"}</p>
+              <p className="text-mono-label text-muted">{next.status === "in_progress" ? h.labelInProgress : h.labelUpNext}</p>
               <h2 className="mt-2 text-headline text-foreground">{next.assessments?.title}</h2>
               <p className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-base text-muted">
                 <span className="inline-flex items-center gap-1.5">
                   <Icon name="clock" className="w-4 h-4" />
-                  {minutesOf(next)} minutes
+                  {fillText(h.minutes, { n: minutesOf(next) })}
                 </span>
-                <span>Answers save as you go</span>
-                {next.due_at && <span className="font-semibold text-foreground">{dueLabel(next.due_at)}</span>}
+                <span>{h.savesAsYouGo}</span>
+                {next.due_at && <span className="font-semibold text-foreground">{dueLabelIn(lang, t.dates, next.due_at)}</span>}
               </p>
               <div className="mt-6">
                 <ButtonLink href={`/candidate/assessments/${next.id}`} size="lg">
-                  {next.status === "in_progress" ? "Continue assessment" : "Start assessment"}
+                  {next.status === "in_progress" ? h.continueAssessment : h.startAssessment}
                   <Icon name="arrowRight" className="w-4 h-4 ml-2" />
                 </ButtonLink>
               </div>
             </PrimaryCard>
           )}
 
-          <section aria-label="Quick links" className="mt-10">
+          <section aria-label={h.quickLinks} className="mt-10">
             <HomeLauncher
-              label="Quick links"
+              label={h.quickLinks}
               tiles={[
                 {
                   href: "/candidate/assessments",
-                  title: "My tests",
-                  body: "Tests waiting for you and ones you have started.",
+                  title: h.testsTitle,
+                  body: h.testsBody,
                   icon: "clipboard",
                   count: list.filter((a) => ["invited", "in_progress"].includes(a.status)).length,
-                  countLabel: "to do",
+                  countLabel: h.toDo,
                 },
                 {
                   href: "/candidate/results",
-                  title: "My results",
-                  body: "Your feedback once a person has reviewed it.",
+                  title: h.resultsTitle,
+                  body: h.resultsBody,
                   icon: "award",
                   count: list.filter((a) => a.status === "reviewed").length,
-                  countLabel: "ready",
+                  countLabel: h.ready,
                 },
-                { href: "/privacy", title: "Privacy", body: "How your answers and recording are used.", icon: "shield" },
+                { href: "/privacy", title: h.privacyTitle, body: h.privacyBody, icon: "shield" },
               ]}
             />
           </section>
@@ -126,10 +128,10 @@ export default async function CandidateHome() {
           <section aria-labelledby="mine-h" className="mt-12">
             <div className="flex items-baseline justify-between">
               <h2 id="mine-h" className="text-title-large text-foreground">
-                Your assessments
+                {h.yourAssessments}
               </h2>
               <Link href="/candidate/assessments" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
-                View all
+                {h.viewAll}
               </Link>
             </div>
             <div className="mt-3 border-t border-line">
@@ -137,11 +139,11 @@ export default async function CandidateHome() {
                 <ListRow
                   key={a.id}
                   href={a.status === "reviewed" ? `/candidate/results/${a.id}` : ["invited", "in_progress"].includes(a.status) ? `/candidate/assessments/${a.id}` : undefined}
-                  trailing={<StatusBadge status={a.status} audience="candidate" />}
+                  trailing={<StatusBadge status={a.status} audience="candidate" labels={t.candidate.status} />}
                 >
                   <p className="truncate text-base font-semibold text-foreground">{a.assessments?.title}</p>
                   <p className="text-sm text-muted">
-                    {minutesOf(a)} min · invited {new Date(a.invited_at).toLocaleDateString()}
+                    {fillText(h.minInvited, { n: minutesOf(a), date: formatDateIn(lang, a.invited_at) })}
                   </p>
                 </ListRow>
               ))}
@@ -150,12 +152,12 @@ export default async function CandidateHome() {
 
           <section aria-labelledby="know-h" className="mt-12 rounded-card bg-surface-sunken p-6">
             <h2 id="know-h" className="text-title text-foreground">
-              Know before you go
+              {h.knowTitle}
             </h2>
             <ul className="mt-3 space-y-2 text-base text-muted">
-              <li>You can start whenever you have a quiet stretch of time before the due date.</li>
-              <li>Answers save as you go, so a dropped connection will not cost you your progress.</li>
-              <li>A person reviews every score. Specific examples beat general statements.</li>
+              {h.know.map((line) => (
+                <li key={line}>{line}</li>
+              ))}
             </ul>
           </section>
         </>

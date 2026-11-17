@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { ageLabel, daysSince, dueLabel, greeting } from "./dates";
+import { ageLabel, daysSince, dueLabel, dueLabelIn, fillText, formatDateIn, greeting, greetingIn, pluralForm } from "./dates";
+import { az } from "@/i18n/az";
+import { en } from "@/i18n/en";
+import { ru } from "@/i18n/ru";
 
 const now = new Date("2026-11-10T12:00:00Z");
 describe("time helpers", () => {
@@ -19,5 +22,38 @@ describe("time helpers", () => {
   it("greets", () => {
     expect(greeting(new Date(2026, 10, 10, 9))).toBe("Good morning");
     expect(greeting(new Date(2026, 10, 10, 14))).toBe("Good afternoon");
+  });
+});
+
+describe("translated time helpers", () => {
+  it("picks Russian plural forms", () => {
+    expect([1, 2, 4, 5, 11, 12, 14, 21, 22, 25, 101, 111].map((n) => pluralForm("ru", n))).toEqual([
+      "one", "few", "few", "many", "many", "many", "many", "one", "few", "many", "one", "many",
+    ]);
+    expect([1, 2, 21].map((n) => pluralForm("en", n))).toEqual(["one", "many", "many"]);
+  });
+  it("matches the English helper in English", () => {
+    for (const iso of ["2026-11-13T12:00:00Z", "2026-11-10T20:00:00Z", "2026-11-08T12:00:00Z", "2026-11-09T12:00:00Z", "2026-11-10T12:00:00Z"]) {
+      expect(dueLabelIn("en", en.dates, iso, now)).toBe(dueLabel(iso, now));
+    }
+  });
+  it("words due dates in Russian and Azerbaijani", () => {
+    expect(dueLabelIn("ru", ru.dates, "2026-11-13T12:00:00Z", now)).toBe("срок через 3 дня");
+    expect(dueLabelIn("ru", ru.dates, "2026-11-15T12:00:00Z", now)).toBe("срок через 5 дней");
+    expect(dueLabelIn("ru", ru.dates, "2026-11-08T12:00:00Z", now)).toBe("просрочено на 2 дня");
+    expect(dueLabelIn("ru", ru.dates, "2026-11-09T12:00:00Z", now)).toBe("просрочено на 1 день");
+    expect(dueLabelIn("az", az.dates, "2026-11-13T12:00:00Z", now)).toBe("son tarixə 3 gün qalıb");
+    expect(dueLabelIn("az", az.dates, "2026-11-08T12:00:00Z", now)).toBe("2 gün gecikib");
+    expect(dueLabelIn("ru", ru.dates, null, now)).toBe("");
+  });
+  it("greets in each language", () => {
+    expect(greetingIn(az.dates, new Date(2026, 10, 10, 9))).toBe("Sabahınız xeyir");
+    expect(greetingIn(ru.dates, new Date(2026, 10, 10, 20))).toBe("Добрый вечер");
+  });
+  it("formats dates and fills markers", () => {
+    expect(formatDateIn("ru", "2026-11-17T12:00:00Z")).toBe("17.11.2026");
+    expect(formatDateIn("az", "2026-11-17T12:00:00Z")).toBe("17.11.2026");
+    expect(fillText("{n} min · {date}", { n: 5, date: "x" })).toBe("5 min · x");
+    expect(fillText("keeps {other}", { n: 1 })).toBe("keeps {other}");
   });
 });

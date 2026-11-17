@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Card, EmptyState, Icon, PageHeader, StatusBadge } from "@/components/ui";
 import { nowMs } from "@/lib/time";
 import { buttonClass } from "@/components/ui/Button";
+import { fillText, formatDateIn } from "@/lib/dates";
+import { getT } from "@/i18n/server";
 
 type Row = {
   id: string;
@@ -16,6 +18,8 @@ type Row = {
 // My tests (redesign plan B11): what is still to do first, then what is done,
 // one status wording (the plain-language one), results one tap away.
 export default async function CandidateAssessmentsPage() {
+  const { lang, t } = await getT();
+  const w = t.candidate.tests;
   const supabase = await createClient();
   const {
     data: { user },
@@ -47,35 +51,35 @@ export default async function CandidateAssessmentsPage() {
             <h3 className="text-lg font-semibold text-foreground">{a.assessments?.title}</h3>
             {a.assessments?.description && <p className="text-sm text-muted mt-1 max-w-xl">{a.assessments.description}</p>}
           </div>
-          <StatusBadge status={a.status} audience="candidate" />
+          <StatusBadge status={a.status} audience="candidate" labels={t.candidate.status} />
         </div>
         <div className="mt-4 pt-4 border-t border-line flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span className="inline-flex items-center gap-1.5">
               <Icon name="timer" className="w-4 h-4" />
-              {(a.assessments?.time_limit_minutes ?? 0) + (extra.get(a.id) ?? 0)} minutes
+              {fillText(w.minutes, { n: (a.assessments?.time_limit_minutes ?? 0) + (extra.get(a.id) ?? 0) })}
             </span>
             {a.due_at && ["invited", "in_progress"].includes(a.status) && (
               <span className={`inline-flex items-center gap-1.5 font-semibold ${expired ? "text-critical" : ""}`}>
                 <Icon name="clock" className="w-4 h-4" />
-                {expired ? `Deadline passed ${new Date(a.due_at).toLocaleDateString()}` : `Start by ${new Date(a.due_at).toLocaleDateString()}`}
+                {fillText(expired ? w.deadlinePassed : w.startBy, { date: formatDateIn(lang, a.due_at) })}
               </span>
             )}
           </div>
           {expired ? (
-            <span className="text-sm font-medium text-critical">Contact HR if you still need access</span>
+            <span className="text-sm font-medium text-critical">{w.contactHr}</span>
           ) : ["invited", "in_progress"].includes(a.status) ? (
             <Link href={`/candidate/assessments/${a.id}`} className={buttonClass({ size: "md" })}>
-              {a.status === "invited" ? "Start test" : "Continue"}
+              {a.status === "invited" ? w.startTest : w.continue}
               <Icon name="arrowRight" className="w-4 h-4" />
             </Link>
           ) : a.status === "reviewed" ? (
             <Link href={`/candidate/results/${a.id}`} className={buttonClass({ size: "md", variant: "secondary" })}>
               <Icon name="award" className="w-4 h-4" />
-              View result
+              {w.viewResult}
             </Link>
           ) : (
-            <span className="text-sm text-muted">A person is reviewing your answers</span>
+            <span className="text-sm text-muted">{w.beingReviewed}</span>
           )}
         </div>
       </Card>
@@ -84,16 +88,16 @@ export default async function CandidateAssessmentsPage() {
 
   return (
     <div className="container-page max-w-4xl py-8 lg:py-12">
-      <PageHeader title="My tests" subtitle="What you still need to do, and what you have finished." />
+      <PageHeader title={w.title} subtitle={w.subtitle} />
 
       {list.length === 0 && (
-        <EmptyState title="No tests yet" body="When a recruiter invites you to a test, it appears here automatically." />
+        <EmptyState title={w.emptyTitle} body={w.emptyBody} />
       )}
 
       {todo.length > 0 && (
         <section aria-labelledby="todo-h" className="mt-6">
           <h2 id="todo-h" className="text-title text-foreground mb-3">
-            To do
+            {w.todo}
           </h2>
           <div className="space-y-4">
             {todo.map((a) => (
@@ -106,7 +110,7 @@ export default async function CandidateAssessmentsPage() {
       {done.length > 0 && (
         <section aria-labelledby="done-h" className="mt-10">
           <h2 id="done-h" className="text-title text-foreground mb-3">
-            Done
+            {w.done}
           </h2>
           <div className="space-y-4">
             {done.map((a) => (

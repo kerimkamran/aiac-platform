@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { AppShell, type NavLink } from "@/components/AppShell";
 import { homeFor } from "@/lib/home";
+import { getT } from "@/i18n/server";
 
 export default async function CandidateLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -41,16 +42,17 @@ export default async function CandidateLayout({ children }: { children: React.Re
     .select("id", { count: "exact", head: true })
     .eq("manager_id", user.id);
 
+  const { t } = await getT();
   const links: NavLink[] = [
-    { href: "/candidate", label: "Home", icon: "home", exact: true },
-    { href: "/candidate/assessments", label: "My tests", icon: "clipboard" },
-    { href: "/candidate/results", label: "My results", icon: "award" },
+    { href: "/candidate", label: t.candidate.nav.home, icon: "home", exact: true },
+    { href: "/candidate/assessments", label: t.candidate.nav.myTests, icon: "clipboard" },
+    { href: "/candidate/results", label: t.candidate.nav.myResults, icon: "award" },
   ];
 
   // Internal employees who are also candidates get a way back to their workspace.
-  const switchLinks: NavLink[] = isInternal ? [{ href: homeFor(profile.role), label: "Back to workspace", icon: "arrowLeft" }] : [];
+  const switchLinks: NavLink[] = isInternal ? [{ href: homeFor(profile.role), label: t.candidate.nav.backToWorkspace, icon: "arrowLeft" }] : [];
   // Managers asked to sign off a promotion review reach it from the account menu.
-  if ((directReportCount ?? 0) > 0) switchLinks.push({ href: "/signoffs", label: "Sign-off requests", icon: "checkCircle" });
+  if ((directReportCount ?? 0) > 0) switchLinks.push({ href: "/signoffs", label: t.candidate.nav.signoffRequests, icon: "checkCircle" });
 
   return (
     <AppShell role={profile.role} name={profile.full_name} homeHref="/candidate" links={links} switchLinks={switchLinks} defaultCanvas="cream">

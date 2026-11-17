@@ -4,8 +4,12 @@ import { Card, EmptyState, Icon, PageHeader, ScoreRing, bandFor } from "@/compon
 import { GrowthHub } from "./GrowthHub";
 import { normalizePurpose } from "@/lib/purpose";
 import { buttonClass } from "@/components/ui/Button";
+import { fillText, formatDateIn } from "@/lib/dates";
+import { getT } from "@/i18n/server";
 
 export default async function CandidateResultsPage() {
+  const { lang, t } = await getT();
+  const w = t.candidate.results;
   const supabase = await createClient();
   const {
     data: { user },
@@ -58,7 +62,7 @@ export default async function CandidateResultsPage() {
       .sort((a, b) => new Date(a.submitted_at || 0).getTime() - new Date(b.submitted_at || 0).getTime())
       .map((r) => ({
         id: r.id,
-        title: r.assessments?.title || "Assessment",
+        title: r.assessments?.title || w.assessmentFallback,
         submittedAt: r.submitted_at || "",
         overallScore: r.overall_score!,
         competencies: byCa.get(r.id) || [],
@@ -68,8 +72,8 @@ export default async function CandidateResultsPage() {
   return (
     <div className="p-6 lg:p-10 max-w-4xl">
       <PageHeader
-        title="My results"
-        subtitle="Results unlock once a human reviewer has confirmed your AI-assisted scores."
+        title={w.title}
+        subtitle={w.subtitle}
       />
 
       {growthData.length >= 2 && <GrowthHub assessments={growthData} />}
@@ -77,9 +81,9 @@ export default async function CandidateResultsPage() {
       {list.length === 0 && (
         <EmptyState
           icon="award"
-          title="No results yet"
-          body="Complete an assessment and your competency profile will appear here after review."
-          action={{ href: "/candidate/assessments", label: "Go to my assessments" }}
+          title={w.emptyTitle}
+          body={w.emptyBody}
+          action={{ href: "/candidate/assessments", label: w.goToTests }}
         />
       )}
 
@@ -90,7 +94,7 @@ export default async function CandidateResultsPage() {
             <Card key={r.id} className="p-6">
               <p className="font-semibold text-foreground mb-1">{r.assessments?.title}</p>
               <p className="text-xs text-muted mb-5">
-                Submitted {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : "—"}
+                {fillText(w.submitted, { date: r.submitted_at ? formatDateIn(lang, r.submitted_at) : "—" })}
               </p>
               {ready ? (
                 <div className="flex items-center justify-between gap-4">
@@ -99,14 +103,14 @@ export default async function CandidateResultsPage() {
                     href={`/candidate/results/${r.id}`}
                     className={buttonClass({ size: "md" })}
                   >
-                    Full profile
+                    {w.fullProfile}
                     <Icon name="arrowRight" className="w-4 h-4" />
                   </Link>
                 </div>
               ) : (
                 <div className="flex items-center gap-3 bg-background border border-line rounded-xl px-4 py-3 text-sm text-muted">
                   <Icon name="clock" className="w-4 h-4 shrink-0" />
-                  Under review — a reviewer is confirming your scores.
+                  {w.underReview}
                 </div>
               )}
             </Card>

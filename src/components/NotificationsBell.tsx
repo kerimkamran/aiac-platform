@@ -5,10 +5,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui";
+import { useShellText } from "@/components/shell-i18n";
+import { fillText, formatDateTimeIn } from "@/lib/dates";
 
 type Note = { id: string; title: string; body: string; link: string | null; read_at: string | null; created_at: string };
 
 export function NotificationsBell() {
+  const { lang, text } = useShellText();
+  const w = text.notifications;
   const [open, setOpen] = useState(false);
   const [notes, setNotes] = useState<Note[]>([]);
   const ref = useRef<HTMLDivElement>(null);
@@ -84,7 +88,7 @@ export function NotificationsBell() {
         onClick={() => setOpen((o) => !o)}
         aria-haspopup="true"
         aria-expanded={open}
-        aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
+        aria-label={`${w.title}${unread ? ` (${fillText(w.unread, { n: unread })})` : ""}`}
         className="press relative inline-flex items-center justify-center w-11 h-11 rounded-md text-muted hover:text-foreground hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
         <Icon name="bell" className="w-5 h-5" />
@@ -98,33 +102,33 @@ export function NotificationsBell() {
       {open && (
         <div className="anim-menu absolute right-0 mt-1 w-[min(20rem,calc(100vw-2rem))] bg-surface text-foreground border border-line rounded-xl shadow-md z-50 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-            <p className="text-sm font-semibold text-foreground">Notifications</p>
+            <p className="text-sm font-semibold text-foreground">{w.title}</p>
             {unread > 0 && (
               <button onClick={markAllRead} className="text-sm font-semibold text-accent hover:underline">
-                Mark all read
+                {w.markAllRead}
               </button>
             )}
           </div>
           <div className="max-h-80 overflow-y-auto divide-y divide-line-soft">
-            {notes.map((n) => (
-              <div key={n.id} className={`px-4 py-3 ${!n.read_at ? "bg-accent-soft" : ""}`}>
-                <p className="text-sm font-semibold text-foreground">{n.title}</p>
-                {n.body && <p className="text-sm text-muted mt-0.5">{n.body}</p>}
+            {notes.map((note) => (
+              <div key={note.id} className={`px-4 py-3 ${!note.read_at ? "bg-accent-soft" : ""}`}>
+                <p className="text-sm font-semibold text-foreground">{note.title}</p>
+                {note.body && <p className="text-sm text-muted mt-0.5">{note.body}</p>}
                 <div className="flex items-center justify-between mt-1.5">
-                  <span className="text-xs text-muted">{new Date(n.created_at).toLocaleString()}</span>
-                  {n.link && (
-                    <Link href={n.link} className="text-sm font-semibold text-accent hover:underline" onClick={() => {
+                  <span className="text-xs text-muted">{formatDateTimeIn(lang, note.created_at)}</span>
+                  {note.link && (
+                    <Link href={note.link} className="text-sm font-semibold text-accent hover:underline" onClick={() => {
                         setOpen(false);
-                        if (!n.read_at) void markRead(n.id);
+                        if (!note.read_at) void markRead(note.id);
                       }}
                     >
-                      Open
+                      {w.open}
                     </Link>
                   )}
                 </div>
               </div>
             ))}
-            {notes.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted">Nothing yet.</p>}
+            {notes.length === 0 && <p className="px-4 py-8 text-center text-sm text-muted">{w.nothingYet}</p>}
           </div>
         </div>
       )}

@@ -32,6 +32,14 @@ describe("dictionaries", () => {
       const tokens = (d: unknown) => strings(d as Json).map((s) => [...s.matchAll(LEGAL_TOKEN)].map((m) => m[1]).join(","));
       expect(tokens(dict)).toEqual(tokens(en));
     });
+    it(`${lang} keeps the {n} / {date} markers that English has`, () => {
+      const marks = (d: unknown) => strings(d as Json).map((x) => [...x.matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(","));
+      const en_ = marks(en);
+      const here = marks(dict);
+      // Plural forms may leave a marker out only where English has none to keep,
+      // so compare position by position.
+      expect(here).toEqual(en_);
+    });
     it(`${lang} never translates Vantage or Azerconnect`, () => {
       const d = dict as unknown as { common: { appName: string; company: string } };
       expect(d.common.appName).toBe("Vantage");

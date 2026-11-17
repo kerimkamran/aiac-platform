@@ -15,6 +15,8 @@ import { NotificationsBell } from "@/components/NotificationsBell";
 import { ToastProvider } from "@/components/Toaster";
 import type { CanvasChoice } from "@/lib/appearance";
 import { clearExamDrafts } from "@/lib/exam-drafts";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useShellText } from "@/components/shell-i18n";
 
 // The signed-in app shell (Clear Horizon plan, section 15). One frosted 56px
 // top bar for every role: the mark and wordmark link to *your* home, text
@@ -63,15 +65,9 @@ export function AppShell({
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
-  const ROLE_LABELS: Record<string, string> = {
-    candidate: "Candidate",
-    recruiter: "Recruiter",
-    hiring_manager: "Hiring manager",
-    hr_admin: "HR admin",
-    org_admin: "Organisation admin",
-    system_admin: "Super admin",
-  };
-  const roleLabel = ROLE_LABELS[role] ?? role.replace(/_/g, " ");
+  const { lang, text } = useShellText();
+  const roleLabels = text.roles as Record<string, string>;
+  const roleLabel = roleLabels[role] ?? role.replace(/_/g, " ");
 
   const isActive = (l: NavLink) => (l.exact ? pathname === l.href : pathname === l.href || pathname.startsWith(l.href + "/"));
 
@@ -117,12 +113,12 @@ export function AppShell({
       ))}
       <Link href="/privacy" className="flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
         <Icon name="shield" className="w-5 h-5 text-muted" />
-        Privacy
+        {text.privacy}
       </Link>
       {role === "candidate" && (
         <Link href="/help/invitation" className="flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
           <Icon name="helpCircle" className="w-5 h-5 text-muted" />
-          Invitation help
+          {text.invitationHelp}
         </Link>
       )}
     </>
@@ -130,25 +126,25 @@ export function AppShell({
 
   return (
     <ToastProvider>
-      <div lang="en" className="min-h-screen flex flex-col bg-background">
+      <div className="min-h-screen flex flex-col bg-background">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[60] focus:bg-brand focus:text-on-primary focus:px-4 focus:py-2.5 focus:rounded-md focus:text-sm focus:font-semibold"
         >
-          Skip to main content
+          {text.skipToMain}
         </a>
 
         <header data-scrolled={scrolled} className="glass sticky top-0 z-40 no-print">
           <div className="container-page flex items-center justify-between h-14">
             <div className="flex items-center gap-8 min-w-0">
-              <Link href={homeHref} className="flex items-center gap-3 shrink-0 rounded-md" aria-label="Vantage, go to my home">
+              <Link href={homeHref} className="flex items-center gap-3 shrink-0 rounded-md" aria-label={text.goHome}>
                 <Logo compact />
                 {contextLabel && (
                   <span className="hidden sm:inline text-sm font-medium text-muted pl-3 border-l border-line">{contextLabel}</span>
                 )}
               </Link>
               {links.length > 0 && (
-                <nav aria-label="Main" className="hidden md:flex items-center gap-6 min-w-0">
+                <nav aria-label={text.mainNav} className="hidden md:flex items-center gap-6 min-w-0">
                   {links.map((l) => {
                     const active = isActive(l);
                     return (
@@ -184,7 +180,7 @@ export function AppShell({
                   onClick={() => setMenuOpen((o) => !o)}
                   aria-haspopup="menu"
                   aria-expanded={menuOpen}
-                  aria-label="Account menu"
+                  aria-label={text.accountMenu}
                   className="press flex items-center gap-2 h-11 pl-1 pr-2 rounded-md hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
                 >
                   <Avatar name={name} className="w-8 h-8 text-xs" />
@@ -194,19 +190,21 @@ export function AppShell({
                   <div role="menu" className="anim-menu absolute right-0 top-12 z-50 w-80 rounded-xl bg-surface text-foreground border border-line shadow-md">
                     <div className="px-4 py-3 border-b border-line">
                       <p className="text-base font-semibold text-foreground truncate">{name}</p>
-                      <p className="text-sm text-muted capitalize">{roleLabel}</p>
+                      <p className="text-sm text-muted">{roleLabel}</p>
                     </div>
                     {switchLinks.length > 0 && <div className="p-2 border-b border-line">{accountLinks}</div>}
                     <div className="p-4 border-b border-line">
-                      <p className="text-xs font-semibold text-muted mb-3">Appearance</p>
+                      <p className="text-xs font-semibold text-muted mb-3">{text.appearance}</p>
                       <AppearancePanel defaultCanvas={defaultCanvas} />
+                      <p className="text-xs font-semibold text-muted mt-4 mb-1">{text.language}</p>
+                      <LanguageSwitcher current={lang} label={text.language} />
                     </div>
                     <div className="p-2">
                       {switchLinks.length === 0 && accountLinks}
                       <form action="/logout" method="post" onSubmit={clearExamDrafts}>
                         <button className="w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
                           <Icon name="logout" className="w-5 h-5 text-muted" />
-                          Sign out
+                          {text.signOut}
                         </button>
                       </form>
                     </div>
@@ -214,12 +212,12 @@ export function AppShell({
                 )}
               </div>
 
-              <IconButton icon="menu" label="Open menu" onClick={() => setSheetOpen(true)} className="md:hidden -mr-2" aria-haspopup="dialog" />
+              <IconButton icon="menu" label={text.openMenu} onClick={() => setSheetOpen(true)} className="md:hidden -mr-2" aria-haspopup="dialog" />
             </div>
           </div>
         </header>
 
-        <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title="Menu">
+        <Sheet open={sheetOpen} onClose={() => setSheetOpen(false)} title={text.menu}>
           {/* Tapping the page you are already on does not change the path, so close on any link tap (UX-B-12). */}
           {primaryAction && (
             <div className="mb-3 sm:hidden">
@@ -251,14 +249,16 @@ export function AppShell({
               <Avatar name={name} className="w-10 h-10 text-sm" />
               <div className="min-w-0">
                 <p className="text-base font-semibold text-foreground truncate">{name}</p>
-                <p className="text-sm text-muted capitalize">{roleLabel}</p>
+                <p className="text-sm text-muted">{roleLabel}</p>
               </div>
             </div>
             <AppearancePanel defaultCanvas={defaultCanvas} />
+            <p className="text-sm font-semibold text-foreground mt-4 mb-1">{text.language}</p>
+            <LanguageSwitcher current={lang} label={text.language} />
             <form action="/logout" method="post" className="mt-4" onSubmit={clearExamDrafts}>
               <button className="w-full flex items-center gap-3 px-3 min-h-11 rounded-md text-base font-medium text-foreground ring-1 ring-inset ring-line-control">
                 <Icon name="logout" className="w-5 h-5 text-muted" />
-                Sign out
+                {text.signOut}
               </button>
             </form>
           </div>
@@ -271,7 +271,7 @@ export function AppShell({
         {/* Phones: the main places sit in a bar at the thumb (plan B9). */}
         {links.length > 0 && links.length <= 5 && (
           <nav
-            aria-label="Main"
+            aria-label={text.mainNav}
             className="md:hidden no-print fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)]"
           >
             <ul className="flex">
@@ -298,17 +298,17 @@ export function AppShell({
 
         <footer className="border-t border-line-soft no-print">
           <div className="container-page py-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-2 text-sm text-muted">
-            <span>Vantage by Azerconnect Group</span>
+            <span>{text.footerBrand}</span>
             <span className="flex flex-wrap items-center gap-x-5 gap-y-1">
               <Link href="/privacy" className="hover:text-foreground">
-                Privacy
+                {text.privacy}
               </Link>
               <Link href="/about" className="hover:text-foreground">
-                About
+                {text.about}
               </Link>
               {showCredit && (
                 <a href="https://www.linkedin.com/in/thekmrnkrml/" target="_blank" rel="noreferrer" className="hover:text-foreground">
-                  Developed by Kamran Karimli
+                  {text.developedBy}
                 </a>
               )}
             </span>
