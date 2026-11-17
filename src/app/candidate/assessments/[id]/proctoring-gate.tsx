@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client";
 import { Card, Icon } from "@/components/ui";
 import { buttonClass } from "@/components/ui/Button";
 import { AssessmentRunner, type RunnerSection } from "./runner";
+import type { Dict } from "@/i18n/en";
+import type { Lang } from "@/i18n";
 
 // Set when the candidate allows the camera on the "ready to begin" page, so
 // the camera starts by itself when the timed part opens. The browser keeps the
@@ -42,6 +44,8 @@ export function ProctoredAssessmentRunner({
   watermarkLabel,
   storageBackend,
   contentLanguage,
+  lang,
+  text,
 }: {
   saveDraftAction?: (answers: Record<string, string>) => Promise<boolean>;
   serverNowMs?: number;
@@ -56,6 +60,8 @@ export function ProctoredAssessmentRunner({
   watermarkLabel: string;
   storageBackend: "supabase" | "local";
   contentLanguage?: string | null;
+  lang: Lang;
+  text: Dict["candidate"];
 }) {
   const [stage, setStage] = useState<"consent" | "requesting" | "recording" | "error">("consent");
   const [errorMsg, setErrorMsg] = useState("");
@@ -86,12 +92,10 @@ export function ProctoredAssessmentRunner({
 
       setStage("recording");
     } catch {
-      setErrorMsg(
-        "Camera access was blocked or unavailable. This assessment requires camera consent to proceed — allow camera access in your browser and reload."
-      );
+      setErrorMsg(text.gate.blocked);
       setStage("error");
     }
-  }, [storageBackend]);
+  }, [storageBackend, text.gate.blocked]);
 
   // Allowed earlier on the "ready to begin" page: start by itself.
   useEffect(() => {
@@ -183,16 +187,12 @@ export function ProctoredAssessmentRunner({
           <div className="w-12 h-12 rounded-card bg-accent-soft grid place-items-center mb-5">
             <Icon name="camera" className="w-6 h-6 text-accent-dark" />
           </div>
-          <h1 className="text-lg font-bold text-foreground mb-2">Camera consent required</h1>
+          <h1 className="text-lg font-bold text-foreground mb-2">{text.gate.title}</h1>
           <p className="text-sm text-muted leading-relaxed mb-2">
-            This assessment records video for integrity review by the hiring team.{" "}
-            {storageBackend === "supabase"
-              ? "Your recording is uploaded securely and only visible to authorized staff."
-              : "Your recording stays on this device only and is not uploaded or stored centrally."}
+            {text.gate.intro} {storageBackend === "supabase" ? text.gate.uploaded : text.gate.local}
           </p>
           <p className="text-xs text-muted leading-relaxed mb-6">
-            We record video only — this is not analyzed automatically for gestures, expressions, or emotion. You can
-            decline, but the assessment can&apos;t start without camera access.
+            {text.gate.note}
           </p>
           {errorMsg && <p className="text-sm text-critical bg-critical-soft border border-critical/40 rounded-xl px-4 py-3 mb-4">{errorMsg}</p>}
           <button
@@ -201,7 +201,7 @@ export function ProctoredAssessmentRunner({
             className={buttonClass({ size: "lg", block: true })}
           >
             <Icon name="camera" className="w-4 h-4" />
-            {stage === "requesting" ? "Requesting access…" : "Allow camera & begin"}
+            {stage === "requesting" ? text.gate.requesting : text.gate.allow}
           </button>
         </Card>
       </div>
@@ -222,6 +222,8 @@ export function ProctoredAssessmentRunner({
       serverDraft={serverDraft}
       watermarkLabel={watermarkLabel}
       contentLanguage={contentLanguage}
+      lang={lang}
+      text={text.exam}
     />
   );
 }

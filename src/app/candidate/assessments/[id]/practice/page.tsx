@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PracticeRoom } from "@/components/horizon/PracticeRoom";
+import { getT } from "@/i18n/server";
 
 export const metadata = { title: "Practice room" };
 
@@ -8,6 +9,7 @@ export const metadata = { title: "Practice room" };
 // have started: afterwards the real exam is the only screen.
 export default async function PracticePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { t } = await getT();
   const supabase = await createClient();
   const {
     data: { user },
@@ -16,5 +18,5 @@ export default async function PracticePage({ params }: { params: Promise<{ id: s
   const { data: ca } = await supabase.from("candidate_assessments").select("id, status, candidate_id").eq("id", id).single();
   if (!ca || ca.candidate_id !== user.id) redirect("/candidate");
   if (ca.status !== "invited") redirect(`/candidate/assessments/${id}`);
-  return <PracticeRoom backHref={`/candidate/assessments/${id}`} />;
+  return <PracticeRoom backHref={`/candidate/assessments/${id}`} text={t.candidate.practice} />;
 }

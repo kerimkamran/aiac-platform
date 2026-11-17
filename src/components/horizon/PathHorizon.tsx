@@ -3,7 +3,10 @@ export type PathStep = { label: string; state: "done" | "current" | "todo" };
 // The candidate's path (Clear Horizon plan, section 11): five nodes on a line,
 // done / current / still to come. On a phone only the current step's name is
 // shown, as a sentence, because five labels will not fit at a readable size.
-export function PathHorizon({ steps, className = "" }: { steps: PathStep[]; className?: string }) {
+export type PathText = { done: string; current: string; todo: string; stepOf: string };
+const EN_PATH: PathText = { done: "done", current: "current step", todo: "still to come", stepOf: "Step {n} of {total}:" };
+
+export function PathHorizon({ steps, className = "", text = EN_PATH }: { steps: PathStep[]; className?: string; text?: PathText }) {
   const currentIdx = Math.max(0, steps.findIndex((s) => s.state === "current"));
   const current = steps[currentIdx];
   return (
@@ -23,13 +26,13 @@ export function PathHorizon({ steps, className = "" }: { steps: PathStep[]; clas
             </span>
             <span className={`hidden sm:block mt-2 px-1 text-center text-sm ${s.state === "current" ? "font-semibold text-foreground" : s.state === "done" ? "text-foreground" : "text-muted"}`}>
               {s.label}
-              <span className="sr-only">{s.state === "done" ? " (done)" : s.state === "current" ? " (current step)" : " (still to come)"}</span>
+              <span className="sr-only">{` (${s.state === "done" ? text.done : s.state === "current" ? text.current : text.todo})`}</span>
             </span>
           </li>
         ))}
       </ol>
       <p className="sm:hidden mt-3 text-sm text-muted">
-        Step {currentIdx + 1} of {steps.length}: <span className="font-semibold text-foreground">{current?.label}</span>
+        {text.stepOf.replace("{n}", String(currentIdx + 1)).replace("{total}", String(steps.length))} <span className="font-semibold text-foreground">{current?.label}</span>
       </p>
     </div>
   );

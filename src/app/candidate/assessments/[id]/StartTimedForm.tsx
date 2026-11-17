@@ -5,9 +5,11 @@ import { Icon } from "@/components/ui";
 import { Button } from "@/components/ui/Button";
 import { Callout } from "@/components/ui/Callout";
 import { cameraConsentKey } from "./proctoring-gate";
+import type { Dict } from "@/i18n/en";
+import { fillText } from "@/lib/dates";
 
 /**
- * The "Start the timed assessment" button. When the assessment records video,
+ * The text.startTimed button. When the assessment records video,
  * the camera is checked and allowed here, BEFORE the clock starts, so a slow
  * permission prompt never eats into the candidate's time.
  */
@@ -16,11 +18,13 @@ export function StartTimedForm({
   minutes,
   cameraRequired,
   startAction,
+  text,
 }: {
   caId: string;
   minutes: number;
   cameraRequired: boolean;
   startAction: () => Promise<void>;
+  text: Dict["candidate"]["start"];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [state, setState] = useState<"idle" | "checking" | "starting" | "blocked">("idle");
@@ -48,14 +52,13 @@ export function StartTimedForm({
   return (
     <form ref={formRef} action={startAction} className="mt-8">
       {cameraRequired ? (
-        <Callout tone="info" title="This assessment uses your camera" className="mb-4">
-          Video is recorded for the hiring team to check the assessment was taken fairly. It is not analysed automatically.
-          You will be asked to allow the camera now, before the timer starts.
+        <Callout tone="info" title={text.cameraTitle} className="mb-4">
+          {text.cameraBody}
         </Callout>
       ) : null}
       {state === "blocked" ? (
-        <Callout tone="warning" title="The camera is blocked" role="alert" className="mb-4">
-          Allow camera access for this site in your browser, then press the button again. The timer has not started.
+        <Callout tone="warning" title={text.blockedTitle} role="alert" className="mb-4">
+          {text.blockedBody}
         </Callout>
       ) : null}
       <Button
@@ -64,18 +67,18 @@ export function StartTimedForm({
         block
         onClick={onStart}
         pending={state === "checking" || state === "starting"}
-        pendingLabel={state === "checking" ? "Checking the camera…" : "Starting…"}
+        pendingLabel={state === "checking" ? text.checking : text.starting}
       >
         {cameraRequired ? (
           <>
             <Icon name="camera" className="h-4 w-4" />
-            Allow the camera and start
+            {text.allowAndStart}
           </>
         ) : (
-          "Start the timed assessment"
+          text.startTimed
         )}
       </Button>
-      <p className="mt-3 text-center text-sm text-muted">The {minutes}-minute timer begins the moment you start.</p>
+      <p className="mt-3 text-center text-sm text-muted">{fillText(text.timerBegins, { n: minutes })}</p>
     </form>
   );
 }

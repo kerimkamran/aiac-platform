@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import { Card, EmptyState, Icon, PageHeader, ScoreRing, bandFor } from "@/components/ui";
+import { Card, EmptyState, Icon, PageHeader, ScoreRing, bandLabelFor } from "@/components/ui";
 import { GrowthHub } from "./GrowthHub";
 import { normalizePurpose } from "@/lib/purpose";
 import { buttonClass } from "@/components/ui/Button";
@@ -76,7 +76,7 @@ export default async function CandidateResultsPage() {
         subtitle={w.subtitle}
       />
 
-      {growthData.length >= 2 && <GrowthHub assessments={growthData} />}
+      {growthData.length >= 2 && <GrowthHub assessments={growthData} text={t.candidate.growth} />}
 
       {list.length === 0 && (
         <EmptyState
@@ -98,7 +98,7 @@ export default async function CandidateResultsPage() {
               </p>
               {ready ? (
                 <div className="flex items-center justify-between gap-4">
-                  <ScoreRing score={Math.round(r.overall_score!)} size={84} label={bandFor(r.overall_score!).label} />
+                  <ScoreRing score={Math.round(r.overall_score!)} size={84} label={bandLabelFor(r.overall_score!, t.candidate.bands)} />
                   <Link
                     href={`/candidate/results/${r.id}`}
                     className={buttonClass({ size: "md" })}

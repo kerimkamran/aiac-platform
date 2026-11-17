@@ -77,7 +77,7 @@ export default async function CandidateHome() {
             {next ? (next.status === "in_progress" ? h.headingInProgress : h.headingNext) : h.headingDone}
           </h1>
 
-          {focus && <PathHorizon steps={pathFor(focus.status, h.pathSteps)} className="mt-8" />}
+          {focus && <PathHorizon steps={pathFor(focus.status, h.pathSteps)} text={h.pathState} className="mt-8" />}
 
           {next && (
             <PrimaryCard className="mt-8 p-6 sm:p-8">

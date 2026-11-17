@@ -109,3 +109,10 @@ export function formatDateTimeIn(lang: PluralLang, d: string | Date): string {
 export function fillText(text: string, values: Record<string, string | number>): string {
   return text.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m));
 }
+
+// A counted phrase in the right word form: "1 word", "5 слов". The three forms
+// come from the dictionary and carry {n}.
+export type PluralForms = { one: string; few: string; many: string };
+export function pluralText(lang: PluralLang, n: number, forms: PluralForms): string {
+  return fill(forms[pluralForm(lang, n)], n);
+}

@@ -50,6 +50,12 @@ export function bandFor(score: number): Band {
   return { label: "Does not meet", badge: "bg-critical-soft text-critical", bar: "bg-critical", hex: "var(--critical)" };
 }
 
+// The translated name of a score band; falls back to the English label.
+export function bandLabelFor(score: number, bands?: { exceeds: string; fullyMeets: string; partiallyMeets: string; doesNotMeet: string }): string {
+  if (!bands) return bandFor(score).label;
+  return score >= 85 ? bands.exceeds : score >= 70 ? bands.fullyMeets : score >= 50 ? bands.partiallyMeets : bands.doesNotMeet;
+}
+
 export const CATEGORY_COLORS: Record<string, { text: string; bg: string; dot: string; hex: string }> = {
   Core: { text: "text-foreground", bg: "bg-line-soft", dot: "bg-foreground", hex: "var(--chart-1)" },
   Leadership: { text: "text-accent-dark", bg: "bg-accent-soft", dot: "bg-accent", hex: "var(--chart-4)" },

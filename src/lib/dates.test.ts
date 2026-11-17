@@ -57,3 +57,15 @@ describe("translated time helpers", () => {
     expect(fillText("keeps {other}", { n: 1 })).toBe("keeps {other}");
   });
 });
+
+describe("counted phrases", () => {
+  it("uses the right form in each language", async () => {
+    const { pluralText } = await import("./dates");
+    expect(pluralText("ru", 1, ru.candidate.exam.words)).toBe("1 слово.");
+    expect(pluralText("ru", 3, ru.candidate.exam.words)).toBe("3 слова.");
+    expect(pluralText("ru", 11, ru.candidate.exam.unanswered).startsWith("Без ответа остались 11 вопросов")).toBe(true);
+    expect(pluralText("en", 1, en.candidate.exam.words)).toBe("1 word.");
+    expect(pluralText("en", 0, en.candidate.exam.words)).toBe("0 words.");
+    expect(pluralText("az", 5, az.candidate.exam.minutesLeft)).toBe("5 dəqiqə qalıb.");
+  });
+});

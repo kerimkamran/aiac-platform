@@ -1,4 +1,6 @@
 import { Card, Icon } from "@/components/ui";
+import type { Dict } from "@/i18n/en";
+import { fillText } from "@/lib/dates";
 
 type GrowthAssessment = {
   id: string;
@@ -35,7 +37,7 @@ function Sparkline({ values, className = "" }: { values: number[]; className?: s
   );
 }
 
-export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) {
+export function GrowthHub({ assessments, text }: { assessments: GrowthAssessment[]; text: Dict["candidate"]["growth"] }) {
   const overallSeries = assessments.map((a) => Math.round(a.overallScore));
   const first = overallSeries[0];
   const last = overallSeries[overallSeries.length - 1];
@@ -63,11 +65,10 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
     <Card className="p-6 mb-8">
       <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
         <Icon name="trending" className="w-4 h-4 text-accent-dark" />
-        Your growth over time
+        {text.title}
       </p>
       <p className="text-xs text-muted mb-5">
-        Tracking your competency scores across {assessments.length} promotion/development assessments — this is about
-        progress, not a single pass/fail moment.
+        {fillText(text.intro, { n: assessments.length })}
       </p>
 
       <div className="flex flex-col sm:flex-row items-start sm:items-center gap-5 mb-6">
@@ -75,10 +76,10 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
         <div>
           <p className="text-2xl font-bold text-foreground tabular-nums">
             {last}
-            <span className="text-sm font-medium text-muted"> / 100</span>
+            <span className="text-sm font-medium text-muted"> {text.outOf}</span>
           </p>
           <p className={`text-xs font-semibold ${delta > 0 ? "text-good" : delta < 0 ? "text-warning" : "text-muted"}`}>
-            {delta > 0 ? `+${delta}` : delta} since your first tracked assessment
+            {fillText(text.since, { delta: delta > 0 ? `+${delta}` : String(delta) })}
           </p>
         </div>
       </div>
@@ -86,7 +87,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
       <div className="grid sm:grid-cols-2 gap-4">
         {improved.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-muted mb-2">Most improved</p>
+            <p className="text-sm font-semibold text-muted mb-2">{text.mostImproved}</p>
             <div className="space-y-1.5">
               {improved.map((m) => (
                 <div key={m.name} className="flex items-center justify-between text-xs bg-good-soft border border-good/40 rounded-lg px-3 py-2">
@@ -99,7 +100,7 @@ export function GrowthHub({ assessments }: { assessments: GrowthAssessment[] }) 
         )}
         {growthAreas.length > 0 && (
           <div>
-            <p className="text-sm font-semibold text-muted mb-2">Keep developing</p>
+            <p className="text-sm font-semibold text-muted mb-2">{text.keepDeveloping}</p>
             <div className="space-y-1.5">
               {growthAreas.map((m) => (
                 <div key={m.name} className="flex items-center justify-between text-xs bg-warning-soft border border-warning/40 rounded-lg px-3 py-2">

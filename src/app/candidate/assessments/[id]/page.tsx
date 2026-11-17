@@ -10,9 +10,13 @@ import { ButtonLink } from "@/components/ui/Button";
 import { StartTimedForm } from "./StartTimedForm";
 import { nowMs } from "@/lib/time";
 import { examDeadlineMs } from "@/lib/exam-time";
+import { fillText, formatDateIn } from "@/lib/dates";
+import { getT } from "@/i18n/server";
 
 export default async function TakeAssessmentPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const { lang, t } = await getT();
+  const w = t.candidate.start;
   const supabase = await createClient();
 
   const {
@@ -52,16 +56,16 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   if (ca.status === "invited" && ca.due_at && new Date(ca.due_at).getTime() < nowMs()) {
     return (
       <div className="container-page max-w-2xl py-12">
-        <h1 className="text-display text-foreground">The deadline for this assessment has passed.</h1>
+        <h1 className="text-display text-foreground">{w.deadlineTitle}</h1>
         <p className="mt-3 text-body-large text-muted">
-          {metaEarly?.title} was due by {new Date(ca.due_at).toLocaleDateString()}.
+          {fillText(w.deadlineBody, { title: metaEarly?.title ?? "", date: formatDateIn(lang, ca.due_at) })}
         </p>
         <p className="mt-2 text-base text-muted">
-          If you still need to complete it, contact your HR representative. They can extend the deadline or send a new invitation.
+          {w.deadlineHelp}
         </p>
         <div className="mt-7">
           <ButtonLink href="/candidate/assessments" variant="secondary" size="lg">
-            Back to my assessments
+            {w.backToTests}
           </ButtonLink>
         </div>
       </div>
@@ -81,47 +85,47 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
     const cameraRequired = cam?.camera_enabled;
     return (
       <div className="container-page max-w-2xl py-10 lg:py-14">
-        <p className="text-mono-label text-muted">Ready to begin</p>
+        <p className="text-mono-label text-muted">{w.readyLabel}</p>
         <h1 className="mt-2 text-display text-foreground">{metaEarly?.title}</h1>
         {metaEarly?.description && <p className="mt-3 text-body-large text-muted measure">{metaEarly.description}</p>}
         <ul className="mt-6 space-y-2 text-base text-foreground">
           <li className="flex items-center gap-2">
             <Icon name="timer" className="w-4 h-4 text-muted" />
-            {totalMinutes} minutes once you start
-            {extraMinutes > 0 && <span className="text-muted">(includes {extraMinutes} extra)</span>}
+            {fillText(w.minutesOnceStart, { n: totalMinutes })}
+            {extraMinutes > 0 && <span className="text-muted">{fillText(w.includesExtra, { n: extraMinutes })}</span>}
           </li>
           {ca.due_at && (
             <li className="flex items-center gap-2">
               <Icon name="clock" className="w-4 h-4 text-muted" />
-              Complete by {new Date(ca.due_at).toLocaleDateString()}
+              {fillText(w.completeBy, { date: formatDateIn(lang, ca.due_at) })}
             </li>
           )}
           <li className="flex items-start gap-2 text-muted">
             <Icon name="check" className="w-4 h-4 mt-1 shrink-0" />
-            Your answers are saved on our server as you go. If your connection drops, open the link again and carry on.
+            {w.savedOnServer}
           </li>
           <li className="flex items-start gap-2 text-muted">
             <Icon name="timer" className="w-4 h-4 mt-1 shrink-0" />
-            The timer keeps running if you close the page or leave. You can hide the timer on screen.
+            {w.timerKeepsRunning}
           </li>
         </ul>
 
         <Card className="mt-8 p-6">
-          <h2 className="text-title text-foreground">Try the practice room first</h2>
+          <h2 className="text-title text-foreground">{w.practiceTitle}</h2>
           <p className="mt-1 text-base text-muted">
-            The same screen, with sample questions. There is no timer, nothing is scored and nothing is recorded.
+            {w.practiceBody}
           </p>
           <div className="mt-4">
             <ButtonLink href={`/candidate/assessments/${id}/practice`} variant="secondary">
-              Open the practice room
+              {w.practiceButton}
             </ButtonLink>
           </div>
         </Card>
 
-        <StartTimedForm caId={id} minutes={totalMinutes} cameraRequired={!!cameraRequired} startAction={startWithId} />
+        <StartTimedForm caId={id} minutes={totalMinutes} cameraRequired={!!cameraRequired} startAction={startWithId} text={w} />
         <p className="mt-5 text-center">
           <Link href="/candidate/assessments" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
-            Back to my assessments
+            {w.backToTests}
           </Link>
         </p>
       </div>
@@ -190,7 +194,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
     return (
       <ProctoredAssessmentRunner
         caId={id}
-        title={meta?.title || "Assessment"}
+        title={meta?.title || w.assessmentFallback}
         description={meta?.description || ""}
         deadlineMs={deadlineMs}
         totalQuestions={totalQuestions}
@@ -202,6 +206,8 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
         watermarkLabel={user.email || "confidential"}
         storageBackend={(proctoring.storage_backend as "supabase" | "local") || "supabase"}
         contentLanguage={meta?.content_language}
+        lang={lang}
+        text={t.candidate}
       />
     );
   }
@@ -209,7 +215,7 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
   return (
     <AssessmentRunner
       caId={id}
-      title={meta?.title || "Assessment"}
+      title={meta?.title || w.assessmentFallback}
       description={meta?.description || ""}
       deadlineMs={deadlineMs}
       totalQuestions={totalQuestions}
@@ -220,6 +226,8 @@ export default async function TakeAssessmentPage({ params }: { params: Promise<{
       serverDraft={serverDraft}
       watermarkLabel={user.email || "confidential"}
       contentLanguage={meta?.content_language}
+      lang={lang}
+      text={t.candidate.exam}
     />
   );
 }

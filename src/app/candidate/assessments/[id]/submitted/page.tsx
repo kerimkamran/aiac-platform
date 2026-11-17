@@ -5,26 +5,13 @@ import { Timeline } from "@/components/ui/Timeline";
 import { VantageMark } from "@/components/VantageMark";
 import { AssessmentPurpose, normalizePurpose } from "@/lib/purpose";
 import { ClearDraft } from "../ClearDraft";
+import { getT } from "@/i18n/server";
+import { fillNodes } from "@/lib/fill-nodes";
+import { fillText } from "@/lib/dates";
 
-// What happens next, in plain language. A person reviews every score, and a
-// candidate is never told "AI scored" (Clear Horizon plan, section 11).
-const NEXT_STEPS: Record<AssessmentPurpose, { t: string; b: string }[]> = {
-  hiring: [
-    { t: "A draft is prepared", b: "Your answers are compared with the role's competencies, with the evidence noted." },
-    { t: "A person reviews it", b: "A recruiter checks the draft against your answers before anything is decided." },
-    { t: "You'll hear back", b: "You'll be notified here once a reviewer has made a decision on your results." },
-  ],
-  promotion: [
-    { t: "A draft is prepared", b: "Your answers are compared with the target role's competencies, with the evidence noted." },
-    { t: "Your manager and HR review it", b: "They check the draft against your answers before any outcome is decided." },
-    { t: "You'll hear back", b: "You'll be notified here once your promotion review is complete." },
-  ],
-  development: [
-    { t: "A draft is prepared", b: "Your answers are compared with the competency model, with the evidence noted." },
-    { t: "A reviewer gives feedback", b: "A person looks at the draft alongside your answers to identify strengths and growth areas." },
-    { t: "You'll hear back", b: "You'll be notified here when your feedback is ready. There is no pass or fail." },
-  ],
-};
+// What happens next, in plain language (the steps live in the dictionaries). A
+// person reviews every score, and a candidate is never told "AI scored" (Clear
+// Horizon plan, section 11).
 
 export default async function AssessmentSubmittedPage({
   params,
@@ -35,6 +22,8 @@ export default async function AssessmentSubmittedPage({
 }) {
   const { id } = await params;
   const { reason } = await searchParams;
+  const { t } = await getT();
+  const w = t.candidate.submitted;
   // Design-execution-plan Phase 6 / T6.4: a submission the countdown forced
   // through at zero gets a calm, neutral confirmation -- never the "you did
   // it!" framing meant for someone who chose to submit.
@@ -58,32 +47,29 @@ export default async function AssessmentSubmittedPage({
   if (["invited", "in_progress"].includes(ca.status)) redirect(`/candidate/assessments/${id}`);
 
   const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user.id).single();
-  const firstName = (profile?.full_name || "").split(/\s+/)[0] || "there";
+  const firstName = (profile?.full_name || "").split(/\s+/)[0] || "";
   const assessment = ca.assessments as unknown as { title: string; purpose: string | null } | null;
   const purpose = normalizePurpose(assessment?.purpose);
-  const nextSteps = NEXT_STEPS[purpose];
+  const titleNode = <span className="font-semibold text-foreground">{assessment?.title}</span>;
+  const nextSteps: { t: string; b: string }[] = w.steps[purpose as AssessmentPurpose];
 
   return (
     <div className="container-page max-w-xl py-10 lg:py-14">
       <ClearDraft caId={id} />
       <div className="flex flex-col items-center text-center">
         <VantageMark animate tile={false} className="w-20 h-20" title="Vantage" />
-        <h1 className="mt-5 text-display text-foreground">{expired ? "Time ran out. Your answers are in." : `Well done, ${firstName}. You're finished.`}</h1>
+        <h1 className="mt-5 text-display text-foreground">{expired ? w.expiredTitle : firstName ? fillText(w.doneTitle, { name: firstName }) : w.doneTitleNoName}</h1>
         <p className="mt-3 text-body-large text-muted measure">
           {expired ? (
-            <>
-              The timer ended, so <span className="font-semibold text-foreground">{assessment?.title}</span> was submitted automatically with the answers you had. There is nothing more to do.
-            </>
+            fillNodes(w.expiredBody, { title: titleNode })
           ) : (
-            <>
-              <span className="font-semibold text-foreground">{assessment?.title}</span> has been submitted. You can close this page.
-            </>
+            fillNodes(w.doneBody, { title: titleNode })
           )}
         </p>
       </div>
 
       <section className="mt-10 border-t border-line pt-6">
-        <h2 className="text-title-large text-foreground">What happens next</h2>
+        <h2 className="text-title-large text-foreground">{w.next}</h2>
         <Timeline
           className="mt-5"
           steps={nextSteps.map((s, i) => ({ label: s.t, detail: s.b, state: i === 0 ? "current" : "todo" }))}
@@ -92,10 +78,10 @@ export default async function AssessmentSubmittedPage({
 
       <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
         <ButtonLink href="/candidate" size="lg">
-          Go to my home
+          {w.goHome}
         </ButtonLink>
         <ButtonLink href="/candidate/assessments" variant="secondary" size="lg">
-          My assessments
+          {w.myAssessments}
         </ButtonLink>
       </div>
     </div>

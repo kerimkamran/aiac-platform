@@ -6,6 +6,9 @@ import { buttonClass } from "@/components/ui/Button";
 import { Icon } from "@/components/ui";
 import { ProgressHorizon } from "@/components/horizon/ProgressHorizon";
 import { LOW_TIME_SECONDS, formatClock } from "@/lib/exam-time";
+import { fillText, localeFor, pluralText } from "@/lib/dates";
+import type { Dict } from "@/i18n/en";
+import type { Lang } from "@/i18n";
 
 export type RunnerSection = {
   id: string;
@@ -58,6 +61,8 @@ export function AssessmentRunner({
   serverDraft,
   watermarkLabel = "confidential",
   contentLanguage,
+  lang,
+  text,
 }: {
   caId: string;
   // The server's clock when the page was sent, so a wrong device clock cannot
@@ -73,10 +78,13 @@ export function AssessmentRunner({
   submitAction: (formData: FormData) => Promise<void | { error: string }>;
   watermarkLabel?: string;
   totalQuestions: number;
-  // The exam chrome is English; prompts and options are generated in the
+  // The exam chrome follows the candidate's language; prompts and options are generated in the
   // assessment's own language (assessments.content_language). Marking them
   // with lang lets a screen reader switch voice for that text only (WCAG 3.1.2).
   contentLanguage?: string | null;
+  // The candidate's language for the screen's own words (not the questions).
+  lang: Lang;
+  text: Dict["candidate"]["exam"];
 }) {
   // undefined for English/unset content -- omitting `lang` there just
   // inherits the page's own (English) lang, which is already correct.
@@ -236,17 +244,18 @@ export function AssessmentRunner({
           const res = await submitAction(fd);
           if (res && "error" in res) {
             submittedRef.current = false;
-            setSubmitError(res.error);
+            // The server's message is always a generic "try again"; show it in the candidate's language.
+            setSubmitError(text.submitFailed);
           }
         } catch (e) {
           // A redirect to the confirmation page is not a failure.
           if (e && typeof e === "object" && "digest" in e && String((e as { digest: unknown }).digest).startsWith("NEXT_REDIRECT")) throw e;
           submittedRef.current = false;
-          setSubmitError("We couldn't submit. Your answers are still here. Try again.");
+          setSubmitError(text.submitFailed);
         }
       });
     },
-    [steps, submitAction]
+    [steps, submitAction, text.submitFailed]
   );
 
   /* Countdown: the single timer on screen, and the single source of truth for
@@ -346,18 +355,23 @@ export function AssessmentRunner({
 
   const savedLabel =
     savedAt === null || nowMs === null
-      ? "Saved"
+      ? text.saved
       : // Minute steps only, so a screen reader is not interrupted every second.
         nowMs - savedAt < 60_000
-        ? "Saved just now"
-        : `Saved · ${Math.floor((nowMs - savedAt) / 60_000)} min ago`;
+        ? text.savedJustNow
+        : fillText(text.savedMinAgo, { n: Math.floor((nowMs - savedAt) / 60_000) });
+
+  // "Question 3, answered, flagged" for screen readers, in the candidate's language.
+  const questionAria = (n: number, isAnswered: boolean, isFlagged: boolean) =>
+    [fillText(text.questionAria, { n }), isAnswered ? text.answeredAria : text.notAnsweredAria, ...(isFlagged ? [text.flaggedAria] : [])].join(", ");
+  const backLabel = text.backToTests;
 
   if (total === 0) {
     return (
       <div className="mx-auto max-w-[680px] p-6 pt-16 text-center">
-        <p className="text-base text-muted">This assessment has no questions yet. Contact your recruiter.</p>
+        <p className="text-base text-muted">{text.noQuestions}</p>
         <Link href="/candidate/assessments" className="mt-6 inline-block text-sm font-semibold text-accent-dark hover:underline">
-          Back to my assessments
+          {backLabel}
         </Link>
       </div>
     );
@@ -368,7 +382,7 @@ export function AssessmentRunner({
       <div className="watermark-overlay" aria-hidden>
         {Array.from({ length: 6 }).map((_, i) => (
           <div key={i} className="row">
-            {watermarkLabel} · {new Date().toLocaleDateString()} · {caId.slice(0, 8)}
+            {watermarkLabel} · {new Date().toLocaleDateString(localeFor(lang))} · {caId.slice(0, 8)}
           </div>
         ))}
       </div>
@@ -377,7 +391,7 @@ export function AssessmentRunner({
         <div role="alert" className="sticky top-0 z-40 border-b border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
           {submitError}{" "}
           <button type="button" className="font-semibold underline" onClick={() => doSubmit("manual")}>
-            Try again
+            {text.tryAgain}
           </button>
         </div>
       ) : null}
@@ -392,7 +406,7 @@ export function AssessmentRunner({
             </p>
             {/* Screen readers hear one fixed sentence, not a clock that changes every second. */}
             <p className="sr-only" role="status">
-              {savedAt !== null ? "Answers saved on this device." : ""}
+              {savedAt !== null ? text.savedSr : ""}
             </p>
           </div>
           {timerShown ? (
@@ -404,7 +418,7 @@ export function AssessmentRunner({
               }`}
             >
               <Icon name="timer" className="h-4 w-4" />
-              <span aria-label={secondsLeft === null ? undefined : `${Math.ceil(secondsLeft / 60)} minutes remaining`}>{timeLabel}</span>
+              <span aria-label={secondsLeft === null ? undefined : pluralText(lang, Math.ceil(secondsLeft / 60), text.minutesLeft).replace(/\.$/, "")}>{timeLabel}</span>
             </span>
           ) : null}
           {!low && (
@@ -415,24 +429,30 @@ export function AssessmentRunner({
               className="press shrink-0 inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               <Icon name={timerHidden ? "eye" : "eyeOff"} className="h-4 w-4" />
-              {timerHidden ? "Show timer" : "Hide timer"}
+              {timerHidden ? text.showTimer : text.hideTimer}
             </button>
           )}
           {/* The text changes once a minute, so it is announced once a minute. */}
           <p className="sr-only" role="status">
-            {secondsLeft === null ? "" : secondsLeft <= 60 ? "Less than 1 minute remaining." : `${Math.ceil(secondsLeft / 60)} minutes remaining.`}
+            {secondsLeft === null ? "" : secondsLeft <= 60 ? text.lessThanMinute : pluralText(lang, Math.ceil(secondsLeft / 60), text.minutesLeft)}
           </p>
           <Link
             href="/candidate/assessments"
             className="shrink-0 rounded-xl px-3 py-2.5 text-sm font-semibold text-accent-dark hover:bg-accent-soft"
           >
-            Save &amp; exit
+            {text.saveExit}
           </Link>
         </div>
 
         <div className="mx-auto max-w-[1040px] px-4 pb-3 sm:px-6">
           <div className="flex items-end justify-between gap-4">
-            <ProgressHorizon total={total} answered={answered} current={reviewing ? total - 1 : idx} className="min-w-0 flex-1" />
+            <ProgressHorizon
+              total={total}
+              answered={answered}
+              current={reviewing ? total - 1 : idx}
+              label={fillText(text.progress, { current: (reviewing ? total - 1 : idx) + 1, total, answered })}
+              className="min-w-0 flex-1"
+            />
             <button
               type="button"
               onClick={() => setShowGrid((g) => !g)}
@@ -440,12 +460,12 @@ export function AssessmentRunner({
               aria-controls="question-grid"
               className="press shrink-0 inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-sm font-semibold text-accent hover:bg-accent-soft focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
-              All questions
+              {text.allQuestions}
               <Icon name={showGrid ? "chevronUp" : "chevronDown"} className="h-4 w-4" />
             </button>
           </div>
           {showGrid && (
-            <nav id="question-grid" aria-label="Questions" className="mt-2">
+            <nav id="question-grid" aria-label={text.questionsNav} className="mt-2">
               <ol className="grid grid-cols-8 gap-1.5 sm:grid-cols-12">
                 {steps.map((s, i) => {
                   const isAnswered = (answers[s.q.id] || "").trim().length > 0;
@@ -460,7 +480,7 @@ export function AssessmentRunner({
                           setIdx(i);
                           setShowGrid(false);
                         }}
-                        aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
+                        aria-label={questionAria(i + 1, isAnswered, isFlagged)}
                         aria-current={isCurrent ? "step" : undefined}
                         className={`relative grid min-h-11 w-full place-items-center rounded-md text-sm font-semibold tabular-nums ${
                           isAnswered ? "bg-brand text-on-primary" : "bg-surface text-foreground ring-1 ring-inset ring-line-control"
@@ -481,11 +501,9 @@ export function AssessmentRunner({
       {reviewing ? (
         /* ---------- Review: every question on one grid, then one submit ---------- */
         <main className="mx-auto max-w-[680px] px-5 pb-16 pt-10 sm:pt-14">
-          <h2 className="text-2xl font-bold text-foreground">Review your answers</h2>
+          <h2 className="text-2xl font-bold text-foreground">{text.reviewTitle}</h2>
           <p className="mt-2 text-base text-muted">
-            {answered} of {total} answered
-            {flaggedCount > 0 ? `, ${flaggedCount} flagged` : ""}. Select a question to go back to it. Once you submit, your
-            answers can&apos;t be changed.
+            {fillText(flaggedCount > 0 ? text.reviewSummaryFlagged : text.reviewSummary, { answered, total, flagged: flaggedCount })} {text.reviewHint}
           </p>
 
           <ol className="mt-8 grid grid-cols-5 gap-2 sm:grid-cols-8">
@@ -500,7 +518,7 @@ export function AssessmentRunner({
                       setReviewing(false);
                       setIdx(i);
                     }}
-                    aria-label={`Question ${i + 1}${isAnswered ? ", answered" : ", not answered"}${isFlagged ? ", flagged" : ""}`}
+                    aria-label={questionAria(i + 1, isAnswered, isFlagged)}
                     className={`relative grid h-11 w-full place-items-center rounded-xl text-sm font-bold tabular-nums transition-colors ${
                       isAnswered
                         ? "bg-brand text-on-primary"
@@ -516,34 +534,33 @@ export function AssessmentRunner({
           </ol>
           <p className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
             <span className="inline-flex items-center gap-2">
-              <span className="h-3.5 w-3.5 rounded-md bg-brand" /> Answered
+              <span className="h-3.5 w-3.5 rounded-md bg-brand" /> {text.legendAnswered}
             </span>
             <span className="inline-flex items-center gap-2">
-              <span className="h-3.5 w-3.5 rounded-md ring-1 ring-inset ring-line-strong" /> Not answered
+              <span className="h-3.5 w-3.5 rounded-md ring-1 ring-inset ring-line-strong" /> {text.legendNotAnswered}
             </span>
             <span className="inline-flex items-center gap-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-warning" /> Flagged
+              <span className="h-2.5 w-2.5 rounded-full bg-warning" /> {text.legendFlagged}
             </span>
           </p>
 
           {answered < total && (
             <p role="status" className="mt-6 rounded-xl border border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
-              {total - answered} question{total - answered > 1 ? "s are" : " is"} not answered. You can still submit, but unanswered
-              questions earn no points.
+              {pluralText(lang, total - answered, text.unanswered)}
             </p>
           )}
           {confirmingSubmit && (
             <div role="alertdialog" aria-labelledby="confirm-submit-h" className="mt-6 rounded-card border border-line bg-surface p-5">
               <h3 id="confirm-submit-h" className="text-lg font-semibold text-foreground">
-                Submit your answers now?
+                {text.confirmTitle}
               </h3>
-              <p className="mt-1 text-base text-muted">You will not be able to change them afterwards.</p>
+              <p className="mt-1 text-base text-muted">{text.confirmBody}</p>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button type="button" autoFocus onClick={() => doSubmit()} disabled={isPending} className={buttonClass({ size: "md" })}>
-                  {isPending ? "Submitting…" : "Yes, submit"}
+                  {isPending ? text.submitting : text.yesSubmit}
                 </button>
                 <button type="button" onClick={() => setConfirmingSubmit(false)} className={buttonClass({ size: "md", variant: "secondary" })}>
-                  Keep editing
+                  {text.keepEditing}
                 </button>
               </div>
             </div>
@@ -556,7 +573,7 @@ export function AssessmentRunner({
               className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-foreground transition-colors hover:border-brand"
             >
               <Icon name="arrowLeft" className="h-4 w-4" />
-              Keep editing
+              {text.keepEditing}
             </button>
             <div className="flex-1">
               <button
@@ -566,7 +583,7 @@ export function AssessmentRunner({
                 className={buttonClass({ size: "lg", block: true })}
               >
                 <Icon name="send" className="h-4 w-4" />
-                {isPending ? "Submitting…" : answered < total ? "Submit with unanswered questions" : "Submit answers"}
+                {isPending ? text.submitting : answered < total ? text.submitWithUnanswered : text.submitAnswers}
               </button>
             </div>
           </div>
@@ -577,14 +594,14 @@ export function AssessmentRunner({
           {tabSwitches > 0 && (
             <div className="mb-6 flex items-center gap-2 rounded-xl border border-warning/40 bg-warning-soft px-4 py-2.5 text-sm font-medium text-warning">
               <Icon name="eye" className="h-4 w-4 shrink-0" />
-              This tab was left {tabSwitches} time{tabSwitches > 1 ? "s" : ""}. This is logged for the reviewing admin.
+              {pluralText(lang, tabSwitches, text.tabLeft)} {text.tabLogged}
             </div>
           )}
 
           <div key={current.q.id} className="anim-fade-in">
             <div className="mb-5 flex items-center justify-between gap-3">
               <p className="text-sm font-semibold tabular-nums text-muted">
-                Question {idx + 1} of {total}
+                {fillText(text.questionOf, { n: idx + 1, total })}
                 <span className="mx-2 text-line-strong" aria-hidden>
                   ·
                 </span>
@@ -601,7 +618,7 @@ export function AssessmentRunner({
                 }`}
               >
                 <Icon name="flag" className="h-4 w-4" />
-                {flaggedSet.has(current.q.id) ? "Flagged" : "Flag"}
+                {flaggedSet.has(current.q.id) ? text.flagged : text.flag}
               </button>
             </div>
 
@@ -610,7 +627,7 @@ export function AssessmentRunner({
             </h2>
 
             {current.q.type === "mcq" ? (
-              <div className="space-y-3" role="radiogroup" aria-label={`Answer options for question ${idx + 1}`}>
+              <div className="space-y-3" role="radiogroup" aria-label={fillText(text.optionsAria, { n: idx + 1 })}>
                 {current.q.options.map((opt) => {
                   const selected = answers[current.q.id] === opt.key;
                   return (
@@ -648,19 +665,18 @@ export function AssessmentRunner({
             ) : (
               <div>
                 <label htmlFor={`answer-${current.q.id}`} className="sr-only">
-                  Your answer
+                  {text.yourAnswer}
                 </label>
                 <textarea
                   id={`answer-${current.q.id}`}
                   value={answers[current.q.id] || ""}
                   onChange={(e) => set(current.q.id, e.target.value)}
                   rows={9}
-                  placeholder="Describe a specific situation, the action you took, and the result…"
+                  placeholder={text.placeholder}
                   className="w-full resize-y rounded-card border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent"
                 />
                 <p className="mt-2 text-sm tabular-nums text-muted">
-                  {(answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length} words. Aim for a concrete
-                  situation, the action you took, and the result.
+                  {pluralText(lang, (answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length, text.words)} {text.aim}
                 </p>
               </div>
             )}
@@ -674,7 +690,7 @@ export function AssessmentRunner({
               className="inline-flex min-h-12 items-center gap-2 rounded-full border border-line px-5 text-sm font-semibold text-foreground transition-colors hover:border-brand disabled:opacity-40"
             >
               <Icon name="arrowLeft" className="h-4 w-4" />
-              Previous
+              {text.previous}
             </button>
 
             {idx < total - 1 ? (
@@ -683,7 +699,7 @@ export function AssessmentRunner({
                 onClick={() => setIdx((i) => Math.min(total - 1, i + 1))}
                 className="inline-flex min-h-12 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-brand-hover"
               >
-                Next
+                {text.next}
                 <Icon name="arrowRight" className="h-4 w-4" />
               </button>
             ) : (
@@ -692,7 +708,7 @@ export function AssessmentRunner({
                 onClick={() => setReviewing(true)}
                 className="inline-flex min-h-12 items-center gap-2 rounded-md bg-brand px-6 text-sm font-semibold text-on-primary transition-colors hover:bg-brand-hover"
               >
-                Review answers
+                {text.reviewAnswers}
                 <Icon name="checkCircle" className="h-4 w-4" />
               </button>
             )}
@@ -701,8 +717,8 @@ export function AssessmentRunner({
           <p className="mt-8 flex items-center gap-2 text-sm text-muted">
             <Icon name="keyboard" className="h-4 w-4 shrink-0" />
             {current.q.type === "mcq"
-              ? "Press A to D to choose, F to flag, Enter for next, arrow keys to move between questions."
-              : "Press F to flag, Enter for next, arrow keys to move between questions."}
+              ? text.hintMcq
+              : text.hintText}
           </p>
         </main>
       )}
