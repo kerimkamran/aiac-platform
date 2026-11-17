@@ -77,3 +77,27 @@ export function isLevelKey(value: unknown): value is LevelKey {
 export function includesLeadership(level: LevelKey): boolean {
   return level === "manager" || level === "director" || level === "c_level";
 }
+
+// The level name as it should read inside a test title, in the test's language.
+// These wordings need a native-speaker check (on the owner's open list).
+const LEVEL_LABELS: Record<"az" | "ru", Record<LevelKey, string>> = {
+  az: {
+    entry: "Başlanğıc / Mütəxəssis",
+    senior: "Baş mütəxəssis",
+    manager: "Menecer",
+    director: "Direktor / Rəhbər",
+    c_level: "C-səviyyə",
+  },
+  ru: {
+    entry: "Начальный / Специалист",
+    senior: "Старший специалист",
+    manager: "Менеджер",
+    director: "Директор / Руководитель",
+    c_level: "C-level",
+  },
+};
+
+export function levelLabelFor(level: LevelKey, language: string): string {
+  if (language === "az" || language === "ru") return LEVEL_LABELS[language][level];
+  return LEVELS[level].label;
+}

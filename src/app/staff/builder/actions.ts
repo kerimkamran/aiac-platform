@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requireRole, requireStaff } from "@/lib/authz";
+import { logAudit, requireRole, requireStaff } from "@/lib/authz";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { assertCanGenerate, AiPolicyError, loadAiPolicy, type AiPolicy } from "@/lib/ai-policy";
@@ -19,7 +19,7 @@ import {
 } from "@/lib/generation";
 import { normalizePurpose as normalizePurposeKey } from "@/lib/purpose";
 import { prepareContext, type ContextItem, MAX_REFERENCE_FILES, REFERENCE_FILE_MAX_CHARS } from "@/lib/ai-context";
-import { LEVELS, isLevelKey, includesLeadership, type LevelKey } from "@/lib/levels";
+import { LEVELS, isLevelKey, includesLeadership, levelLabelFor, type LevelKey } from "@/lib/levels";
 
 export type AssessmentPurpose = "hiring" | "promotion" | "development";
 
@@ -163,6 +163,43 @@ export async function publishAssessment(assessmentId: string, formData?: FormDat
   revalidatePath(`/staff/builder/${assessmentId}`);
   revalidatePath("/staff/builder");
   redirect(`/staff/builder/${assessmentId}?added=` + encodeURIComponent("Your test is ready. You can invite candidates to it now."));
+}
+
+// Only HR admins (and above) may publish an AI-generated draft. Everyone else
+// asks one of them: each active HR admin gets an in-app notice that links to
+// the draft. Nothing is published and nothing changes on the draft itself.
+const AI_PUBLISHER_ROLES = ["hr_admin", "org_admin", "system_admin"];
+
+export async function requestPublishReview(assessmentId: string) {
+  const me = await requireStaff();
+  const supabase = await createClient();
+  const back = `/staff/builder/${assessmentId}`;
+  const { data: draft } = await supabase.from("assessments").select("title, status, generated_by").eq("id", assessmentId).maybeSingle();
+  if (!draft) redirect(`/staff/builder?error=` + encodeURIComponent("That test wasn't found."));
+  if (draft.status !== "draft") redirect(`${back}?error=` + encodeURIComponent("Only a draft can be sent for approval."));
+  if (AI_PUBLISHER_ROLES.includes(me.role)) redirect(`${back}?error=` + encodeURIComponent("You can publish this yourself."));
+
+  const reader = createAdminClient() ?? supabase;
+  const { data: approvers } = await reader.from("profiles").select("id").in("role", AI_PUBLISHER_ROLES).eq("status", "active");
+  const ids = ((approvers || []) as { id: string }[]).map((a) => a.id);
+  if (ids.length === 0) {
+    redirect(`${back}?error=` + encodeURIComponent("There is no active HR admin to send this to. Ask an administrator to add one."));
+  }
+
+  let sent = 0;
+  for (const id of ids) {
+    const { error } = await supabase.rpc("notify_user", {
+      p_user_id: id,
+      p_title: "A test needs your review",
+      p_body: `${me.full_name} asked you to review and publish "${draft.title}".`,
+      p_link: back,
+    });
+    if (!error) sent += 1;
+  }
+  if (sent === 0) redirect(`${back}?error=` + encodeURIComponent("The request could not be delivered. Try again, or tell an HR admin directly."));
+
+  await logAudit({ module: "assessments", action: "publish_review_requested", targetType: "assessment", targetId: assessmentId, details: { title: draft.title, sent_to: sent } });
+  redirect(`${back}?added=` + encodeURIComponent(`Sent to ${sent} HR admin${sent === 1 ? "" : "s"}. They will review the questions and publish.`));
 }
 
 export async function updateProctoringSettings(assessmentId: string, formData: FormData) {
@@ -481,7 +518,7 @@ export async function generateDraft(input: DraftInput): Promise<DraftResult> {
     }
   }
 
-  const levelLabel = LEVELS[input.level].label;
+  const levelLabel = levelLabelFor(input.level, input.language);
   const customTitle = (input.customTitle ?? "").trim().slice(0, 120);
   const draftTitle = customTitle || `${title} — ${levelLabel}`;
 

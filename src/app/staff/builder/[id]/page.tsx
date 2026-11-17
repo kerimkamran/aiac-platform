@@ -18,6 +18,7 @@ import {
   createTranslatedVersion,
   duplicateAssessment,
   setAssessmentArchived,
+  requestPublishReview,
 } from "../actions";
 import { PublishChecklist } from "./PublishChecklist";
 import { publishChecks as publishChecksFor, type CheckQuestion, type PublishCheck } from "@/lib/publish-checks";
@@ -90,6 +91,8 @@ export default async function BuilderDetailPage({
   } = await supabase.auth.getUser();
   const { data: profile } = await supabase.from("profiles").select("role").eq("id", user?.id || "").maybeSingle();
   const isAdmin = profile?.role === "hr_admin" || profile?.role === "system_admin";
+  // The database lets only these roles publish an AI-generated draft.
+  const canPublishAi = profile?.role === "hr_admin" || profile?.role === "org_admin" || profile?.role === "system_admin";
 
   const { data: assessment } = await supabase.from("assessments").select("*").eq("id", id).single();
   if (!assessment) notFound();
@@ -158,7 +161,13 @@ export default async function BuilderDetailPage({
           <Icon name="eye" className="w-4 h-4" />
           Preview as candidate
         </Link>
-        {assessment.status === "draft" && (
+        {assessment.status === "draft" && !!assessment.generated_by && !canPublishAi && (
+          <form action={requestPublishReview.bind(null, id)} className="flex items-center gap-3">
+            <SubmitButton pendingLabel="Sending…">Send for approval</SubmitButton>
+            <span className="text-xs text-muted max-w-56">AI drafts are published by an HR admin after they check every question.</span>
+          </form>
+        )}
+        {assessment.status === "draft" && (!assessment.generated_by || canPublishAi) && (
           <PublishChecklist
             title={assessment.title}
             checks={publishChecks}
