@@ -1,4 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// The server action file reaches server-only code; the screen only needs the name.
+vi.mock("./actions", () => ({ getExamDeadline: async () => null }));
 import { renderToString } from "react-dom/server";
 import { AssessmentRunner } from "./runner";
 import { en } from "@/i18n/en";

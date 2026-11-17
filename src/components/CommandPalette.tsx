@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Icon } from "@/components/ui";
 import type { NavLink } from "@/components/AppShell";
@@ -115,6 +115,20 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
+  // Focus goes back to the search button when the palette closes (UX-B-23).
+  // The button is a different element once the palette has been open, so it is found again.
+  const wasOpen = useRef(false);
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    const triggers = Array.from(document.querySelectorAll<HTMLElement>("[data-palette-trigger]"));
+    triggers.find((el) => el.offsetParent !== null)?.focus();
+  }, [open]);
+
   const openPalette = () => {
     setQuery("");
     setActiveIdx(0);
@@ -195,6 +209,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
         <button
           type="button"
           onClick={openPalette}
+          data-palette-trigger
           aria-label={text.search.label.replace("…", "")}
           className="press hidden lg:flex items-center gap-2 h-10 text-sm text-muted hover:text-foreground px-3 rounded-md border border-line hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >
@@ -205,6 +220,7 @@ export function CommandPalette({ links, actions = [] }: { links: NavLink[]; acti
         <button
           type="button"
           onClick={openPalette}
+          data-palette-trigger
           aria-label={text.search.label.replace("…", "")}
           className="press lg:hidden inline-flex items-center justify-center w-11 h-11 rounded-md text-muted hover:text-foreground hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         >

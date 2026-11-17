@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { scoreAttempt } from "@/lib/score-attempt";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { examDeadlineMs } from "@/lib/exam-time";
 
 const SUBMIT_FAILED = "We couldn't submit. Your answers are still here. Try again.";
 
@@ -28,6 +29,24 @@ export async function saveDraft(candidateAssessmentId: string, answers: Record<s
     return !error;
   } catch {
     return false;
+  }
+}
+
+// The current end time of an attempt in progress, so extra time granted by HR
+// reaches a test that is already open (CAN-B-09). Null when it can't be read.
+export async function getExamDeadline(candidateAssessmentId: string): Promise<number | null> {
+  try {
+    const supabase = await createClient();
+    const { data: ca } = await supabase
+      .from("candidate_assessments")
+      .select("started_at, extra_minutes, status, assessments(time_limit_minutes)")
+      .eq("id", candidateAssessmentId)
+      .maybeSingle();
+    if (!ca || ca.status !== "in_progress" || !ca.started_at) return null;
+    const limit = (ca.assessments as unknown as { time_limit_minutes: number | null } | null)?.time_limit_minutes;
+    return examDeadlineMs(ca.started_at as string, limit, (ca as { extra_minutes?: number | null }).extra_minutes ?? 0);
+  } catch {
+    return null;
   }
 }
 

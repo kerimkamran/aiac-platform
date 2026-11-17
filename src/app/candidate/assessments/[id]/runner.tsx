@@ -5,6 +5,7 @@ import Link from "next/link";
 import { buttonClass } from "@/components/ui/Button";
 import { Icon } from "@/components/ui";
 import { ProgressHorizon } from "@/components/horizon/ProgressHorizon";
+import { getExamDeadline } from "./actions";
 import { LOW_TIME_SECONDS, formatClock } from "@/lib/exam-time";
 import { fillText, localeFor, pluralText } from "@/lib/dates";
 import type { Dict } from "@/i18n/en";
@@ -53,7 +54,7 @@ function readDraft(caId: string): Draft {
 export function AssessmentRunner({
   caId,
   title,
-  deadlineMs,
+  deadlineMs: initialDeadlineMs,
   sections,
   submitAction,
   saveDraftAction,
@@ -260,6 +261,21 @@ export function AssessmentRunner({
 
   /* Countdown: the single timer on screen, and the single source of truth for
      what happens at zero (an automatic submit). */
+  // Extra time granted while the test is open: ask the server once a minute and
+  // only ever move the end later (CAN-B-09).
+  const [deadlineMs, setDeadlineMs] = useState(initialDeadlineMs);
+  useEffect(() => {
+    if (!restored) return;
+    const poll = window.setInterval(() => {
+      getExamDeadline(caId)
+        .then((d) => {
+          if (typeof d === "number") setDeadlineMs((cur) => (d > cur ? d : cur));
+        })
+        .catch(() => {});
+    }, 60_000);
+    return () => window.clearInterval(poll);
+  }, [caId, restored]);
+
   // Waits for the draft to be restored: an assessment reopened after its
   // deadline must submit the answers already saved, never an empty paper.
   useEffect(() => {

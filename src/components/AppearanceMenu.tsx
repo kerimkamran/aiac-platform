@@ -79,6 +79,18 @@ export function AppearancePanel({
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // "System" follows the device while the page is open, not only after a reload (UX-B-18).
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const onChange = () => {
+      const current = readStoredAppearance();
+      if (current.theme === "system") applyAppearance(current);
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
   function update(patch: Partial<Appearance>) {
     const next = { ...appearance, ...patch };
     setAppearance(next);

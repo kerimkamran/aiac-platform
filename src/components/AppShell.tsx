@@ -115,12 +115,14 @@ export function AppShell({
         <Icon name="shield" className="w-5 h-5 text-muted" />
         {text.privacy}
       </Link>
-      {role === "candidate" && (
-        <Link href="/help/invitation" className="flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken">
-          <Icon name="helpCircle" className="w-5 h-5 text-muted" />
-          {text.invitationHelp}
-        </Link>
-      )}
+      {/* Candidates get the invitation help; staff get help written for their role (UX-ADD-09). */}
+      <Link
+        href={role === "candidate" ? "/help/invitation" : "/staff/help"}
+        className="flex items-center gap-3 px-3 min-h-11 rounded-md text-sm font-medium text-foreground hover:bg-surface-sunken"
+      >
+        <Icon name="helpCircle" className="w-5 h-5 text-muted" />
+        {role === "candidate" ? text.invitationHelp : "Help"}
+      </Link>
     </>
   );
 
