@@ -51,7 +51,8 @@ export default async function CandidateResultDetailPage({ params }: { params: Pr
           category: i.competencies!.category,
           score: i.score,
           level: i.level,
-        }))
+        })),
+        { strength: w.strengthBlurb, growth: w.growthBlurb }
       )
     : null;
 

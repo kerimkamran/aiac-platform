@@ -495,6 +495,8 @@ export const en = {
       back: "All results",
       resultFallback: "Result",
       subtitle: "Your reviewed competency profile for this assessment.",
+      strengthBlurb: "One of your strongest areas in this assessment — keep looking for chances to apply {name} visibly, and consider mentoring others on it.",
+      growthBlurb: "An area with headroom. Practical next step: pick one real work situation in the next month where {name} matters, plan your approach in advance, and ask someone you trust for feedback afterwards.",
       howNote: "How to read this: each score compares your answers with the behavioural indicators for that competency, and a person has reviewed and confirmed it.",
       download: "Download PDF",
       overall: "Overall role fit",

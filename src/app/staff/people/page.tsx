@@ -50,6 +50,15 @@ type ProfileRow = {
   last_login_at?: string | null;
 };
 
+// One plain sentence per role, shown under the staff form (plan F7).
+const ROLE_BLURB: Record<string, string> = {
+  recruiter: "Invites candidates, builds tests, checks scores and records decisions.",
+  hiring_manager: "Reads results and records decisions for their own hiring; cannot build tests.",
+  hr_admin: "Everything a recruiter does, plus managing people and settings.",
+  org_admin: "Organisation-wide administration.",
+  system_admin: "Full control, including the Admin panel, roles and security.",
+};
+
 export default async function PeoplePage({
   searchParams,
 }: {
@@ -253,6 +262,14 @@ export default async function PeoplePage({
             Add & invite staff member
           </button>
         </form>
+        <dl className="mt-4 grid gap-1.5 text-xs text-muted">
+          {grantableStaffRoles.map((r) => (
+            <div key={r} className="flex gap-2">
+              <dt className="font-semibold text-foreground shrink-0">{ROLE_LABEL[r]}:</dt>
+              <dd>{ROLE_BLURB[r] ?? ""}</dd>
+            </div>
+          ))}
+        </dl>
       </Card>
 
       <Card id="bulk-upload" className="p-6 mb-8 scroll-mt-6">

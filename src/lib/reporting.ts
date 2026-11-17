@@ -184,12 +184,19 @@ export type DevelopmentFeedback = {
   growthAreas: { name: string; score: number; blurb: string }[];
 };
 
-export function buildDevelopmentFeedback(competencies: CompetencyLine[]): DevelopmentFeedback {
+export function buildDevelopmentFeedback(
+  competencies: CompetencyLine[],
+  // Sentences in the reader's language with {name} where the competency goes. English when absent.
+  blurbs: { strength: string; growth: string } = {
+    strength: "One of your strongest areas in this assessment — keep looking for chances to apply {name} visibly, and consider mentoring others on it.",
+    growth: "An area with headroom. Practical next step: pick one real work situation in the next month where {name} matters, plan your approach in advance, and ask someone you trust for feedback afterwards.",
+  }
+): DevelopmentFeedback {
   const sorted = [...competencies].sort((a, b) => b.score - a.score);
   const strengths = sorted.slice(0, 3).map((c) => ({
     name: c.name,
     score: Math.round(c.score),
-    blurb: `One of your strongest areas in this assessment — keep looking for chances to apply ${c.name.toLowerCase()} visibly, and consider mentoring others on it.`,
+    blurb: blurbs.strength.replace("{name}", c.name.toLowerCase()),
   }));
   const growthAreas = sorted
     .slice(-3)
@@ -198,7 +205,7 @@ export function buildDevelopmentFeedback(competencies: CompetencyLine[]): Develo
     .map((c) => ({
       name: c.name,
       score: Math.round(c.score),
-      blurb: `An area with headroom. Practical next step: pick one real work situation in the next month where ${c.name.toLowerCase()} matters, plan your approach in advance, and ask someone you trust for feedback afterwards.`,
+      blurb: blurbs.growth.replace("{name}", c.name.toLowerCase()),
     }));
   return { strengths, growthAreas };
 }

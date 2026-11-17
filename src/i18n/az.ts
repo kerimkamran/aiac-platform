@@ -494,6 +494,8 @@ export const az: Dict = {
       back: "Bütün nəticələr",
       resultFallback: "Nəticə",
       subtitle: "Bu qiymətləndirmə üzrə yoxlanılmış səriştə profiliniz.",
+      strengthBlurb: "Bu qiymətləndirmədə ən güclü sahələrinizdən biri — {name} səriştəsini işdə görünən şəkildə tətbiq etmək üçün imkanlar axtarın və bu mövzuda başqalarına mentorluq etməyi düşünün.",
+      growthBlurb: "İnkişaf üçün yer olan sahə. Praktik növbəti addım: növbəti ay ərzində {name} səriştəsinin vacib olduğu real bir iş vəziyyəti seçin, yanaşmanızı əvvəlcədən planlaşdırın və sonra etibar etdiyiniz birindən rəy istəyin.",
       howNote: "Necə oxumalı: hər bal cavablarınızı həmin səriştənin davranış göstəriciləri ilə müqayisə edir və bir insan onu nəzərdən keçirib təsdiq edib.",
       download: "PDF yüklə",
       overall: "Vəzifəyə ümumi uyğunluq",

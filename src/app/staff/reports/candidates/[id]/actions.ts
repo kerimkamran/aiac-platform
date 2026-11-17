@@ -1,6 +1,7 @@
 "use server";
 
 import { deadlineFromDate } from "@/lib/deadline";
+import { DECISION_OPTIONS, normalizePurpose } from "@/lib/purpose";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -22,10 +23,12 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
 
   const { data: target } = await supabase
     .from("candidate_assessments")
-    .select("status, candidate_id")
+    .select("status, candidate_id, assessments(purpose)")
     .eq("id", candidateAssessmentId)
     .maybeSingle();
   if (!target) redirect("/staff/reports/candidates?error=" + encodeURIComponent("That assessment was not found."));
+  const purpose = normalizePurpose((target!.assessments as unknown as { purpose: string | null } | null)?.purpose);
+  const allowedDecisions = DECISION_OPTIONS[purpose].map((o) => o.v);
 
   // Nobody decides on their own assessment.
   if (target.candidate_id === user!.id) {
@@ -36,21 +39,42 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
   if (!["submitted", "scored", "reviewed"].includes(target.status)) {
     redirect(`${back}?error=` + encodeURIComponent("The candidate hasn't submitted yet, so a decision can't be recorded."));
   }
-  if (!["shortlist", "hold", "reject"].includes(decision)) {
-    redirect(`${back}?error=` + encodeURIComponent("Choose shortlist, hold or reject."));
+  if (!allowedDecisions.includes(decision)) {
+    redirect(`${back}?error=` + encodeURIComponent("Choose one of the decisions offered for this assessment."));
+  }
+  // A negative decision always carries a short reason (plan F6).
+  const negative = ["reject", "not_yet_ready"].includes(decision);
+  if (negative && comment.trim().length < 3) {
+    redirect(`${back}?error=` + encodeURIComponent("Add a short reason before recording this decision."));
   }
 
-  await supabase.from("candidate_reviews").insert({
-    candidate_assessment_id: candidateAssessmentId,
-    reviewer_id: user!.id,
-    decision,
-    comment,
-  });
+  // A double click sends the same decision twice; the second is ignored (STF-B-08).
+  const { data: latest } = await supabase
+    .from("candidate_reviews")
+    .select("decision, comment, created_at")
+    .eq("candidate_assessment_id", candidateAssessmentId)
+    .eq("reviewer_id", user!.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const repeat =
+    latest && latest.decision === decision && (latest.comment || "") === comment && Date.now() - new Date(latest.created_at as string).getTime() < 15_000;
 
-  await supabase
-    .from("candidate_assessments")
-    .update({ status: "reviewed" })
-    .eq("id", candidateAssessmentId);
+  if (!repeat) {
+    const { error: insertError } = await supabase.from("candidate_reviews").insert({
+      candidate_assessment_id: candidateAssessmentId,
+      reviewer_id: user!.id,
+      decision,
+      comment,
+    });
+    if (insertError) redirect(`${back}?error=` + encodeURIComponent("The decision was not saved: " + insertError.message));
+
+    const { error: statusError } = await supabase
+      .from("candidate_assessments")
+      .update({ status: "reviewed" })
+      .eq("id", candidateAssessmentId);
+    if (statusError) redirect(`${back}?error=` + encodeURIComponent("The decision was saved, but the status did not change: " + statusError.message));
+  }
 
   revalidatePath(`/staff/reports/candidates/${candidateAssessmentId}`);
   // Land back on the page with a clear "saved" message and a way to the next

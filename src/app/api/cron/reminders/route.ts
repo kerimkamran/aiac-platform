@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailConfigured, pickLang, reminderEmail, sendEmail } from "@/lib/email";
 
+// The in-app reminder in the language of the test, like the email (language plan).
+const dueSoon = {
+  en: { title: (t: string) => `Due soon: ${t}`, body: (t: string, d: string) => `"${t}" is due on ${d}. Sign in to finish it.` },
+  az: { title: (t: string) => `Tezliklə bitir: ${t}`, body: (t: string, d: string) => `“${t}” üçün son tarix ${d}. Tamamlamaq üçün daxil olun.` },
+  ru: { title: (t: string) => `Скоро срок: ${t}`, body: (t: string, d: string) => `Срок для «${t}» — ${d}. Войдите, чтобы завершить.` },
+} as const;
+
 export const runtime = "nodejs";
 
 /** Daily deadline-reminder job (Vercel Cron, see vercel.json).
@@ -59,8 +66,8 @@ export async function GET(request: NextRequest) {
     // In the app first, so the reminder exists even when email is not set up.
     const { error: noteError } = await admin.from("notifications").insert({
       user_id: row.candidate_id,
-      title: `Due soon: ${title}`,
-      body: `"${title}" is due on ${dueLabel}. Sign in to finish it.`,
+      title: dueSoon[pickLang(test?.content_language)].title(title),
+      body: dueSoon[pickLang(test?.content_language)].body(title, dueLabel),
       link: "/candidate/assessments",
     });
     if (noteError) failures.push(`${candidate.email}: ${noteError.message}`);
