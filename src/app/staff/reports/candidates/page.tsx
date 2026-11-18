@@ -5,6 +5,8 @@ import { CandidateExportTable, type CandidateExportRow } from "@/components/Cand
 import { Callout } from "@/components/ui/Callout";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { getSessionProfile } from "@/lib/authz";
+import { buildCandidateAssessmentQuery } from "@/lib/candidate-filters";
+import { DataTablePagination } from "@/components/DataTable";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
@@ -20,27 +22,26 @@ const FILTERS = [
   { key: "reviewed", label: "Reviewed" },
 ];
 
+// STF-B-16: the list loaded every matching row with no paging, which both
+// silently truncated at the API's row-limit cap on a large org and made
+// "Export selected" build a URL with one id per row. Same server-side
+// filtering pattern as /admin/users and /staff/people (ilike + range).
+const PAGE_SIZE = 25;
+const LIST_SELECT =
+  "id, status, overall_score, invited_at, submitted_at, due_at, candidate:__CANDIDATE_REL__(full_name, email, department, last_login_at), assessments:__ASSESSMENT_REL__(title, vacancy_title)";
+
 export default async function StaffCandidatesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; q?: string; department?: string; vacancy?: string }>;
+  searchParams: Promise<{ status?: string; q?: string; department?: string; vacancy?: string; page?: string }>;
 }) {
-  const { status = "", q = "", department = "", vacancy = "" } = await searchParams;
+  const { status = "", q = "", department = "", vacancy = "", page: pageParam = "1" } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
   const supabase = await createClient();
   const me = await getSessionProfile();
   const canCopyLink = me?.role === "hr_admin" || me?.role === "system_admin";
 
-  let query = supabase
-    .from("candidate_assessments")
-    .select(
-      "id, status, overall_score, invited_at, submitted_at, due_at, candidate:profiles!candidate_assessments_candidate_id_fkey(full_name, email, department, last_login_at), assessments(title, vacancy_title)"
-    )
-    .order("invited_at", { ascending: false });
-  if (status) query = query.eq("status", status);
-
-  const { data: rows, error: loadError } = await query;
-
-  let list = (rows || []) as unknown as {
+  type Row = {
     id: string;
     status: string;
     overall_score: number | null;
@@ -49,34 +50,45 @@ export default async function StaffCandidatesPage({
     due_at: string | null;
     candidate: { full_name: string; email: string; department: string | null; last_login_at: string | null } | null;
     assessments: { title: string; vacancy_title: string | null } | null;
-  }[];
+  };
 
-  // The filter lists offer every value in the set being narrowed, not only what is left after narrowing (STF-B-13).
-  const departments = Array.from(new Set(list.map((r) => r.candidate?.department).filter(Boolean))) as string[];
+  const [{ data: rows, count, error: loadError }, { data: optionRows }] = await Promise.all([
+    buildCandidateAssessmentQuery(supabase, LIST_SELECT, { status, q, department, vacancy }, { count: "exact" })
+      .order("invited_at", { ascending: false })
+      .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1),
+    // The filter lists offer every value in the set being narrowed, not only
+    // what is left after narrowing (STF-B-13) -- so this one ignores
+    // q/department/vacancy and only respects the status tab, and it's a
+    // separate, narrow-column query rather than reusing the paginated result.
+    buildCandidateAssessmentQuery(
+      supabase,
+      "candidate:__CANDIDATE_REL__(department), assessments:__ASSESSMENT_REL__(title, vacancy_title)",
+      { status }
+    ),
+  ]);
+
+  const list = (rows || []) as unknown as Row[];
+  const total = count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  const optionList = (optionRows || []) as unknown as {
+    candidate: { department: string | null } | null;
+    assessments: { title: string; vacancy_title: string | null } | null;
+  }[];
+  const departments = Array.from(new Set(optionList.map((r) => r.candidate?.department).filter(Boolean))) as string[];
   const vacancies = Array.from(
-    new Set(list.map((r) => r.assessments?.vacancy_title || r.assessments?.title).filter(Boolean))
+    new Set(optionList.map((r) => r.assessments?.vacancy_title || r.assessments?.title).filter(Boolean))
   ) as string[];
 
-  if (q) {
-    const needle = q.toLowerCase();
-    list = list.filter(
-      (r) =>
-        r.candidate?.full_name?.toLowerCase().includes(needle) ||
-        r.candidate?.email?.toLowerCase().includes(needle) ||
-        r.assessments?.title?.toLowerCase().includes(needle)
-    );
-  }
-  if (department) list = list.filter((r) => r.candidate?.department === department);
-  if (vacancy) list = list.filter((r) => (r.assessments?.vacancy_title || r.assessments?.title) === vacancy);
-
   const qs = (overrides: Record<string, string>) => {
-    const params = new URLSearchParams({ status, q, department, vacancy, ...overrides });
-    for (const [k, v] of Array.from(params.entries())) if (!v) params.delete(k);
+    const params = new URLSearchParams({ status, q, department, vacancy, page: String(page), ...overrides });
+    for (const [k, v] of Array.from(params.entries())) if (!v || v === "1") params.delete(k);
     const s = params.toString();
     return s ? `?${s}` : "";
   };
 
-  const exportBase = `/staff/reports/candidates/export${qs({})}`;
+  const exportBase = `/staff/reports/candidates/export${qs({ page: "" })}`;
+  const pageHref = (p: number) => `/staff/reports/candidates${qs({ page: String(p) })}`;
 
   // Answers still waiting for a person to confirm them, counted per attempt.
   const flagCount = new Map<string, number>();
@@ -113,7 +125,7 @@ export default async function StaffCandidatesPage({
           {FILTERS.map((f) => (
             <Link
               key={f.key}
-              href={`/staff/reports/candidates${qs({ status: f.key })}`}
+              href={`/staff/reports/candidates${qs({ status: f.key, page: "1" })}`}
               aria-current={status === f.key ? "page" : undefined}
               className={`text-sm min-h-11 inline-flex items-center border-b-2 transition-colors ${
                 status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent hover:text-foreground hover:border-line"
@@ -179,6 +191,7 @@ export default async function StaffCandidatesPage({
         </Callout>
       ) : null}
       <CandidateExportTable rows={exportRows} exportBase={exportBase} canCopyLink={canCopyLink} />
+      {totalPages > 1 && <DataTablePagination pageNum={page} totalPages={totalPages} total={total} makeHref={pageHref} />}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { CopyInviteLinkButton } from "@/components/CopyInviteLinkButton";
 import { SetPasswordButton } from "@/components/SetPasswordButton";
 import { SelectAllCheckbox } from "@/components/SelectAllCheckbox";
 import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
+import { DataTablePagination } from "@/components/DataTable";
 import {
   addCandidate,
   addStaffMember,
@@ -37,6 +38,11 @@ const TOAST_SPECS: ToastSpec[] = [
 const STAFF_ROLE_OPTIONS = ["recruiter", "hiring_manager", "hr_admin", "system_admin"] as const;
 const ALL_ROLE_OPTIONS = ["candidate", ...STAFF_ROLE_OPTIONS] as const;
 
+// INV-B-27: People loaded every profile with no paging. Matches the
+// server-side search/filter/paginate pattern /admin/users already uses.
+const PAGE_SIZE = 25;
+const PROFILE_COLUMNS = "id, full_name, email, role, department, status, created_at, is_employee, job_title, last_login_at";
+
 type ProfileRow = {
   id: string;
   full_name: string;
@@ -62,9 +68,28 @@ const ROLE_BLURB: Record<string, string> = {
 export default async function PeoplePage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; added?: string; q?: string; role?: string; status?: string; edit?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    added?: string;
+    q?: string;
+    role?: string;
+    status?: string;
+    edit?: string;
+    staff_page?: string;
+    cand_page?: string;
+  }>;
 }) {
-  const { q = "", role: roleFilter = "", status: statusFilter = "", edit, error: flashError } = await searchParams;
+  const {
+    q = "",
+    role: roleFilter = "",
+    status: statusFilter = "",
+    edit,
+    error: flashError,
+    staff_page = "1",
+    cand_page = "1",
+  } = await searchParams;
+  const staffPage = Math.max(1, Number(staff_page) || 1);
+  const candPage = Math.max(1, Number(cand_page) || 1);
   const supabase = await createClient();
 
   const {
@@ -80,36 +105,64 @@ export default async function PeoplePage({
   const grantableStaffRoles = isSuperAdmin ? STAFF_ROLE_OPTIONS : (["recruiter", "hiring_manager"] as const);
   const grantableAllRoles = isSuperAdmin ? ALL_ROLE_OPTIONS : (["candidate", "recruiter", "hiring_manager"] as const);
 
-  const [{ data: profiles }, { data: assessmentOptions }] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, role, department, status, created_at, is_employee, job_title, last_login_at")
-      .order("created_at", { ascending: false }),
+  // PostgREST filter values are comma/paren-sensitive; strip them (and %) so
+  // user input can't alter the .or() expression (matches /admin/users).
+  const qSafe = q.trim().replace(/[,%()]/g, "");
+
+  // "pending_invite" isn't a real status column -- it's active + never
+  // signed in -- so it needs its own filter instead of a plain .eq().
+  let staffQuery = supabase.from("profiles").select(PROFILE_COLUMNS, { count: "exact" }).neq("role", "candidate");
+  if (qSafe) staffQuery = staffQuery.or(`full_name.ilike.%${qSafe}%,email.ilike.%${qSafe}%`);
+  if (roleFilter) staffQuery = staffQuery.eq("role", roleFilter);
+  if (statusFilter === "pending_invite") staffQuery = staffQuery.eq("status", "active").is("last_login_at", null);
+  else if (statusFilter) staffQuery = staffQuery.eq("status", statusFilter);
+
+  let candQuery = supabase.from("profiles").select(PROFILE_COLUMNS, { count: "exact" }).eq("role", "candidate");
+  if (qSafe) candQuery = candQuery.or(`full_name.ilike.%${qSafe}%,email.ilike.%${qSafe}%`);
+  if (statusFilter === "pending_invite") candQuery = candQuery.eq("status", "active").is("last_login_at", null);
+  else if (statusFilter) candQuery = candQuery.eq("status", statusFilter);
+
+  const [
+    { data: staffData, count: staffCount },
+    { data: candData, count: candCount },
+    { data: assessmentOptions },
+    { data: editingUserRow },
+  ] = await Promise.all([
+    staffQuery.order("created_at", { ascending: false }).range((staffPage - 1) * PAGE_SIZE, staffPage * PAGE_SIZE - 1),
+    candQuery.order("created_at", { ascending: false }).range((candPage - 1) * PAGE_SIZE, candPage * PAGE_SIZE - 1),
     supabase.from("assessments").select("id, title").eq("status", "published").order("title"),
+    // The person being edited may not be on the current page (or even match
+    // the current filters) once the list is paginated -- look them up directly.
+    edit
+      ? supabase.from("profiles").select(PROFILE_COLUMNS).eq("id", edit).maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
 
-  const allRows = (profiles || []) as unknown as ProfileRow[];
-  const editingUser = edit ? allRows.find((p) => p.id === edit) : undefined;
+  const staffRows = (staffData || []) as unknown as ProfileRow[];
+  const candidateRows = (candData || []) as unknown as ProfileRow[];
+  const staffTotal = staffCount ?? 0;
+  const candTotal = candCount ?? 0;
+  const staffTotalPages = Math.max(1, Math.ceil(staffTotal / PAGE_SIZE));
+  const candTotalPages = Math.max(1, Math.ceil(candTotal / PAGE_SIZE));
+  const editingUser = (editingUserRow as unknown as ProfileRow | null) || undefined;
 
-  const matchesSearch = (p: ProfileRow) => {
-    if (!q) return true;
-    const needle = q.toLowerCase();
-    return p.full_name.toLowerCase().includes(needle) || p.email.toLowerCase().includes(needle);
-  };
   const neverSignedIn = (p: ProfileRow) => p.status === "active" && !p.last_login_at;
-  const matchesStatus = (p: ProfileRow) =>
-    !statusFilter || (statusFilter === "pending_invite" ? neverSignedIn(p) : p.status === statusFilter);
-  const matchesRole = (p: ProfileRow) => !roleFilter || p.role === roleFilter;
-
-  const staffRows = allRows.filter((p) => p.role !== "candidate" && matchesSearch(p) && matchesStatus(p) && matchesRole(p));
-  const candidateRows = allRows.filter((p) => p.role === "candidate" && matchesSearch(p) && matchesStatus(p));
 
   const qs = (overrides: Record<string, string>) => {
-    const params = new URLSearchParams({ q, role: roleFilter, status: statusFilter, ...overrides });
-    for (const [k, v] of Array.from(params.entries())) if (!v) params.delete(k);
+    const params = new URLSearchParams({
+      q,
+      role: roleFilter,
+      status: statusFilter,
+      staff_page: String(staffPage),
+      cand_page: String(candPage),
+      ...overrides,
+    });
+    for (const [k, v] of Array.from(params.entries())) if (!v || v === "1") params.delete(k);
     const s = params.toString();
     return s ? `?${s}` : "";
   };
+  const staffPageHref = (p: number) => `/staff/people${qs({ staff_page: String(p) })}`;
+  const candPageHref = (p: number) => `/staff/people${qs({ cand_page: String(p) })}`;
 
   return (
     <div className="p-6 lg:p-10 max-w-6xl">
@@ -339,7 +392,7 @@ export default async function PeoplePage({
       </form>
 
       <Card className="p-0 mb-8">
-        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team ({staffRows.length})</p>
+        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Team ({staffTotal})</p>
         <form
           id="bulk-staff-form"
           action={bulkPeopleAction}
@@ -471,10 +524,15 @@ export default async function PeoplePage({
           </tbody>
         </table>
 </div>
+        {staffTotalPages > 1 && (
+          <div className="px-6 pb-5">
+            <DataTablePagination pageNum={staffPage} totalPages={staffTotalPages} total={staffTotal} makeHref={staffPageHref} />
+          </div>
+        )}
       </Card>
 
       <Card className="p-0 mb-8">
-        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Candidates ({candidateRows.length})</p>
+        <p className="text-sm font-bold text-foreground px-6 pt-5 pb-3">Candidates ({candTotal})</p>
         <form
           id="bulk-candidates-form"
           action={bulkPeopleAction}
@@ -615,6 +673,11 @@ export default async function PeoplePage({
           </tbody>
         </table>
 </div>
+        {candTotalPages > 1 && (
+          <div className="px-6 pb-5">
+            <DataTablePagination pageNum={candPage} totalPages={candTotalPages} total={candTotal} makeHref={candPageHref} />
+          </div>
+        )}
       </Card>
 
     </div>
