@@ -160,7 +160,7 @@ export default async function StaffCandidatesPage({
             name="q"
             defaultValue={q}
             placeholder="Search name, email or test"
-            className="w-full bg-surface border border-line rounded-md pl-8 pr-3 py-1.5 text-xs placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-md pl-8 pr-3 py-1.5 text-xs placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </form>
       </div>
@@ -173,7 +173,7 @@ export default async function StaffCandidatesPage({
           <select
             name="department"
             defaultValue={department}
-            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+            className="bg-surface border border-line-control rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All departments / structures</option>
             {departments.map((d) => (
@@ -185,7 +185,7 @@ export default async function StaffCandidatesPage({
           <select
             name="vacancy"
             defaultValue={vacancy}
-            className="bg-surface border border-line rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
+            className="bg-surface border border-line-control rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
             <option value="">All vacancies / assessments</option>
             {vacancies.map((v) => (

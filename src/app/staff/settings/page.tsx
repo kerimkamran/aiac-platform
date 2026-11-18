@@ -80,7 +80,7 @@ export default async function SettingsPage({
               name="subject"
               defaultValue={template?.subject || ""}
               required
-              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
           <div>
@@ -90,7 +90,7 @@ export default async function SettingsPage({
               defaultValue={template?.body_html || ""}
               required
               rows={8}
-              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent"
             />
           </div>
           <button className={buttonClass({ size: "md" })}>
@@ -164,7 +164,7 @@ export default async function SettingsPage({
                   name="api_key"
                   type="password"
                   placeholder={e.api_key_secret_id ? "•••••••••••• (set — leave blank to keep)" : "Paste API key"}
-                  className="flex-1 min-w-48 bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="flex-1 min-w-48 bg-surface border border-line-control rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <button className={buttonClass({ size: "sm" })}>
                   Save

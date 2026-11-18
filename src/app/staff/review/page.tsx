@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FocusDeck } from "@/components/horizon/FocusDeck";
 import { StatusBadge, ScoreBadge } from "@/components/ui";
 import { ButtonLink } from "@/components/ui/Button";
+import { VantageMark } from "@/components/VantageMark";
 import { ageLabel, relativeTimeLabel } from "@/lib/dates";
 
 export const metadata = { title: "Review mode" };
@@ -36,8 +37,11 @@ export default async function ReviewModePage({ searchParams }: { searchParams: P
   if (rows.length === 0) {
     return (
       <div className="container-page max-w-3xl py-16">
-        <h1 className="text-display text-foreground">You&apos;re all caught up.</h1>
-        <p className="mt-3 text-body-large text-muted">Nothing is waiting for review.</p>
+        {/* Moment W6: the queue is empty. The mark draws once; with reduce
+            motion it is simply shown. */}
+        <VantageMark animate tile={false} className="w-14 h-14 mb-6" />
+        <h1 className="text-display text-foreground">All reviewed. Nice work.</h1>
+        <p className="mt-3 text-body-large text-muted">Nothing is waiting for review right now.</p>
         <div className="mt-7">
           <ButtonLink href="/staff" variant="secondary" size="lg">
             Back to home

@@ -37,7 +37,7 @@ export function RoleLevelPicker({
           onChange={(e) => setJobTitle(e.target.value)}
           maxLength={120}
           placeholder="e.g. Customer Care Team Lead"
-          className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
       </div>
 

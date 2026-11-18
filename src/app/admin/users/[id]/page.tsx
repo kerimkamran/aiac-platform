@@ -194,16 +194,16 @@ export default async function AdminUserDetailPage({ params }: { params: Promise<
               {(!overrides || overrides.length === 0) && <p className="text-xs text-muted">No overrides.</p>}
             </div>
             <form action={addPermissionOverride.bind(null, id)} className="flex flex-wrap items-end gap-2.5">
-              <select name="permission_id" required className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm flex-1 min-w-44" aria-label="Permission">
+              <select name="permission_id" required className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm flex-1 min-w-44" aria-label="Permission">
                 {(perms || []).map((p) => (
                   <option key={p.id} value={p.id}>{p.module}.{p.action}</option>
                 ))}
               </select>
-              <select name="granted" className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Grant or deny">
+              <select name="granted" className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Grant or deny">
                 <option value="grant">Grant</option>
                 <option value="deny">Deny</option>
               </select>
-              <input name="expires_at" type="date" className="bg-surface border border-line rounded-xl px-3 py-2 text-sm" aria-label="Expires" />
+              <input name="expires_at" type="date" className="bg-surface border border-line-control rounded-xl px-3 py-2 text-sm" aria-label="Expires" />
               <button className={buttonClass({ size: "md" })}>Add</button>
             </form>
           </Card>

@@ -132,7 +132,7 @@ export function ContextCard({
           rows={3}
           maxLength={INSTRUCTIONS_MAX_CHARS + 500}
           placeholder="e.g. Focus on enterprise B2B clients; include a pricing conflict."
-          className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
         <p className="text-xs text-muted">
           {instructions.length.toLocaleString()} / {INSTRUCTIONS_MAX_CHARS.toLocaleString()} characters
@@ -156,7 +156,7 @@ export function ContextCard({
             onChange={(e) => patchCtx({ jobDescription: e.target.value })}
             rows={6}
             placeholder="Paste the job description, or upload one."
-            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <p className="text-xs text-muted">{ctx.jobDescription.length.toLocaleString()} / {JD_MAX_CHARS.toLocaleString()} characters</p>
         </div>
@@ -171,7 +171,7 @@ export function ContextCard({
             onChange={(e) => patchCtx({ notes: e.target.value })}
             rows={2}
             placeholder="e.g. Must handle the top-10 accounts; quarterly targets."
-            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <p className="text-xs text-muted">{ctx.notes.length.toLocaleString()} / {NOTES_MAX_CHARS.toLocaleString()} characters</p>
         </div>

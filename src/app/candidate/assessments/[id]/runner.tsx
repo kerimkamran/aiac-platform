@@ -522,7 +522,10 @@ export function AssessmentRunner({
           </div>
           {timerShown ? (
             <span
-              className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-timer ring-1 ring-inset ${
+              // Moment W10: the chip pulses once on crossing 5 minutes and
+              // again at 1 minute (a new key replays the one-shot animation).
+              key={secondsLeft !== null && secondsLeft <= 60 ? "last-minute" : low ? "low" : "normal"}
+              className={`inline-flex shrink-0 items-center gap-2 rounded-md px-3 py-1.5 text-timer ring-1 ring-inset ${low ? "timer-pulse " : ""}${
                 // Amber under five minutes, never red: running low is not a failure,
                 // and the countdown always submits safely at zero.
                 low ? "bg-warning-soft text-warning ring-warning/40" : "bg-surface text-foreground ring-line"
@@ -786,7 +789,7 @@ export function AssessmentRunner({
                   disabled={tabLocked}
                   rows={9}
                   placeholder={text.placeholder}
-                  className="w-full resize-y rounded-card border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
+                  className="w-full resize-y rounded-card border border-line-control bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <p className="mt-2 text-sm tabular-nums text-muted">
                   {pluralText(lang, (answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length, text.words)} {text.aim}

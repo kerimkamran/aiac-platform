@@ -1,4 +1,5 @@
 import { VantageMark } from "@/components/VantageMark";
+import { CountUp } from "@/components/CountUp";
 import Link from "next/link";
 
 import { Icon } from "@/components/ui/Icon";
@@ -263,7 +264,7 @@ export function ScoreRing({
           className="fill-foreground font-bold"
           style={{ fontSize: size / 3.4 }}
         >
-          {score}
+          <CountUp value={score} />
         </text>
       </svg>
       {label && (

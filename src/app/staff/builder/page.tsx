@@ -95,7 +95,7 @@ export default async function BuilderListPage({
               defaultValue={queryParam || ""}
               placeholder="Search by title or job title"
               aria-label="Search assessments"
-              className="flex-1 min-w-[12rem] bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              className="flex-1 min-w-[12rem] bg-surface border border-line-control rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <button className="text-sm font-semibold border border-line rounded-xl px-4 py-2 hover:border-accent">Filter</button>
           </form>
@@ -217,13 +217,13 @@ export default async function BuilderListPage({
                   name="title"
                   required
                   placeholder="e.g. Graduate Trainee — Core Assessment"
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <textarea
                   name="description"
                   placeholder="What this assessment measures and who it's for…"
                   rows={3}
-                  className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                  className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                 />
                 <div>
                   <label className="text-xs font-semibold text-muted block mb-1.5">Time limit (minutes)</label>
@@ -232,7 +232,7 @@ export default async function BuilderListPage({
                     type="number"
                     min={5}
                     defaultValue={60}
-                    className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                    className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                   />
                 </div>
                 <button className="w-full border border-line rounded-xl py-2.5 text-sm font-semibold hover:border-accent">Create blank draft</button>

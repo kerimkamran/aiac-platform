@@ -162,7 +162,8 @@ export const az: Dict = {
       button: "Sıfırlama keçidini göndər",
       pending: "Göndərilir…",
       sentTitle: "E-poçtunuzu yoxlayın",
-      sentBody: "Bu e-poçt üçün hesab varsa, sıfırlama keçidi yoldadır. Bir neçə dəqiqə çəkə bilər.",
+      sentBody: "Bu e-poçt üçün hesab varsa, sıfırlama keçidi yoldadır. Bir neçə dəqiqə çəkə bilər; keçid təxminən bir saat işləyir.",
+      noEmail: "10 dəqiqədən sonra e-poçt gəlmədi? Spam qovluğunu yoxlayın və dəvət olunduğunuz ünvanı yazdığınıza əmin olun. Yenə gəlməsə, HR əlaqəlinizə müraciət edin.",
     },
     setPassword: {
       title: "Parolunuzu təyin edin",

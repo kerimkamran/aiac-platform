@@ -193,7 +193,7 @@ export default async function PeoplePage({
               <select
                 name="role"
                 defaultValue={editingUser.role}
-                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               >
                 {grantableAllRoles.map((r) => (
                   <option key={r} value={r}>
@@ -211,7 +211,7 @@ export default async function PeoplePage({
                 name="department"
                 defaultValue={editingUser.department || ""}
                 placeholder="Optional"
-                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <div className="flex gap-2">
@@ -251,14 +251,14 @@ export default async function PeoplePage({
           </p>
           <p className="text-xs text-muted mb-4">Creates the account, assigns an assessment package, and emails an invite link to set a password.</p>
           <form action={addCandidate} className="space-y-3">
-            <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-            <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+            <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+            <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+            <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
             <div>
               <label className="text-xs font-semibold text-muted block mb-1">Assessment package</label>
               <select
                 name="assessment_id"
-                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                 defaultValue=""
               >
                 <option value="">Don&apos;t assign one yet</option>
@@ -279,7 +279,7 @@ export default async function PeoplePage({
                 name="due_date"
                 min={orgToday()}
                 title="Candidate is reminded 3 days before and can't start after this date"
-                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
             </div>
             <button className={buttonClass({ size: "md" })}>
@@ -300,16 +300,16 @@ export default async function PeoplePage({
           {!isSuperAdmin && "Only the super admin can grant Admin or Super Admin."}
         </p>
         <form action={addStaffMember} className="grid sm:grid-cols-2 gap-3">
-          <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-          <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
-          <select name="role" required className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+          <input name="full_name" required placeholder="Full name" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+          <input name="email" type="email" required placeholder="Email address" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+          <select name="role" required className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
             {grantableStaffRoles.map((r) => (
               <option key={r} value={r}>
                 {ROLE_LABEL[r]}
               </option>
             ))}
           </select>
-          <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
+          <input name="department" placeholder="Department / structure (optional)" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" />
           <button className={buttonClass({ size: "md", className: "sm:col-span-2" })}>
             <Icon name="plus" className="w-4 h-4" />
             Add & invite staff member
@@ -365,9 +365,9 @@ export default async function PeoplePage({
           name="q"
           defaultValue={q}
           placeholder="Search name or email…"
-          className="flex-1 min-w-48 max-w-xs bg-surface border border-line rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+          className="flex-1 min-w-48 max-w-xs bg-surface border border-line-control rounded-xl px-3.5 py-2 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
         />
-        <select name="role" defaultValue={roleFilter} className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
+        <select name="role" defaultValue={roleFilter} className="bg-surface border border-line-control rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
           <option value="">All roles</option>
           {STAFF_ROLE_OPTIONS.map((r) => (
             <option key={r} value={r}>
@@ -375,7 +375,7 @@ export default async function PeoplePage({
             </option>
           ))}
         </select>
-        <select name="status" defaultValue={statusFilter} className="bg-surface border border-line rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
+        <select name="status" defaultValue={statusFilter} className="bg-surface border border-line-control rounded-xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-accent">
           <option value="">Any status</option>
           <option value="active">Active</option>
           <option value="pending_invite">Invited, not signed in yet</option>
@@ -403,7 +403,7 @@ export default async function PeoplePage({
             name="bulk_action"
             defaultValue=""
             required
-            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+            className="bg-surface border border-line-control rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled>
               Choose an action…
@@ -415,7 +415,7 @@ export default async function PeoplePage({
           </select>
           <select
             name="bulk_role"
-            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+            className="bg-surface border border-line-control rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {grantableAllRoles.map((r) => (
               <option key={r} value={r}>
@@ -543,7 +543,7 @@ export default async function PeoplePage({
             name="bulk_action"
             defaultValue=""
             required
-            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+            className="bg-surface border border-line-control rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled>
               Choose an action…
@@ -556,7 +556,7 @@ export default async function PeoplePage({
           </select>
           <select
             name="bulk_role"
-            className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+            className="bg-surface border border-line-control rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {grantableAllRoles.map((r) => (
               <option key={r} value={r}>
@@ -567,7 +567,7 @@ export default async function PeoplePage({
           {(assessmentOptions || []).length > 0 && (
             <select
               name="bulk_assessment_id"
-              className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
+              className="bg-surface border border-line-control rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent"
               aria-label="Assessment to assign"
             >
               {(assessmentOptions || []).map((a) => (

@@ -68,7 +68,7 @@ export default async function SignoffsPage() {
                         name="comment"
                         rows={3}
                         placeholder="Optional notes to accompany your response…"
-                        className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-full bg-surface border border-line-control rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                       <div className="flex gap-2.5">
                         <button

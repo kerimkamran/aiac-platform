@@ -54,7 +54,7 @@ export default async function AdminApprovalsPage() {
                 ) : (
                   <div className="flex flex-wrap items-center gap-2.5 mt-3">
                     <form action={decideApproval.bind(null, r.id, "approved")} className="flex items-center gap-2">
-                      <input name="comment" placeholder="Comment (optional)" className="bg-surface border border-line rounded-xl px-3 py-2 text-xs w-44" aria-label="Approval comment" />
+                      <input name="comment" placeholder="Comment (optional)" className="bg-surface border border-line-control rounded-xl px-3 py-2 text-xs w-44" aria-label="Approval comment" />
                       <ConfirmSubmitButton
                         compact
                         icon="check"

@@ -77,7 +77,7 @@ export function SetPasswordButton({ userId, userName }: { userId: string; userNa
         placeholder="New password (min 8 chars)"
         minLength={8}
         required
-        className="bg-surface border border-line rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent w-44"
+        className="bg-surface border border-line-control rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-accent w-44"
       />
       <button
         type="submit"

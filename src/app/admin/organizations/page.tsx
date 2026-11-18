@@ -83,14 +83,14 @@ export default async function AdminOrganizationsPage() {
               <Icon name="plus" className="w-4 h-4 text-accent-dark" />
               Add unit
             </p>
-            <input name="name" required placeholder="e.g. Network Operations" className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Unit name" />
-            <select name="unit_type" required className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Unit type">
+            <input name="name" required placeholder="e.g. Network Operations" className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent" aria-label="Unit name" />
+            <select name="unit_type" required className="w-full bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Unit type">
               <option value="business_unit">Business unit</option>
               <option value="department">Department</option>
               <option value="team">Team</option>
               <option value="location">Location</option>
             </select>
-            <select name="parent_id" className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Parent unit">
+            <select name="parent_id" className="w-full bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Parent unit">
               <option value="">— top level —</option>
               {(units || []).map((u) => (
                 <option key={u.id} value={u.id}>{u.name}</option>

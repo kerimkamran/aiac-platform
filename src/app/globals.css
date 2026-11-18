@@ -499,6 +499,13 @@ a.text-accent-dark {
 .launch-arrow { transition: transform var(--dur-hover) var(--ease-standard); }
 .launch-tile:hover .launch-arrow, .launch-tile:focus-visible .launch-arrow { transform: translateX(4px); }
 
+/* Moment W10: one pulse when the timer turns low, never a continuous blink. */
+@keyframes timer-pulse {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+.timer-pulse { animation: timer-pulse 400ms var(--ease-standard) 1; }
 .anim-fade-in { animation: fade-in var(--dur-menu) var(--ease-standard) both; }
 .anim-menu { animation: menu-in var(--dur-menu) var(--ease-standard) both; }
 .anim-sheet { animation: sheet-in var(--dur-sheet) var(--ease-standard) both; }

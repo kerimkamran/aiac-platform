@@ -30,6 +30,7 @@ export function ResetForm({ t }: { t: Dict }) {
             <p className="text-base text-muted mt-1">{t.auth.reset.sentBody}</p>
           </div>
         </div>
+        <p className="text-sm text-muted">{t.auth.reset.noEmail}</p>
         <Link href="/login" className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline min-h-11">
           <Icon name="arrowLeft" className="w-4 h-4" />
           {t.common.backToSignIn}

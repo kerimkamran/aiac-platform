@@ -140,7 +140,7 @@ export function CopyInviteLinkButton({ email, className = "" }: { email: string;
             value={link}
             onFocus={(e) => e.currentTarget.select()}
             aria-label="Invite link"
-            className="w-full bg-surface border border-line rounded-md px-2 py-1 text-xs"
+            className="w-full bg-surface border border-line-control rounded-md px-2 py-1 text-xs"
           />
           <button type="button" onClick={() => setState("idle")} className="text-xs font-semibold text-accent-dark hover:underline">
             Close

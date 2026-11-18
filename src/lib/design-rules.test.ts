@@ -117,6 +117,23 @@ describe("redesign rules", () => {
     }
   });
 
+  // B6/B12: a form field's border must reach 3:1 against the page. The faint
+  // `border-line` token is for dividers and cards only; fields use
+  // `border-line-control`. Checks every raw <input>/<select>/<textarea> tag.
+  it("form fields use the 3:1 control border, not the divider border", () => {
+    const hits: string[] = [];
+    const token = /(?<![\w-])border-line(?![\w-])/;
+    for (const file of all) {
+      if (!file.endsWith(".tsx") || file.includes(path.join("components", "ui"))) continue;
+      const src = fs.readFileSync(file, "utf8");
+      for (const m of src.matchAll(/<(input|select|textarea)\b[^>]*>/g)) {
+        if (/type="(hidden|checkbox|radio)"/.test(m[0])) continue;
+        if (token.test(m[0])) hits.push(`${path.relative(SRC, file)}:${src.slice(0, m.index).split("\n").length}`);
+      }
+    }
+    expect(hits, hits.join("\n")).toEqual([]);
+  });
+
   it("the old cream and grey canvases and the signal blue are gone", () => {
     expect(css).not.toMatch(/data-canvas/);
     expect(css).not.toMatch(/#fcfaf5|#1d5aa6/i);

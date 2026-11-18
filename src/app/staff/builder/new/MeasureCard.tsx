@@ -155,7 +155,7 @@ export function MeasureCard({
             id="question-mix"
             value={mix}
             onChange={(e) => setMix(e.target.value as QuestionMix)}
-            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {MIXES.map((m) => (
               <option key={m.value} value={m.value}>
@@ -173,7 +173,7 @@ export function MeasureCard({
             id="purpose"
             value={purpose}
             onChange={(e) => setPurpose(e.target.value as AssessmentPurpose)}
-            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {PURPOSES.map((p) => (
               <option key={p.value} value={p.value}>
@@ -191,7 +191,7 @@ export function MeasureCard({
             id="language"
             value={language}
             onChange={(e) => setLanguage(e.target.value as GenerationLanguage)}
-            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             {LANGUAGES.map((l) => (
               <option key={l.value} value={l.value}>
@@ -215,7 +215,7 @@ export function MeasureCard({
               maxLength={120}
               onChange={(e) => setCustomTitle(e.target.value)}
               placeholder="Leave blank to use the job title and level"
-              className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <p className="text-xs text-muted">
               {draftCount > 1
@@ -231,7 +231,7 @@ export function MeasureCard({
             id="engine"
             value={engine}
             onChange={(e) => setEngine(e.target.value as EngineKey | "")}
-            className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
           >
             <option value="" disabled={!defaultUsable}>
               Default ({defaultEngineName}){defaultUsable ? "" : " — not available"}

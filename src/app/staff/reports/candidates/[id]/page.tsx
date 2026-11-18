@@ -1,9 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, setDeadline, reviewAnswer } from "./actions";
+import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, setDeadline, reviewAnswer, tellCandidateReviewed } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
-import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ProgressBar, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
 import { isUnreadByAi, readableRationale } from "@/lib/scoring";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
@@ -22,10 +22,10 @@ export default async function CandidateReviewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ decided?: string; conflictBy?: string; conflictAs?: string; conflictDecision?: string; conflictComment?: string }>;
+  searchParams: Promise<{ decided?: string; told?: string; conflictBy?: string; conflictAs?: string; conflictDecision?: string; conflictComment?: string }>;
 }) {
   const { id } = await params;
-  const { decided, conflictBy, conflictAs, conflictDecision, conflictComment } = await searchParams;
+  const { decided, told, conflictBy, conflictAs, conflictDecision, conflictComment } = await searchParams;
   // STF-B-12: stamped now, sent back unchanged by the decision form, so the
   // server action can tell whether someone else decided after this render.
   const loadedAtMs = nowMs();
@@ -98,7 +98,11 @@ export default async function CandidateReviewPage({
     supabase
       .from("candidate_responses")
       .select("id, response_text, selected_option, score, ai_rationale, needs_review, questions(prompt, question_type, options, competencies(name))")
-      .eq("candidate_assessment_id", id),
+      .eq("candidate_assessment_id", id)
+      // A stable order, so "Answer 3 of 8" and "next answer to check" agree
+      // with reviewAnswer()'s own ordering.
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true }),
     supabase
       .from("candidate_reviews")
       .select("decision, comment, created_at, reviewer_id, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
@@ -200,6 +204,9 @@ export default async function CandidateReviewPage({
   const reviewInfo = new Map(
     ((reviewRows || []) as unknown as { id: string; ai_score: number | null; reviewed_at: string | null; reviewer_note: string | null }[]).map((r) => [r.id, r])
   );
+  // F5: answers are checked one by one, as steps.
+  const checkedCount = responseRows.filter((r) => reviewInfo.get(r.id)?.reviewed_at).length;
+  const nextToCheck = responseRows.find((r) => !reviewInfo.get(r.id)?.reviewed_at);
 
   // T5.1: the sorted bar list is the primary at-a-glance read of competency
   // performance (per the confirmed radar-demotion decision below); the radar
@@ -298,7 +305,15 @@ export default async function CandidateReviewPage({
           ) : (
             <span>Nobody else is waiting for a decision.</span>
           )}
+          <form action={tellCandidateReviewed.bind(null, id)} className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm font-semibold text-foreground">Tell the candidate?</span>
+            <button className={buttonClass({ size: "sm", variant: "secondary" })}>Yes, let them know</button>
+            <span className="text-xs text-muted">They get a short message that their assessment was reviewed. The decision itself is not shown.</span>
+          </form>
         </Callout>
+      ) : null}
+      {told ? (
+        <Callout tone="good" title="The candidate has been told their assessment was reviewed." className="mb-6 no-print" />
       ) : null}
 
       <a href="#decision" className="lg:hidden inline-flex items-center min-h-11 text-sm font-semibold underline mb-4 no-print">
@@ -355,17 +370,36 @@ export default async function CandidateReviewPage({
       {responseRows.length > 0 && (
         <Card className="p-6 mb-6">
           <p className="text-sm font-bold text-foreground mb-1">Response evidence</p>
-          <p className="text-xs text-muted mb-6">
+          <p className="text-xs text-muted mb-4">
             What the candidate actually answered, with the AI&apos;s score and rationale for each — read this before the
             summary below.
           </p>
+          <div className="mb-6 no-print" role="status">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <p className="text-sm font-semibold text-foreground">
+                {checkedCount} of {responseRows.length} answers checked
+              </p>
+              {nextToCheck && canDecide && ["scored", "reviewed"].includes(ca.status) ? (
+                <a href={`#answer-${nextToCheck.id}`} className="inline-flex items-center gap-1.5 min-h-11 text-sm font-semibold text-accent hover:underline">
+                  Next answer to check
+                  <Icon name="arrowRight" className="w-4 h-4" />
+                </a>
+              ) : checkedCount === responseRows.length ? (
+                <span className="text-sm text-good font-semibold">All answers checked</span>
+              ) : null}
+            </div>
+            <ProgressBar value={responseRows.length ? (checkedCount / responseRows.length) * 100 : 0} barClass="bg-good" />
+          </div>
           <div className="space-y-6">
             {responseRows.map((r, i) => {
               const b = bandFor(r.score);
               return (
-                <div key={i} className="border border-line rounded-xl p-5">
+                <div key={r.id} id={`answer-${r.id}`} className="border border-line rounded-xl p-5 scroll-mt-24">
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-2.5">
                     <div>
+                      <p className="text-xs font-semibold text-muted mb-1">
+                        Answer {i + 1} of {responseRows.length}
+                      </p>
                       {r.questions?.competencies?.name && (
                         <p className="text-sm font-semibold text-accent-dark mb-1">
                           {r.questions.competencies.name}
@@ -694,7 +728,7 @@ export default async function CandidateReviewPage({
               min={orgToday()}
               defaultValue={currentDue ? new Date(currentDue).toLocaleDateString("en-CA", { timeZone: "Asia/Baku" }) : ""}
               aria-label="Deadline"
-              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="bg-surface border border-line-control rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <button className={buttonClass({ size: "sm" })}>Save deadline</button>
           </form>
@@ -806,7 +840,7 @@ export default async function CandidateReviewPage({
             name="comment"
             rows={3}
             placeholder="Reviewer notes — what stood out, what to probe in interview…"
-            className="w-full bg-surface border border-line rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <button className={buttonClass({ size: "md" })}>
             <Icon name="send" className="w-4 h-4" />

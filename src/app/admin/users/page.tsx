@@ -141,22 +141,22 @@ export default async function AdminUsersPage({
             name="q"
             defaultValue={q}
             placeholder="Search name, email, department…"
-            className="w-full bg-surface border border-line rounded-xl pl-10 pr-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+            className="w-full bg-surface border border-line-control rounded-xl pl-10 pr-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
         </div>
-        <select name="role" defaultValue={role} className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by role">
+        <select name="role" defaultValue={role} className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by role">
           <option value="">All roles</option>
           {ROLES.map((r) => (
             <option key={r} value={r}>{r.replace(/_/g, " ")}</option>
           ))}
         </select>
-        <select name="status" defaultValue={status} className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by status">
+        <select name="status" defaultValue={status} className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by status">
           <option value="">Any status</option>
           <option value="active">Active</option>
           <option value="suspended">Suspended</option>
           <option value="deactivated">Deactivated</option>
         </select>
-        <select name="type" defaultValue={type} className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by audience">
+        <select name="type" defaultValue={type} className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Filter by audience">
           <option value="">Everyone</option>
           <option value="employee">Internal employees</option>
           <option value="external">External candidates</option>

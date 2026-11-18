@@ -88,15 +88,15 @@ export default async function AdminAuditPage({
       </PageHeader>
 
       <form action="/admin/audit" className="flex flex-wrap items-center gap-2.5 mb-5">
-        <select name="module" defaultValue={module} className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm" aria-label="Module">
+        <select name="module" defaultValue={module} className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm" aria-label="Module">
           <option value="">All modules</option>
           {moduleOptions.map((m) => (
             <option key={m} value={m}>{m}</option>
           ))}
         </select>
-        <input name="q" defaultValue={q} placeholder="Action contains…" className="bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm w-44" aria-label="Action filter" />
-        <label className="text-xs text-muted">From <input name="from" type="date" defaultValue={from} className="bg-surface border border-line rounded-xl px-3 py-2 text-sm ml-1" /></label>
-        <label className="text-xs text-muted">To <input name="to" type="date" defaultValue={to} className="bg-surface border border-line rounded-xl px-3 py-2 text-sm ml-1" /></label>
+        <input name="q" defaultValue={q} placeholder="Action contains…" className="bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm w-44" aria-label="Action filter" />
+        <label className="text-xs text-muted">From <input name="from" type="date" defaultValue={from} className="bg-surface border border-line-control rounded-xl px-3 py-2 text-sm ml-1" /></label>
+        <label className="text-xs text-muted">To <input name="to" type="date" defaultValue={to} className="bg-surface border border-line-control rounded-xl px-3 py-2 text-sm ml-1" /></label>
         <button className={buttonClass({ size: "md" })}>Filter</button>
       </form>
 

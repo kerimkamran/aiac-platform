@@ -9,6 +9,7 @@ import { requireRole, STAFF_ROLES, logAudit } from "@/lib/authz";
 import { clampExtra } from "@/lib/exam-time";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recomputeTotals } from "@/lib/score-attempt";
+import { pickLang } from "@/lib/email";
 
 export async function submitReview(candidateAssessmentId: string, formData: FormData) {
   await requireRole(...STAFF_ROLES);
@@ -293,5 +294,56 @@ export async function reviewAnswer(candidateAssessmentId: string, responseId: st
   }
 
   revalidatePath(back);
-  redirect(`${back}?added=` + encodeURIComponent(mode === "change" ? "Score changed and totals updated." : "Score confirmed."));
+  // F5: land on the next answer still to check, in the page's own order.
+  const { data: remaining } = await db
+    .from("candidate_responses")
+    .select("id, reviewed_at")
+    .eq("candidate_assessment_id", candidateAssessmentId)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true });
+  const next = (remaining || []).find((r) => !(r as { reviewed_at: string | null }).reviewed_at) as { id: string } | undefined;
+  const message = mode === "change" ? "Score changed and totals updated." : "Score confirmed.";
+  redirect(
+    `${back}?added=` +
+      encodeURIComponent(next ? `${message} Next answer below.` : `${message} All answers are checked.`) +
+      (next ? `#answer-${next.id}` : "#decision")
+  );
+}
+
+// F6: after a decision, the reviewer chooses whether to tell the candidate.
+// The message is neutral on purpose -- it says the assessment has been
+// reviewed, never what was decided -- and is written in the test's language.
+const REVIEWED_NOTE = {
+  en: { title: (t: string) => `Your assessment has been reviewed: ${t}`, body: "The team has finished reviewing your answers. Sign in to see your next steps." },
+  az: { title: (t: string) => `Qiymətləndirməniz nəzərdən keçirildi: ${t}`, body: "Komanda cavablarınızı nəzərdən keçirdi. Növbəti addımları görmək üçün daxil olun." },
+  ru: { title: (t: string) => `Ваша оценка рассмотрена: ${t}`, body: "Команда завершила рассмотрение ваших ответов. Войдите, чтобы узнать дальнейшие шаги." },
+} as const;
+
+export async function tellCandidateReviewed(candidateAssessmentId: string) {
+  await requireRole(...STAFF_ROLES);
+  const supabase = await createClient();
+  const back = `/staff/reports/candidates/${candidateAssessmentId}`;
+
+  const { data: ca } = await supabase
+    .from("candidate_assessments")
+    .select("status, candidate_id, assessments(title, content_language)")
+    .eq("id", candidateAssessmentId)
+    .maybeSingle();
+  if (!ca || ca.status !== "reviewed") {
+    redirect(`${back}?error=` + encodeURIComponent("Record a decision before telling the candidate."));
+  }
+  const test = ca!.assessments as unknown as { title: string | null; content_language: string | null } | null;
+  const copy = REVIEWED_NOTE[pickLang(test?.content_language)];
+  const title = test?.title || "Vantage";
+
+  const { error } = await supabase.rpc("notify_user", {
+    p_user_id: ca!.candidate_id,
+    p_title: copy.title(title),
+    p_body: copy.body,
+    p_link: "/candidate",
+  });
+  if (error) redirect(`${back}?error=` + encodeURIComponent("The candidate could not be told: " + error.message));
+
+  await logAudit({ module: "reports", action: "candidate_told_reviewed", targetId: candidateAssessmentId, targetUserId: ca!.candidate_id, details: {} });
+  redirect(`${back}?told=1`);
 }

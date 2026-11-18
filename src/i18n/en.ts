@@ -163,7 +163,8 @@ export const en = {
       button: "Send reset link",
       pending: "Sending…",
       sentTitle: "Check your email",
-      sentBody: "If an account exists for that email, a reset link is on its way. It can take a few minutes.",
+      sentBody: "If an account exists for that email, a reset link is on its way. It can take a few minutes, and the link works for about an hour.",
+      noEmail: "No email after 10 minutes? Check your spam or junk folder and make sure it is the address you were invited with. Still nothing: ask your HR contact.",
     },
     setPassword: {
       title: "Set your password",

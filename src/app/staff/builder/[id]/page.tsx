@@ -59,7 +59,7 @@ function CompetencySelect({
       name={name}
       required={required}
       defaultValue=""
-      className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+      className="w-full bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
     >
       <option value="">{placeholder}</option>
       {groups.map((g) => (
@@ -209,13 +209,13 @@ export default async function BuilderDetailPage({
               name="title"
               required
               defaultValue={assessment.title}
-              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-background border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <textarea
               name="description"
               defaultValue={assessment.description || ""}
               rows={2}
-              className="w-full bg-background border border-line rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="w-full bg-background border border-line-control rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
             <div className="flex items-center gap-3">
               <label className="text-xs font-semibold text-muted shrink-0">Time limit (minutes)</label>
@@ -224,7 +224,7 @@ export default async function BuilderDetailPage({
                 type="number"
                 min={5}
                 defaultValue={assessment.time_limit_minutes}
-                className="w-32 bg-background border border-line rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-32 bg-background border border-line-control rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <button className={buttonClass({ size: "sm", className: "ml-auto" })}>
                 Save changes
@@ -377,7 +377,7 @@ export default async function BuilderDetailPage({
                         max={100}
                         defaultValue={section.target_score ?? ""}
                         placeholder="—"
-                        className="w-14 bg-surface border border-line rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-accent"
+                        className="w-14 bg-surface border border-line-control rounded-lg px-2 py-1 text-xs text-center focus:outline-none focus:ring-2 focus:ring-accent"
                       />
                       <button className="text-xs font-semibold text-accent-dark hover:underline">Set</button>
                     </form>
@@ -463,7 +463,7 @@ export default async function BuilderDetailPage({
                               name="prompt"
                               defaultValue={q.prompt}
                               rows={3}
-                              className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                              className="w-full bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                             />
                             {q.question_type === "mcq" && (
                               <fieldset className="space-y-2">
@@ -487,7 +487,7 @@ export default async function BuilderDetailPage({
                                         defaultValue={o?.text ?? ""}
                                         aria-label={`Option ${letter}`}
                                         placeholder={`Option ${letter}`}
-                                        className="flex-1 bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+                                        className="flex-1 bg-surface border border-line-control rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
                                       />
                                     </div>
                                   );
@@ -505,7 +505,7 @@ export default async function BuilderDetailPage({
                                 name="note"
                                 maxLength={300}
                                 placeholder="e.g. make it harder, more telecom"
-                                className="mt-1 w-full bg-surface border border-line rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-accent"
+                                className="mt-1 w-full bg-surface border border-line-control rounded-xl px-3 py-2 text-sm font-normal focus:outline-none focus:ring-2 focus:ring-accent"
                               />
                             </label>
                             <SubmitButton variant="secondary" pendingLabel="Generating…">Regenerate</SubmitButton>
@@ -531,7 +531,7 @@ export default async function BuilderDetailPage({
                     className="mt-4 space-y-3 bg-background rounded-xl p-4 border border-line"
                   >
                     <div className="grid sm:grid-cols-2 gap-3">
-                      <select name="question_type" className="bg-surface border border-line rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
+                      <select name="question_type" className="bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-accent">
                         <option value="text">Open response (text)</option>
                         <option value="mcq">Multiple choice</option>
                       </select>
@@ -542,7 +542,7 @@ export default async function BuilderDetailPage({
                       required
                       placeholder="Question prompt — e.g. 'Describe a time you had to deliver a result under a tight deadline…'"
                       rows={2}
-                      className="w-full bg-surface border border-line rounded-xl px-3 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                      className="w-full bg-surface border border-line-control rounded-xl px-3 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                     />
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[0, 1, 2, 3].map((i) => (
@@ -550,18 +550,18 @@ export default async function BuilderDetailPage({
                           key={i}
                           name="option_text"
                           placeholder={`Option ${String.fromCharCode(65 + i)} (MCQ)`}
-                          className="bg-surface border border-line rounded-xl px-3 py-2 text-xs placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                          className="bg-surface border border-line-control rounded-xl px-3 py-2 text-xs placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
                         />
                       ))}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted">
                       <label className="flex items-center gap-2">
                         Correct option (0 = A):
-                        <input name="correct_option" type="number" min={0} max={3} defaultValue={0} className="w-16 bg-surface border border-line rounded-lg px-2 py-1.5" />
+                        <input name="correct_option" type="number" min={0} max={3} defaultValue={0} className="w-16 bg-surface border border-line-control rounded-lg px-2 py-1.5" />
                       </label>
                       <label className="flex items-center gap-2">
                         Weight:
-                        <input name="weight" type="number" min={1} defaultValue={1} className="w-16 bg-surface border border-line rounded-lg px-2 py-1.5" />
+                        <input name="weight" type="number" min={1} defaultValue={1} className="w-16 bg-surface border border-line-control rounded-lg px-2 py-1.5" />
                       </label>
                     </div>
                     <button className={buttonClass({ size: "sm" })}>
@@ -586,7 +586,7 @@ export default async function BuilderDetailPage({
                 name="title"
                 required
                 placeholder="Section title — e.g. 'Communication scenarios'"
-                className="w-full bg-surface border border-line rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
+                className="w-full bg-surface border border-line-control rounded-xl px-3.5 py-2.5 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
               />
               <CompetencySelect name="competency_id" competencies={compList} required placeholder="Map to a competency…" />
               <button className={buttonClass({ size: "md", block: true })}>
@@ -661,7 +661,7 @@ export default async function BuilderDetailPage({
             <select
               name="storage_backend"
               defaultValue={proctoring?.storage_backend || "supabase"}
-              className="bg-surface border border-line rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
+              className="bg-surface border border-line-control rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             >
               <option value="supabase">Project database (Supabase secure storage)</option>
               <option value="local">Candidate&apos;s device only (not uploaded)</option>
