@@ -5,6 +5,8 @@ import { CandidateReportDocument, type ReportData } from "@/lib/pdf-report";
 import { buildExecutiveSummary, computeBenchmark, potentialFromCompetencies, talentBoxFor } from "@/lib/reporting";
 import { normalizePurpose } from "@/lib/purpose";
 import { readableRationale } from "@/lib/scoring";
+import { getT } from "@/i18n/server";
+import { pdfLang } from "@/lib/pdf-copy";
 
 export const runtime = "nodejs";
 
@@ -138,6 +140,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ),
     generatedAt: new Date().toISOString(),
     showAiRationale: !isCandidate,
+    // The fixed wording follows the language the downloader uses Vantage in.
+    lang: pdfLang((await getT()).lang),
   };
 
   const buffer = await renderToBuffer(<CandidateReportDocument data={data} />);

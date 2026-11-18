@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, StyleSheet, Svg, Path, Rect, Circle, Font } from "@react-pdf/renderer";
 import { BRAND as PALETTE } from "@/lib/brand";
 import { PDF_FONT_INTER_400, PDF_FONT_INTER_700 } from "@/lib/pdf-fonts";
+import { PDF_COPY, PDF_LOCALE, type PdfLang } from "@/lib/pdf-copy";
 
 // Registered once at load. Inter covers body text and headings, with Azerbaijani (ə ğ ı ş İ Ə) and Cyrillic glyphs; the built-in Helvetica
 // fonts cannot draw those characters.
@@ -66,11 +67,12 @@ const styles = StyleSheet.create({
   execComparison: { fontSize: 7.5, color: MUTED, borderTop: `1 solid ${LINE}`, paddingTop: 6, marginTop: 4 },
 });
 
-function bandInfo(score: number) {
-  if (score >= 85) return { label: "Exceeds Expectations", color: GOOD };
-  if (score >= 70) return { label: "Fully Meets Expectations", color: ACCENT };
-  if (score >= 50) return { label: "Partially Meets Expectations", color: WARN };
-  return { label: "Does Not Meet Expectations", color: CRIT };
+function bandInfo(score: number, lang: PdfLang = "en") {
+  const b = PDF_COPY[lang].bands;
+  if (score >= 85) return { label: b.exceeds, color: GOOD };
+  if (score >= 70) return { label: b.fully, color: ACCENT };
+  if (score >= 50) return { label: b.partially, color: WARN };
+  return { label: b.not, color: CRIT };
 }
 
 function recColor(label: string) {
@@ -113,6 +115,8 @@ export type ReportData = {
   showAiRationale?: boolean;
   decisions: { decision: string; comment: string; reviewer: string; createdAt: string }[];
   generatedAt: string;
+  // Language of the fixed wording; the downloader's own language (Batch 29).
+  lang?: PdfLang;
 };
 
 // The Vantage mark (redesign plan B7), drawn for the PDF: two views, links and
@@ -132,23 +136,21 @@ function LogoMark() {
 
 export function CandidateReportDocument({ data }: { data: ReportData }) {
   const showRationale = data.showAiRationale !== false;
-  const band = data.overallScore !== null ? bandInfo(data.overallScore) : null;
+  const lang: PdfLang = data.lang ?? "en";
+  const c = PDF_COPY[lang];
+  const cp = c; // inside the competency rows, `c` is the row
+  const locale = PDF_LOCALE[lang];
+  const band = data.overallScore !== null ? bandInfo(data.overallScore, lang) : null;
   const byCategory = ["Core", "Leadership", "Functional"]
     .map((cat) => ({ cat, rows: data.competencies.filter((c) => c.category === cat) }))
     .filter((g) => g.rows.length > 0);
 
   return (
-    // Design-execution-plan Phase 2 / T2.5: @react-pdf/renderer only exposes
-    // a document-level `language` (the PDF's own Lang catalog entry) --
-    // there's no per-Text override in this version, unlike the HTML report
-    // pages this mirrors. The report chrome (scores, labels, the always-
-    // English AI rationale -- see scoring.ts) is the overwhelming majority
-    // of the document, so "en" is the accurate declaration even though an
-    // Azerbaijani/Russian question or answer may appear inside it verbatim;
-    // that's a real gap in what this library can express, not a decision to
-    // mislabel the content. Previously unset entirely, which is its own
-    // accessibility gap (no declared document language at all).
-    <Document title={`${data.candidateName} — Assessment Report`} author="Vantage by Azerconnect Group" language="en">
+    // The document language is the language of the report's fixed wording
+    // (Batch 29: the downloader's own EN/AZ/RU). @react-pdf only supports a
+    // document-level language, so a question or answer written in another
+    // language still sits inside it verbatim.
+    <Document title={c.docTitle(data.candidateName)} author="Vantage by Azerconnect Group" language={lang}>
       <Page size="A4" style={styles.page}>
         <View style={styles.headerBar}>
           <View style={styles.brandBlock}>
@@ -158,7 +160,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
               <Text style={styles.brandSub}>BY AZERCONNECT GROUP</Text>
             </View>
           </View>
-          <Text style={styles.confidential}>CONFIDENTIAL{"\n"}Candidate Assessment Report</Text>
+          <Text style={styles.confidential}>{c.confidential}</Text>
         </View>
 
         <Text style={styles.h1}>{data.candidateName}</Text>
@@ -166,33 +168,33 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
 
         <View style={styles.metaRow}>
           <View>
-            <Text style={styles.metaLabel}>Assessment</Text>
+            <Text style={styles.metaLabel}>{c.assessment}</Text>
             <Text style={styles.metaValue}>{data.assessmentTitle}</Text>
           </View>
           {data.vacancyTitle && (
             <View>
-              <Text style={styles.metaLabel}>Vacancy</Text>
+              <Text style={styles.metaLabel}>{c.vacancy}</Text>
               <Text style={styles.metaValue}>{data.vacancyTitle}</Text>
             </View>
           )}
           {data.department && (
             <View>
-              <Text style={styles.metaLabel}>Department</Text>
+              <Text style={styles.metaLabel}>{c.department}</Text>
               <Text style={styles.metaValue}>{data.department}</Text>
             </View>
           )}
           <View>
-            <Text style={styles.metaLabel}>Submitted</Text>
-            <Text style={styles.metaValue}>{data.submittedAt ? new Date(data.submittedAt).toLocaleDateString() : "—"}</Text>
+            <Text style={styles.metaLabel}>{c.submitted}</Text>
+            <Text style={styles.metaValue}>{data.submittedAt ? new Date(data.submittedAt).toLocaleDateString(locale) : "—"}</Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Executive Summary</Text>
+        <Text style={styles.sectionTitle}>{c.executiveSummary}</Text>
 
         {data.executiveSummary && (
           <View style={styles.execCard} wrap={false}>
             <View style={styles.execHeadlineRow}>
-              <Text style={{ fontSize: 8.5, fontFamily: "Inter", fontWeight: 700, color: INK }}>AI-Assisted Synthesis</Text>
+              <Text style={{ fontSize: 8.5, fontFamily: "Inter", fontWeight: 700, color: INK }}>{c.aiSynthesis}</Text>
               <Text style={{ ...styles.execRecBadge, backgroundColor: recColor(data.executiveSummary.recommendationLabel) }}>
                 {data.executiveSummary.recommendationLabel.toUpperCase()}
               </Text>
@@ -200,23 +202,23 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
             <Text style={styles.execHeadline}>{data.executiveSummary.headline}</Text>
             <View style={styles.execCols}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.execColTitle}>Strengths</Text>
+                <Text style={styles.execColTitle}>{c.strengths}</Text>
                 {data.executiveSummary.strengths.length > 0 ? (
                   data.executiveSummary.strengths.map((s, i) => (
                     <Text key={i} style={styles.execLine}>• {s}</Text>
                   ))
                 ) : (
-                  <Text style={styles.execLine}>No standout competencies above 60 yet.</Text>
+                  <Text style={styles.execLine}>{c.noStrengths}</Text>
                 )}
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.execColTitle}>Development areas</Text>
+                <Text style={styles.execColTitle}>{c.developmentAreas}</Text>
                 {data.executiveSummary.developmentAreas.length > 0 ? (
                   data.executiveSummary.developmentAreas.map((s, i) => (
                     <Text key={i} style={styles.execLine}>• {s}</Text>
                   ))
                 ) : (
-                  <Text style={styles.execLine}>No competencies below 70 — solid across the board.</Text>
+                  <Text style={styles.execLine}>{c.noDevelopmentAreas}</Text>
                 )}
               </View>
             </View>
@@ -229,34 +231,28 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         <View style={styles.scoreCard}>
           <View style={styles.scoreBig}>
             <Text style={styles.scoreBigNum}>{data.overallScore !== null ? Math.round(data.overallScore) : "—"}</Text>
-            <Text style={styles.scoreBigLabel}>Overall role fit{"\n"}(out of 100)</Text>
+            <Text style={styles.scoreBigLabel}>{c.overallFit}</Text>
           </View>
           <View style={styles.scoreSummary}>
             <Text style={{ fontSize: 10, fontFamily: "Inter", fontWeight: 700, color: band?.color || MUTED, marginBottom: 4 }}>
-              {band?.label || "Not yet scored"}
+              {band?.label || c.notScored}
             </Text>
             <Text style={{ fontSize: 8.5, color: MUTED, lineHeight: 1.5 }}>
-              {showRationale
-                ? "Weighted average across all mapped competencies, combining AI-assisted scoring of situational and behavioral responses. This assessment is designed to be reviewed alongside interview evidence and is not intended as a sole basis for a hiring or promotion decision."
-                : "Weighted average across all mapped competencies. Each score was reviewed and confirmed by a person."}
-              {data.percentile !== null && data.percentile !== undefined
-                ? ` Scored higher than ${data.percentile}% of the ${data.peerCount} candidate(s) assessed for this role${
-                    data.peerAvg !== null && data.peerAvg !== undefined ? ` (peer average: ${data.peerAvg})` : ""
-                  }.`
-                : ""}
-              {data.boxLabel ? ` Talent Matrix placement: ${data.boxLabel}.` : ""}
-              {data.tabSwitchCount ? ` Integrity note: the candidate left the assessment tab ${data.tabSwitchCount} time(s) during the session.` : ""}
+              {showRationale ? c.summaryStaff : c.summaryCandidate}
+              {data.percentile !== null && data.percentile !== undefined ? c.peers(data.percentile, data.peerCount ?? 0, data.peerAvg ?? null) : ""}
+              {data.boxLabel ? c.talentMatrix(data.boxLabel) : ""}
+              {data.tabSwitchCount ? c.integrity(data.tabSwitchCount) : ""}
             </Text>
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>Competency Breakdown</Text>
+        <Text style={styles.sectionTitle}>{c.competencyBreakdown}</Text>
         {byCategory.map((group) => (
           <View key={group.cat} wrap={false}>
             <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6, marginTop: 6 }}>
-              <Text style={{ fontSize: 9, fontFamily: "Inter", fontWeight: 700, color: BRAND }}>{group.cat.toUpperCase()}</Text>
+              <Text style={{ fontSize: 9, fontFamily: "Inter", fontWeight: 700, color: BRAND }}>{c.category[group.cat] ?? group.cat.toUpperCase()}</Text>
               <Text style={{ fontSize: 8, fontFamily: "Inter", fontWeight: 700, color: MUTED }}>
-                avg {Math.round(group.rows.reduce((a, c) => a + c.score, 0) / group.rows.length)}
+                {c.avg} {Math.round(group.rows.reduce((a, c) => a + c.score, 0) / group.rows.length)}
               </Text>
             </View>
             {group.rows.map((c, i) => (
@@ -264,7 +260,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
                 <View style={styles.competencyLabelRow}>
                   <Text style={styles.competencyName}>{c.name}</Text>
                   <Text style={styles.competencyScore}>
-                    {Math.round(c.score)} · {c.level}
+                    {Math.round(c.score)} · {cp.levels[c.level] ?? c.level}
                   </Text>
                 </View>
                 <View style={styles.barTrack}>
@@ -276,18 +272,19 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         ))}
 
         <Text style={styles.sectionTitle} break>
-          Response Detail
+          {c.responseDetail}
         </Text>
         {data.responses.map((r, i) => (
           <View key={i} style={styles.questionBlock} wrap={false}>
             <Text style={styles.questionPrompt}>
               {i + 1}. {r.prompt}
             </Text>
-            <Text style={styles.questionAnswer}>{r.answer || "(no answer provided)"}</Text>
-            {showRationale && r.needsReview && <Text style={styles.needsReviewBadge}>NEEDS REVIEW -- low-confidence score, confirm before relying on it</Text>}
+            <Text style={styles.questionAnswer}>{r.answer || c.noAnswer}</Text>
+            {showRationale && r.needsReview && <Text style={styles.needsReviewBadge}>{c.needsReview}</Text>}
             {showRationale && (
               <Text style={styles.rationale}>
-                AI rationale ({Math.round(r.score)}/100): {r.rationale}
+                {c.aiRationale(Math.round(r.score))}
+                {r.rationale}
               </Text>
             )}
           </View>
@@ -295,7 +292,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
 
         {data.decisions.length > 0 && (
           <View>
-            <Text style={styles.sectionTitle}>Decision Log</Text>
+            <Text style={styles.sectionTitle}>{c.decisionLog}</Text>
             {data.decisions.map((d, i) => (
               <View key={i} style={styles.decisionRow}>
                 <Text style={{ ...styles.decisionBadge, backgroundColor: decisionColor(d.decision) }}>
@@ -303,7 +300,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
                 </Text>
                 <Text style={{ fontSize: 8.5, color: MUTED, flex: 1 }}>
                   <Text style={{ fontFamily: "Inter", fontWeight: 700, color: INK }}>{d.reviewer}</Text>
-                  {d.comment ? ` — "${d.comment}"` : ""} · {new Date(d.createdAt).toLocaleDateString()}
+                  {d.comment ? ` — "${d.comment}"` : ""} · {new Date(d.createdAt).toLocaleDateString(locale)}
                 </Text>
               </View>
             ))}
@@ -311,8 +308,8 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
         )}
 
         <View style={styles.footer} fixed>
-          <Text style={styles.footerText}>Generated {new Date(data.generatedAt).toLocaleString()} · Vantage by Azerconnect Group</Text>
-          <Text style={styles.footerText} render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
+          <Text style={styles.footerText}>{c.generated(new Date(data.generatedAt).toLocaleString(locale))} · Vantage by Azerconnect Group</Text>
+          <Text style={styles.footerText} render={({ pageNumber, totalPages }) => c.page(pageNumber, totalPages)} />
         </View>
       </Page>
     </Document>

@@ -3,6 +3,9 @@ import ExcelJS from "exceljs";
 import { createClient } from "@/lib/supabase/server";
 import { HEADER_FILL, HEADER_FONT, brandWorksheet } from "@/lib/excel-style";
 import { buildCandidateAssessmentQuery, chunk, fetchAllRows } from "@/lib/candidate-filters";
+import { EXCEL_COPY } from "@/lib/excel-copy";
+import { pdfLang } from "@/lib/pdf-copy";
+import { getT } from "@/i18n/server";
 
 export const runtime = "nodejs";
 
@@ -126,25 +129,28 @@ export async function GET(req: Request) {
   workbook.creator = "Vantage by Azerconnect Group";
   workbook.created = new Date();
 
-  const sheet = workbook.addWorksheet("Candidates", { views: [{ state: "frozen", ySplit: 1 }] });
+  // Batch 29: headers and fixed values in the downloader's own language.
+  const x = EXCEL_COPY[pdfLang((await getT()).lang)];
+  const sheet = workbook.addWorksheet(x.sheet, { views: [{ state: "frozen", ySplit: 1 }] });
 
+  const h = x.headers;
   sheet.columns = [
-    { header: "Full Name", key: "name", width: 26 },
-    { header: "Email", key: "email", width: 30 },
-    { header: "Department / Structure", key: "department", width: 22 },
-    { header: "Assessment", key: "assessment", width: 26 },
-    { header: "Vacancy", key: "vacancy", width: 22 },
-    { header: "Status", key: "status", width: 16 },
-    { header: "Overall role fit", key: "overall", width: 16 },
-    { header: "Core Avg", key: "core", width: 12 },
-    { header: "Leadership Avg", key: "leadership", width: 14 },
-    { header: "Functional Avg", key: "functional", width: 14 },
-    { header: "Tab Switches", key: "tabSwitches", width: 12 },
-    { header: "Invited At", key: "invitedAt", width: 18 },
-    { header: "Submitted At", key: "submittedAt", width: 18 },
-    { header: "Latest Decision", key: "decision", width: 14 },
-    { header: "Decided By", key: "decidedBy", width: 20 },
-    { header: "Decision Comment", key: "comment", width: 40 },
+    { header: h.name, key: "name", width: 26 },
+    { header: h.email, key: "email", width: 30 },
+    { header: h.department, key: "department", width: 22 },
+    { header: h.assessment, key: "assessment", width: 26 },
+    { header: h.vacancy, key: "vacancy", width: 22 },
+    { header: h.status, key: "status", width: 18 },
+    { header: h.overall, key: "overall", width: 18 },
+    { header: h.core, key: "core", width: 14 },
+    { header: h.leadership, key: "leadership", width: 16 },
+    { header: h.functional, key: "functional", width: 18 },
+    { header: h.tabSwitches, key: "tabSwitches", width: 16 },
+    { header: h.invitedAt, key: "invitedAt", width: 18 },
+    { header: h.submittedAt, key: "submittedAt", width: 18 },
+    { header: h.decision, key: "decision", width: 22 },
+    { header: h.decidedBy, key: "decidedBy", width: 20 },
+    { header: h.comment, key: "comment", width: 40 },
   ];
 
   sheet.getRow(1).font = HEADER_FONT;
@@ -163,7 +169,7 @@ export async function GET(req: Request) {
       department: r.candidate?.department || "",
       assessment: r.assessments?.title || "",
       vacancy: r.assessments?.vacancy_title || "",
-      status: r.status,
+      status: x.status[r.status] ?? r.status,
       overall: r.overall_score !== null ? Math.round(r.overall_score * 10) / 10 : null,
       core: categoryAvg(compRows, "Core"),
       leadership: categoryAvg(compRows, "Leadership"),
@@ -171,7 +177,7 @@ export async function GET(req: Request) {
       tabSwitches: r.tab_switch_count || 0,
       invitedAt: r.invited_at ? new Date(r.invited_at) : null,
       submittedAt: r.submitted_at ? new Date(r.submitted_at) : null,
-      decision: latest?.decision || "",
+      decision: latest?.decision ? (x.decision[latest.decision] ?? latest.decision) : "",
       decidedBy: latest?.reviewer?.full_name || "",
       comment: latest?.comment || "",
     });
