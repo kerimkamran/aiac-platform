@@ -111,7 +111,8 @@ export default async function CandidateReviewPage({
     .select("id, storage_path, consent_given_at, duration_seconds, created_at")
     .eq("candidate_assessment_id", id)
     .is("deleted_at", null)
-    .order("created_at", { ascending: false });
+    // Oldest first: an exam is recorded in consecutive parts (Part 1, 2, ...).
+    .order("created_at", { ascending: true });
 
   const recordingsWithUrls = await Promise.all(
     (recordings || []).map(async (r) => {
@@ -479,12 +480,13 @@ export default async function CandidateReviewPage({
           </p>
           <p className="text-xs text-muted mb-4">Consent-gated video captured during the assessment session.</p>
           <div className="space-y-3">
-            {recordingsWithUrls.map((r) => (
+            {recordingsWithUrls.map((r, i) => (
               <div key={r.id} className="flex items-center justify-between gap-4 border border-line rounded-xl px-4 py-3">
                 <div className="min-w-0 text-sm">
                   <p className="font-medium text-foreground">
+                    {recordingsWithUrls.length > 1 ? `Part ${i + 1} of ${recordingsWithUrls.length} · ` : ""}
                     {r.consent_given_at ? new Date(r.consent_given_at).toLocaleString() : "Unknown time"} ·{" "}
-                    {r.duration_seconds ? `${Math.round(r.duration_seconds / 60)} min` : "—"}
+                    {formatRecordingLength(r.duration_seconds)}
                   </p>
                   <p className="text-xs text-muted">
                     {r.url ? "Stored in project database" : "Recorded on candidate's device only — not uploaded"}
@@ -904,4 +906,10 @@ export default async function CandidateReviewPage({
       </div>
     </div>
   );
+}
+
+function formatRecordingLength(seconds: number | null): string {
+  if (!seconds) return "—";
+  if (seconds < 90) return `${Math.round(seconds)} sec`;
+  return `${Math.round(seconds / 60)} min`;
 }

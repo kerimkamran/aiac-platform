@@ -641,9 +641,8 @@ export default async function BuilderDetailPage({
           {proctoring == null && (
             <>
               {" "}
-              {purpose === "hiring"
-                ? "Defaulted on for hiring assessments — untick if this isn't needed."
-                : "Defaulted off for " + (purpose === "promotion" ? "promotion" : "development") + " assessments — existing employees typically don't need camera proctoring, but you can turn it on."}
+              No setting has been saved yet, so candidates take this test without the camera.
+              {purpose === "hiring" ? " Hiring tests usually record — tick the box and save to turn it on." : ""}
             </>
           )}
         </p>
@@ -652,7 +651,7 @@ export default async function BuilderDetailPage({
             <input
               type="checkbox"
               name="camera_enabled"
-              defaultChecked={proctoring ? proctoring.camera_enabled : purpose === "hiring"}
+              defaultChecked={proctoring?.camera_enabled ?? false}
               className="w-4 h-4 accent-[color:var(--brand)]"
             />
             Require camera recording for this assessment

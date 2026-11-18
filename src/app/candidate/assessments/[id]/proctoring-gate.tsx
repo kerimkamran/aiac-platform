@@ -27,8 +27,16 @@ function pickRecordingFormat(): { mime: string; ext: "webm" | "mp4" } | null {
 }
 
 // Uploading the recording must never hold up the submit for long: the answers
-// are already saved on the server.
-const UPLOAD_TIMEOUT_MS = 20_000;
+// are already saved on the server. Parts are small (see below), so this only
+// covers the last one, not the whole recording.
+const UPLOAD_TIMEOUT_MS = 8_000;
+
+// CAN-B-12: the whole exam's video used to sit in memory and go up as one file
+// only when the candidate pressed Submit -- the biggest request of the exam,
+// at the worst moment, and lost entirely if the page closed first. Instead the
+// recorder is restarted every SEGMENT_MS, so each part is a complete, playable
+// file of its own that is uploaded while the exam is still going.
+const SEGMENT_MS = 60_000;
 
 export function ProctoredAssessmentRunner({
   saveDraftAction,
@@ -67,9 +75,67 @@ export function ProctoredAssessmentRunner({
   const [errorMsg, setErrorMsg] = useState("");
   const mediaRef = useRef<MediaStream | null>(null);
   const recorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
+  const rotateTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number>(0);
   const formatRef = useRef<{ mime: string; ext: "webm" | "mp4" } | null>(null);
+  const userIdRef = useRef<string | null>(null);
+  const partRef = useRef(0);
+  const pendingRef = useRef<Set<Promise<void>>>(new Set());
+  const savedPartsRef = useRef(0);
+  const stoppedRef = useRef(false);
+
+  // Uploads one finished part and records it, so the reviewer sees every part
+  // that made it to the server even if a later one is lost.
+  const uploadPart = useCallback(
+    (blob: Blob, part: number, partStartedAt: number) => {
+      const format = formatRef.current;
+      const userId = userIdRef.current;
+      if (!format || !userId || blob.size === 0) return;
+      const job = (async () => {
+        const supabase = createClient();
+        const contentType = format.mime.split(";")[0];
+        const path = `${userId}/${caId}/part-${String(part).padStart(3, "0")}-${partStartedAt}.${format.ext}`;
+        const { error: uploadError } = await supabase.storage.from("proctoring").upload(path, blob, { contentType, upsert: false });
+        if (uploadError) return;
+        const { error: rowError } = await supabase.from("proctoring_recordings").insert({
+          candidate_assessment_id: caId,
+          storage_path: path,
+          consent_given_at: new Date(startedAtRef.current || partStartedAt).toISOString(),
+          duration_seconds: Math.max(1, Math.round((Date.now() - partStartedAt) / 1000)),
+        });
+        if (!rowError) savedPartsRef.current += 1;
+      })().catch(() => {});
+      pendingRef.current.add(job);
+      void job.finally(() => pendingRef.current.delete(job));
+    },
+    [caId]
+  );
+
+  // Starts a fresh recorder on the open camera stream. Its own chunks become
+  // one playable file when it stops.
+  const startPart = useCallback(() => {
+    const stream = mediaRef.current;
+    const format = formatRef.current;
+    if (!stream || !format || stoppedRef.current) return;
+    const recorder = new MediaRecorder(stream, { mimeType: format.mime });
+    const chunks: Blob[] = [];
+    const part = (partRef.current += 1);
+    const partStartedAt = Date.now();
+    recorder.ondataavailable = (e) => {
+      if (e.data.size > 0) chunks.push(e.data);
+    };
+    recorder.onstop = () => uploadPart(new Blob(chunks, { type: format.mime.split(";")[0] }), part, partStartedAt);
+    recorder.start(1000);
+    recorderRef.current = recorder;
+  }, [uploadPart]);
+
+  const stopPart = useCallback(() => {
+    const recorder = recorderRef.current;
+    recorderRef.current = null;
+    try {
+      if (recorder && recorder.state !== "inactive") recorder.stop();
+    } catch {}
+  }, []);
 
   const requestAccess = useCallback(async () => {
     setStage("requesting");
@@ -77,17 +143,21 @@ export function ProctoredAssessmentRunner({
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
       mediaRef.current = stream;
       startedAtRef.current = Date.now();
+      stoppedRef.current = false;
 
       const format = pickRecordingFormat();
       formatRef.current = format;
       if (storageBackend === "supabase" && format) {
-        const recorder = new MediaRecorder(stream, { mimeType: format.mime });
-        chunksRef.current = [];
-        recorder.ondataavailable = (e) => {
-          if (e.data.size > 0) chunksRef.current.push(e.data);
-        };
-        recorder.start(1000);
-        recorderRef.current = recorder;
+        const supabase = createClient();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        userIdRef.current = user?.id ?? null;
+        startPart();
+        rotateTimerRef.current = setInterval(() => {
+          stopPart();
+          startPart();
+        }, SEGMENT_MS);
       }
 
       setStage("recording");
@@ -95,7 +165,7 @@ export function ProctoredAssessmentRunner({
       setErrorMsg(text.gate.blocked);
       setStage("error");
     }
-  }, [storageBackend, text.gate.blocked]);
+  }, [storageBackend, startPart, stopPart, text.gate.blocked]);
 
   // Allowed earlier on the "ready to begin" page: start by itself.
   useEffect(() => {
@@ -108,12 +178,14 @@ export function ProctoredAssessmentRunner({
   }, [caId, requestAccess]);
 
   // The camera never keeps running once the candidate leaves the exam
-  // (Save and exit, closing the tab, navigating away).
+  // (Save and exit, closing the tab, navigating away). The part in progress
+  // is still handed to the uploader on the way out.
   useEffect(() => {
     const stop = () => {
-      try {
-        if (recorderRef.current && recorderRef.current.state !== "inactive") recorderRef.current.stop();
-      } catch {}
+      stoppedRef.current = true;
+      if (rotateTimerRef.current) clearInterval(rotateTimerRef.current);
+      rotateTimerRef.current = null;
+      stopPart();
       mediaRef.current?.getTracks().forEach((t) => t.stop());
     };
     window.addEventListener("pagehide", stop);
@@ -121,56 +193,46 @@ export function ProctoredAssessmentRunner({
       window.removeEventListener("pagehide", stop);
       stop();
     };
-  }, []);
+  }, [stopPart]);
 
   const stopAndUpload = useCallback(async () => {
     const durationSeconds = startedAtRef.current ? Math.round((Date.now() - startedAtRef.current) / 1000) : 0;
-    const stream = mediaRef.current;
+    stoppedRef.current = true;
+    if (rotateTimerRef.current) clearInterval(rotateTimerRef.current);
+    rotateTimerRef.current = null;
+
     const recorder = recorderRef.current;
-
-    let storagePath: string | null = null;
-
-    if (recorder && storageBackend === "supabase") {
-      const stopped = new Promise<void>((resolve) => {
-        recorder.onstop = () => resolve();
-      });
-      if (recorder.state !== "inactive") recorder.stop();
+    if (recorder && recorder.state !== "inactive") {
+      const stopped = new Promise<void>((resolve) => recorder.addEventListener("stop", () => resolve(), { once: true }));
+      stopPart();
       await Promise.race([stopped, new Promise<void>((r) => setTimeout(r, 3000))]);
+    }
 
-      const format = formatRef.current ?? { mime: "video/webm", ext: "webm" as const };
-      const upload = (async () => {
+    // Non-fatal: submit anyway if the last part is slow or fails.
+    await Promise.race([
+      Promise.allSettled(Array.from(pendingRef.current)),
+      new Promise<void>((r) => setTimeout(r, UPLOAD_TIMEOUT_MS)),
+    ]);
+
+    mediaRef.current?.getTracks().forEach((t) => t.stop());
+
+    // Nothing reached the server (local-only setting, unsupported browser, or
+    // every upload failed): still leave a row so the reviewer can see a
+    // session took place with consent, and for how long.
+    if (savedPartsRef.current === 0) {
+      try {
         const supabase = createClient();
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) return null;
-        const blob = new Blob(chunksRef.current, { type: format.mime.split(";")[0] });
-        const path = `${user.id}/${caId}.${format.ext}`;
-        const { error: uploadError } = await supabase.storage.from("proctoring").upload(path, blob, {
-          contentType: format.mime.split(";")[0],
-          upsert: true,
+        await supabase.from("proctoring_recordings").insert({
+          candidate_assessment_id: caId,
+          storage_path: null,
+          consent_given_at: new Date(startedAtRef.current || Date.now()).toISOString(),
+          duration_seconds: durationSeconds,
         });
-        return uploadError ? null : path;
-      })().catch(() => null);
-      // Non-fatal: submit anyway if the upload fails or is slow.
-      storagePath = await Promise.race([upload, new Promise<null>((r) => setTimeout(() => r(null), UPLOAD_TIMEOUT_MS))]);
-      chunksRef.current = [];
+      } catch {
+        // Non-fatal.
+      }
     }
-
-    stream?.getTracks().forEach((t) => t.stop());
-
-    try {
-      const supabase = createClient();
-      await supabase.from("proctoring_recordings").insert({
-        candidate_assessment_id: caId,
-        storage_path: storagePath,
-        consent_given_at: new Date(startedAtRef.current || Date.now()).toISOString(),
-        duration_seconds: durationSeconds,
-      });
-    } catch {
-      // Non-fatal.
-    }
-  }, [caId, storageBackend]);
+  }, [caId, stopPart]);
 
   const wrappedSubmitAction = useCallback(
     async (formData: FormData) => {

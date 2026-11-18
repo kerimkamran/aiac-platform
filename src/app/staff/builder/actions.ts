@@ -915,7 +915,10 @@ export async function duplicateAssessment(assessmentId: string) {
     const rest: Record<string, unknown> = { ...(proctoring as Record<string, unknown>) };
     delete rest.id;
     delete rest.assessment_id;
-    const { error: pErr } = await supabase.from("proctoring_settings").insert({ ...rest, assessment_id: created.id });
+    // Upsert: the database already gave the copy a default row (0025).
+    const { error: pErr } = await supabase
+      .from("proctoring_settings")
+      .upsert({ ...rest, assessment_id: created.id }, { onConflict: "assessment_id" });
     if (pErr) return abandonCopy(pErr.message);
   }
 
