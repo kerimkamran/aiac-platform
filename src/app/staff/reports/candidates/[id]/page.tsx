@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { submitReview, deleteProctoringRecording, requestManagerSignoff, releaseFeedback, setExtraTime, setDeadline, reviewAnswer, tellCandidateReviewed } from "./actions";
 import { ExtraTimeCard } from "@/components/ExtraTimeCard";
 import { Avatar, BenchmarkCard, Card, ExecutiveSummaryCard, Icon, ProgressBar, ScoreRing, ScoringDisclosure, StatusBadge, bandFor, categoryStyle } from "@/components/ui";
+import { checkNonsense } from "@/lib/nonsense";
 import { isUnreadByAi, readableRationale } from "@/lib/scoring";
 import { RadarChart } from "@/components/charts";
 import { PrintButton } from "@/components/print-button";
@@ -410,6 +411,19 @@ export default async function CandidateReviewPage({
                       </p>
                     </div>
                     <span className="flex items-center gap-2 shrink-0">
+                      {(() => {
+                        // Batch 28: also catches answers scored before this check existed.
+                        const junk = checkNonsense(r.response_text);
+                        return junk.nonsense ? (
+                          <span
+                            className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-critical-soft text-critical ring-1 ring-inset ring-critical/30"
+                            title={`This does not look like a real answer: ${junk.reason}.`}
+                          >
+                            <Icon name="alertTriangle" className="w-3 h-3" />
+                            Not a real answer?
+                          </span>
+                        ) : null;
+                      })()}
                       {r.needs_review && (
                         <span
                           className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"

@@ -17,3 +17,32 @@ describe("old-engine rationale", () => {
     expect(isUnreadByAi("Clear, specific example.")).toBe(false);
   });
 });
+
+describe("fallback scorer and nonsense answers", () => {
+  it("scores random keys 0, flags them and says why", async () => {
+    const { scoreTextResponse, isUnreadByAi } = await import("./scoring");
+    const r = await scoreTextResponse({
+      questionPrompt: "What do you do first?",
+      responseText: "asdf qwerty sdfgh",
+      competency: { name: "Customer focus", description: null, indicators: [] },
+      engine: null,
+      apiKey: null,
+    });
+    expect(r.score).toBe(0);
+    expect(r.needsReview).toBe(true);
+    expect(r.rationale).toMatch(/does not look like a real answer/);
+    expect(isUnreadByAi(r.rationale)).toBe(true);
+  });
+
+  it("still scores a real answer by length and structure", async () => {
+    const { scoreTextResponse } = await import("./scoring");
+    const r = await scoreTextResponse({
+      questionPrompt: "What do you do first?",
+      responseText: "I call the client first. Then I agree a fix with the network team. I promise a follow-up within the hour.",
+      competency: { name: "Customer focus", description: null, indicators: [] },
+      engine: null,
+      apiKey: null,
+    });
+    expect(r.score).toBeGreaterThan(30);
+  });
+});

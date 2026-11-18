@@ -18,6 +18,7 @@
 
 import { extractJson } from "./ai-engine";
 import { LEVELS, type LevelKey } from "./levels";
+import { checkNonsense } from "./nonsense";
 
 // Rationales written by the fallback start with this text, so reports can say
 // which answers were not read by the AI scorer.
@@ -76,6 +77,18 @@ export type ScoringEngine = "claude" | "fugu" | "kimi";
  *  rather than pretending to read for content it can't judge fairly. */
 function scoreTextHeuristic(text: string): ScoreResult {
   const clean = (text || "").trim();
+
+  // Counting words gave random keys or "test test test" the base 30/100.
+  // An answer that is not an answer scores 0 and says why.
+  const junk = checkNonsense(clean);
+  if (junk.nonsense) {
+    return {
+      score: 0,
+      rationale: `${FALLBACK_RATIONALE_PREFIX}: this does not look like a real answer (${junk.reason}), so it scored 0. Read it yourself and set the score if it is a genuine attempt.`,
+      needsReview: true,
+    };
+  }
+
   const words = clean.split(/\s+/).filter(Boolean);
   const wordCount = words.length;
   const sentenceEnders = (clean.match(/[.!?]/g) || []).length;
