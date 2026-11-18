@@ -6,7 +6,7 @@ import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { nowMs } from "@/lib/time";
 import { buttonClass } from "@/components/ui/Button";
-import { ageLabel } from "@/lib/dates";
+import { ageLabel, relativeTimeLabel } from "@/lib/dates";
 import { candidateTrail } from "@/lib/candidate-trail";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { CopyInviteLinkButton } from "@/components/CopyInviteLinkButton";
@@ -22,6 +22,11 @@ export type CandidateExportRow = {
   lastLoginAt?: string | null;
   // Answers the scorer was not sure about and nobody has confirmed yet.
   flags?: number;
+  // STF-B-12: who most recently decided, and when -- so two reviewers
+  // deciding on the same candidate at once is visible here too, not only on
+  // the report page.
+  decidedBy?: string | null;
+  decidedAt?: string | null;
   candidate: { full_name: string; email: string } | null;
   assessments: { title: string } | null;
 };
@@ -125,6 +130,11 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
             {trail.current}
           </li>
         </ol>
+        {r.decidedBy && (
+          <p className="text-xs text-muted">
+            Decided by <span className="font-semibold text-foreground">{r.decidedBy}</span> · {relativeTimeLabel(r.decidedAt)}
+          </p>
+        )}
         </div>
         );
       },

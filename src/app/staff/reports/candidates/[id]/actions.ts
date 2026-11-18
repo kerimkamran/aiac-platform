@@ -48,6 +48,32 @@ export async function submitReview(candidateAssessmentId: string, formData: Form
     redirect(`${back}?error=` + encodeURIComponent("Add a short reason before recording this decision."));
   }
 
+  // STF-B-12: two reviewers can otherwise decide at once with neither knowing.
+  // A second reviewer whose page loaded before the first one decided had no
+  // way to see that -- surface it instead of quietly layering on a second
+  // decision. `force` is set once the reviewer has seen that banner and
+  // chosen to add their decision anyway; `loaded_at` is the page's own
+  // render time, sent back unchanged by the form.
+  const loadedAtMs = Number(formData.get("loaded_at"));
+  const force = formData.get("force") === "1";
+  if (!force && Number.isFinite(loadedAtMs)) {
+    const { data: raceReview } = await supabase
+      .from("candidate_reviews")
+      .select("decision, created_at, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
+      .eq("candidate_assessment_id", candidateAssessmentId)
+      .neq("reviewer_id", user!.id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (raceReview && new Date(raceReview.created_at as string).getTime() > loadedAtMs) {
+      const reviewerName = (raceReview.reviewer as unknown as { full_name: string } | null)?.full_name || "Another reviewer";
+      redirect(
+        `${back}?conflictBy=${encodeURIComponent(reviewerName)}&conflictAs=${encodeURIComponent(raceReview.decision)}` +
+          `&conflictDecision=${encodeURIComponent(decision)}&conflictComment=${encodeURIComponent(comment)}`
+      );
+    }
+  }
+
   // A double click sends the same decision twice; the second is ignored (STF-B-08).
   const { data: latest } = await supabase
     .from("candidate_reviews")

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { FocusDeck } from "@/components/horizon/FocusDeck";
 import { StatusBadge, ScoreBadge } from "@/components/ui";
 import { ButtonLink } from "@/components/ui/Button";
-import { ageLabel } from "@/lib/dates";
+import { ageLabel, relativeTimeLabel } from "@/lib/dates";
 
 export const metadata = { title: "Review mode" };
 
@@ -52,6 +52,20 @@ export default async function ReviewModePage({ searchParams }: { searchParams: P
   const row = rows[index];
   const href = (k: number) => `/staff/review?i=${k}`;
 
+  // STF-B-12: this deck only ever shows attempts still at status "scored",
+  // which normally means nobody has decided yet -- but a decision whose
+  // status update failed partway (see submitReview) can leave a review row
+  // behind while the status stays "scored", so this is a defensive check,
+  // not the common case. Only the one displayed card needs it.
+  const { data: existingReview } = await supabase
+    .from("candidate_reviews")
+    .select("decision, created_at, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
+    .eq("candidate_assessment_id", row.id)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const existingReviewRow = existingReview as unknown as { decision: string; created_at: string; reviewer: { full_name: string } | null } | null;
+
   return (
     <div className="container-page max-w-3xl py-8 lg:py-12">
       <Link href="/staff" className="inline-flex min-h-11 items-center text-sm font-semibold text-accent hover:underline">
@@ -75,6 +89,12 @@ export default async function ReviewModePage({ searchParams }: { searchParams: P
             </span>
           )}
         </div>
+        {existingReviewRow && (
+          <p className="mt-2 text-sm text-warning">
+            Already decided by <span className="font-semibold">{existingReviewRow.reviewer?.full_name || "a reviewer"}</span> ·{" "}
+            {relativeTimeLabel(existingReviewRow.created_at)} — open it to check before deciding again.
+          </p>
+        )}
       </FocusDeck>
     </div>
   );

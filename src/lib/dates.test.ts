@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ageLabel, daysSince, dueLabel, dueLabelIn, fillText, formatDateIn, greeting, greetingIn, pluralForm } from "./dates";
+import { ageLabel, daysSince, dueLabel, dueLabelIn, fillText, formatDateIn, greeting, greetingIn, pluralForm, relativeTimeLabel } from "./dates";
 import { az } from "@/i18n/az";
 import { en } from "@/i18n/en";
 import { ru } from "@/i18n/ru";
@@ -22,6 +22,18 @@ describe("time helpers", () => {
   it("greets", () => {
     expect(greeting(new Date(2026, 10, 10, 9))).toBe("Good morning");
     expect(greeting(new Date(2026, 10, 10, 14))).toBe("Good afternoon");
+  });
+  it("relative time (STF-B-12: 'Decided by A · 5 min ago')", () => {
+    expect(relativeTimeLabel("2026-11-10T11:59:45Z", now)).toBe("just now");
+    expect(relativeTimeLabel("2026-11-10T11:55:00Z", now)).toBe("5 min ago");
+    expect(relativeTimeLabel("2026-11-10T11:59:00Z", now)).toBe("1 min ago");
+    expect(relativeTimeLabel("2026-11-10T09:00:00Z", now)).toBe("3 hr ago");
+    expect(relativeTimeLabel("2026-11-10T11:00:00Z", now)).toBe("1 hr ago");
+    expect(relativeTimeLabel("2026-11-08T12:00:00Z", now)).toBe("2 days ago");
+    expect(relativeTimeLabel("2026-11-09T12:00:00Z", now)).toBe("1 day ago");
+    expect(relativeTimeLabel(null, now)).toBe("");
+    // A little clock skew (a future timestamp) never reads as negative.
+    expect(relativeTimeLabel("2026-11-10T12:00:05Z", now)).toBe("just now");
   });
 });
 

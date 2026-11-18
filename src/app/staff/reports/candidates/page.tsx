@@ -92,14 +92,28 @@ export default async function StaffCandidatesPage({
 
   // Answers still waiting for a person to confirm them, counted per attempt.
   const flagCount = new Map<string, number>();
+  // STF-B-12: who decided, and how recently -- the most recent reviewer per
+  // attempt, so two reviewers deciding at once is visible here, not just on
+  // the report page itself.
+  const latestDecision = new Map<string, { by: string; at: string }>();
   if (list.length > 0) {
-    const { data: flagged } = await supabase
-      .from("candidate_responses")
-      .select("candidate_assessment_id")
-      .eq("needs_review", true)
-      .in("candidate_assessment_id", list.map((r) => r.id));
+    const ids = list.map((r) => r.id);
+    const [{ data: flagged }, { data: decisions }] = await Promise.all([
+      supabase.from("candidate_responses").select("candidate_assessment_id").eq("needs_review", true).in("candidate_assessment_id", ids),
+      supabase
+        .from("candidate_reviews")
+        .select("candidate_assessment_id, created_at, reviewer:profiles!candidate_reviews_reviewer_id_fkey(full_name)")
+        .in("candidate_assessment_id", ids)
+        .order("created_at", { ascending: false }),
+    ]);
     for (const f of (flagged || []) as { candidate_assessment_id: string }[]) {
       flagCount.set(f.candidate_assessment_id, (flagCount.get(f.candidate_assessment_id) ?? 0) + 1);
+    }
+    // Rows come back newest first, so the first one seen per attempt is the latest.
+    for (const d of (decisions || []) as unknown as { candidate_assessment_id: string; created_at: string; reviewer: { full_name: string } | null }[]) {
+      if (!latestDecision.has(d.candidate_assessment_id)) {
+        latestDecision.set(d.candidate_assessment_id, { by: d.reviewer?.full_name || "A reviewer", at: d.created_at });
+      }
     }
   }
 
@@ -110,6 +124,8 @@ export default async function StaffCandidatesPage({
     due_at: r.due_at,
     submitted_at: r.submitted_at,
     flags: flagCount.get(r.id) ?? 0,
+    decidedBy: latestDecision.get(r.id)?.by ?? null,
+    decidedAt: latestDecision.get(r.id)?.at ?? null,
     candidate: r.candidate ? { full_name: r.candidate.full_name, email: r.candidate.email } : null,
     lastLoginAt: r.candidate?.last_login_at ?? null,
     assessments: r.assessments ? { title: r.assessments.title } : null,

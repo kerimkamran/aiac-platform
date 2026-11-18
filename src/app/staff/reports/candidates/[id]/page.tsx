@@ -13,6 +13,7 @@ import { orgToday } from "@/lib/deadline";
 import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { nowMs } from "@/lib/time";
 
 const DECIDED_WORDS: Record<string, string> = { shortlist: "shortlisted", hold: "put on hold", reject: "not progressed" };
 
@@ -21,10 +22,13 @@ export default async function CandidateReviewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ decided?: string }>;
+  searchParams: Promise<{ decided?: string; conflictBy?: string; conflictAs?: string; conflictDecision?: string; conflictComment?: string }>;
 }) {
   const { id } = await params;
-  const { decided } = await searchParams;
+  const { decided, conflictBy, conflictAs, conflictDecision, conflictComment } = await searchParams;
+  // STF-B-12: stamped now, sent back unchanged by the decision form, so the
+  // server action can tell whether someone else decided after this render.
+  const loadedAtMs = nowMs();
   const supabase = await createClient();
 
   const {
@@ -755,7 +759,34 @@ export default async function CandidateReviewPage({
               : "The candidate hasn't submitted yet. You can record a decision once they have."}
           </p>
         ) : null}
+        {/* STF-B-12: this reviewer's page loaded before someone else decided,
+            so their own decision would otherwise be layered on silently. */}
+        {conflictBy && conflictDecision ? (
+          <div role="alertdialog" aria-labelledby="decision-conflict-h" className="mb-4 rounded-card border border-warning/40 bg-warning-soft p-4 no-print">
+            <p id="decision-conflict-h" className="text-sm font-semibold text-warning">
+              <span className="font-bold">{conflictBy}</span> already decided{" "}
+              <span className="font-bold">{decisionOptions.find((o) => o.v === conflictAs)?.label ?? conflictAs}</span> while you were viewing this.
+            </p>
+            <p className="mt-1 text-sm text-warning">
+              Add your decision (<span className="font-semibold">{decisionOptions.find((o) => o.v === conflictDecision)?.label ?? conflictDecision}</span>)
+              anyway? Both will be kept — this becomes a calibration case, not a replacement.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2.5">
+              <form action={submitReviewWithId}>
+                <input type="hidden" name="decision" value={conflictDecision} />
+                <input type="hidden" name="comment" value={conflictComment || ""} />
+                <input type="hidden" name="loaded_at" value={loadedAtMs} />
+                <input type="hidden" name="force" value="1" />
+                <button className={buttonClass({ size: "sm" })}>Add my decision anyway</button>
+              </form>
+              <Link href={`/staff/reports/candidates/${id}`} className={buttonClass({ size: "sm", variant: "secondary" })}>
+                Cancel, let me reconsider
+              </Link>
+            </div>
+          </div>
+        ) : null}
         <form action={submitReviewWithId} hidden={!canDecide} className="space-y-3.5 no-print">
+          <input type="hidden" name="loaded_at" value={loadedAtMs} />
           <div className={`grid gap-2.5 ${decisionOptions.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
             {decisionOptions.map((d) => (
               <label key={d.v} className="cursor-pointer">

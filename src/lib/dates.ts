@@ -9,6 +9,23 @@ export function ageLabel(from: string | Date | null | undefined, now: Date = new
   return days === 1 ? "1 day" : `${days} days`;
 }
 
+// "just now", "5 min ago", "3 hr ago", "2 days ago" -- finer-grained than
+// ageLabel, for events worth noticing by the minute (STF-B-12: who decided,
+// and how recently, on the review deck, the list row and the report
+// header). Staff-only UI, so English only, unlike the candidate-facing
+// dates above. Never negative, even with a little clock skew.
+export function relativeTimeLabel(from: string | Date | null | undefined, now: Date = new Date()): string {
+  if (!from) return "";
+  const ms = Math.max(0, now.getTime() - new Date(from).getTime());
+  const minutes = Math.floor(ms / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return minutes === 1 ? "1 min ago" : `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return hours === 1 ? "1 hr ago" : `${hours} hr ago`;
+  const days = Math.floor(hours / 24);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}
+
 export function daysSince(from: string | Date | null | undefined, now: Date = new Date()): number {
   if (!from) return 0;
   return Math.max(0, Math.floor((now.getTime() - new Date(from).getTime()) / DAY));
