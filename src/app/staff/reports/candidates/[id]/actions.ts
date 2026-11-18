@@ -5,7 +5,7 @@ import { DECISION_OPTIONS, normalizePurpose } from "@/lib/purpose";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireRole, STAFF_ROLES } from "@/lib/authz";
+import { requireRole, STAFF_ROLES, logAudit } from "@/lib/authz";
 import { clampExtra } from "@/lib/exam-time";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { recomputeTotals } from "@/lib/score-attempt";
@@ -155,9 +155,10 @@ export async function releaseFeedback(candidateAssessmentId: string) {
     redirect(`/staff/reports/candidates/${candidateAssessmentId}?error=` + encodeURIComponent(error.message));
   }
 
-  await supabase.from("admin_audit_log").insert({
-    actor_id: user.id,
+  await logAudit({
+    module: "reports",
     action: "feedback_released",
+    targetId: candidateAssessmentId,
     details: { candidate_assessment_id: candidateAssessmentId },
   });
 
@@ -182,7 +183,7 @@ export async function setExtraTime(candidateAssessmentId: string, formData: Form
 // Move or clear one candidate's deadline (CAN-X-01). The candidate page tells
 // people to ask HR for more time; this is the control behind that sentence.
 export async function setDeadline(candidateAssessmentId: string, formData: FormData) {
-  const staff = await requireRole(...STAFF_ROLES);
+  await requireRole(...STAFF_ROLES);
   const supabase = await createClient();
   const back = `/staff/reports/candidates/${candidateAssessmentId}`;
   const result = deadlineFromDate(String(formData.get("due_date") || ""));
@@ -193,9 +194,10 @@ export async function setDeadline(candidateAssessmentId: string, formData: FormD
     .eq("id", candidateAssessmentId)
     .in("status", ["invited", "in_progress"]);
   if (error) redirect(`${back}?error=` + encodeURIComponent(error.message));
-  await supabase.from("admin_audit_log").insert({
-    actor_id: staff.id,
+  await logAudit({
+    module: "reports",
     action: "deadline_changed",
+    targetId: candidateAssessmentId,
     details: { candidate_assessment_id: candidateAssessmentId, due_at: result.iso },
   });
   revalidatePath(back);

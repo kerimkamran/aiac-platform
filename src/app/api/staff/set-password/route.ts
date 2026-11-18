@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionProfile } from "@/lib/authz";
+import { getSessionProfile, logAudit } from "@/lib/authz";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
@@ -63,13 +63,14 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: error.message || "Could not set the password." }, { status: 400, headers: NO_STORE });
   }
 
-  // Best-effort audit trail -- matches the existing admin_audit_log shape
-  // used by role/status changes on this page. Not fatal if it fails (the
-  // password change itself already succeeded above).
-  await supabase.from("admin_audit_log").insert({
-    actor_id: profile.id,
+  // Best-effort audit trail. Not fatal if it fails (the password change
+  // itself already succeeded above) -- routed through the log_admin_event()
+  // RPC, not a direct insert, so it is not silently dropped by RLS on this
+  // request's own session the way a direct insert here previously was.
+  await logAudit({
+    module: "users",
     action: "password_set",
-    target_user_id: userId,
+    targetUserId: userId,
     details: { target_name: target.full_name },
   });
 

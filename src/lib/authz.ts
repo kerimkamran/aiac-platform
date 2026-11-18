@@ -88,26 +88,44 @@ export type AuditEntry = {
   action: string;
   targetType?: string;
   targetId?: string;
+  targetUserId?: string;
   details?: Record<string, unknown>;
   result?: "success" | "denied" | "error";
 };
 
-/** Append-only audit write; never throws (auditing must not break the action). */
+async function callLogAdminEvent(entry: AuditEntry) {
+  const supabase = await createClient();
+  return supabase.rpc("log_admin_event", {
+    p_module: entry.module,
+    p_action: entry.action,
+    p_target_type: entry.targetType ?? null,
+    p_target_id: entry.targetId ?? null,
+    p_details: entry.details ?? null,
+    p_ip: await requestIp(),
+    p_result: entry.result ?? "success",
+    p_target_user_id: entry.targetUserId ?? null,
+  });
+}
+
+/** Append-only audit write; never throws (auditing must not break the action).
+ *  Always goes through the log_admin_event() RPC (security definer) rather
+ *  than a direct table insert, so it isn't subject to RLS on the caller's
+ *  own session. */
 export async function logAudit(entry: AuditEntry): Promise<void> {
   try {
-    const supabase = await createClient();
-    await supabase.rpc("log_admin_event", {
-      p_module: entry.module,
-      p_action: entry.action,
-      p_target_type: entry.targetType ?? null,
-      p_target_id: entry.targetId ?? null,
-      p_details: entry.details ?? null,
-      p_ip: await requestIp(),
-      p_result: entry.result ?? "success",
-    });
+    await callLogAdminEvent(entry);
   } catch {
     // swallow — audit failures must not block the underlying operation
   }
+}
+
+/** Same as logAudit, but fails closed: throws if the audit RPC itself
+ *  fails. Use only where "no record, no action" is a deliberate security
+ *  requirement (see /api/staff/invite-link — a sign-in link must never be
+ *  created without a record of who made it). */
+export async function logAuditOrThrow(entry: AuditEntry): Promise<void> {
+  const { error } = await callLogAdminEvent(entry);
+  if (error) throw error;
 }
 
 /** In-app notification; never throws. */

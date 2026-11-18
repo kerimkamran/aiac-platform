@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSessionProfile } from "@/lib/authz";
+import { getSessionProfile, logAuditOrThrow } from "@/lib/authz";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { setPasswordLinkUrl } from "@/lib/site-url";
@@ -60,19 +60,21 @@ export async function POST(request: NextRequest) {
   }
 
   // The audit entry comes first: a link that signs someone in must never
-  // exist without a record of who made it. No record, no link.
-  const { error: auditError } = await supabase.from("admin_audit_log").insert({
-    actor_id: profile.id,
-    module: "users",
-    action: "invite_link_generated",
-    target_type: "user",
-    target_id: target.id,
-    target_user_id: target.id,
-    details: { target_name: target.full_name, target_role: target.role },
-    ip: request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || null,
-    result: "success",
-  });
-  if (auditError) {
+  // exist without a record of who made it. No record, no link. Written
+  // through the log_admin_event() RPC (security definer), like every other
+  // admin action's audit entry -- not a direct table insert, which is
+  // subject to RLS on this request's own session and was the reason this
+  // route previously failed every time (pentest finding PT-02).
+  try {
+    await logAuditOrThrow({
+      module: "users",
+      action: "invite_link_generated",
+      targetType: "user",
+      targetId: target.id,
+      targetUserId: target.id,
+      details: { target_name: target.full_name, target_role: target.role },
+    });
+  } catch {
     return NextResponse.json({ error: "Couldn't record this in the activity log, so no link was made. Try again." }, { status: 500, headers: NO_STORE });
   }
 
