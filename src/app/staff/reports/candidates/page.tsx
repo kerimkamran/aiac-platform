@@ -7,20 +7,22 @@ import { ToastFromParams, type ToastSpec } from "@/components/Toaster";
 import { getSessionProfile } from "@/lib/authz";
 import { buildCandidateAssessmentQuery } from "@/lib/candidate-filters";
 import { DataTablePagination } from "@/components/DataTable";
+import { getT } from "@/i18n/server";
 
 const TOAST_SPECS: ToastSpec[] = [
   { param: "error", variant: "error" },
   { param: "added", variant: "success" },
 ];
 
+// Status tabs; the wording comes from staff.candidates.filters.
 const FILTERS = [
-  { key: "", label: "All" },
-  { key: "invited", label: "Invited" },
-  { key: "in_progress", label: "In progress" },
-  { key: "submitted", label: "Submitted" },
-  { key: "scored", label: "To review" },
-  { key: "reviewed", label: "Reviewed" },
-];
+  { key: "", word: "all" },
+  { key: "invited", word: "invited" },
+  { key: "in_progress", word: "inProgress" },
+  { key: "submitted", word: "submitted" },
+  { key: "scored", word: "toReview" },
+  { key: "reviewed", word: "reviewed" },
+] as const;
 
 // STF-B-16: the list loaded every matching row with no paging, which both
 // silently truncated at the API's row-limit cap on a large org and made
@@ -38,6 +40,8 @@ export default async function StaffCandidatesPage({
   const { status = "", q = "", department = "", vacancy = "", page: pageParam = "1" } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const supabase = await createClient();
+  const { lang, t: dict } = await getT();
+  const t = dict.staff.candidates;
   const me = await getSessionProfile();
   const canCopyLink = me?.role === "hr_admin" || me?.role === "system_admin";
 
@@ -133,7 +137,7 @@ export default async function StaffCandidatesPage({
 
   return (
     <div className="max-w-[1180px] mx-auto px-6 lg:px-10 py-10">
-      <PageHeader title="Candidates" subtitle="Everyone who has been invited to a test, with their status, score and what is waiting for a person." />
+      <PageHeader title={t.title} subtitle={t.subtitle} />
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-5 mb-4 pb-4 border-b border-line">
@@ -147,7 +151,7 @@ export default async function StaffCandidatesPage({
                 status === f.key ? "font-semibold text-foreground border-foreground" : "font-medium text-muted border-transparent hover:text-foreground hover:border-line"
               }`}
             >
-              {f.label}
+              {t.filters[f.word]}
             </Link>
           ))}
         </div>
@@ -159,14 +163,15 @@ export default async function StaffCandidatesPage({
           <input
             name="q"
             defaultValue={q}
-            placeholder="Search name, email or test"
+            placeholder={t.search}
+            aria-label={t.search}
             className="w-full bg-surface border border-line-control rounded-md pl-8 pr-3 py-1.5 text-xs placeholder:text-muted focus:outline-none focus:ring-1 focus:ring-accent"
           />
         </form>
       </div>
 
       <div className="flex flex-wrap items-center gap-2.5 mb-8">
-        <span className="text-sm text-muted">Filter by:</span>
+        <span className="text-sm text-muted">{t.filterBy}</span>
         <form action="/staff/reports/candidates" className="flex items-center gap-2">
           {status && <input type="hidden" name="status" value={status} />}
           {q && <input type="hidden" name="q" value={q} />}
@@ -175,7 +180,7 @@ export default async function StaffCandidatesPage({
             defaultValue={department}
             className="bg-surface border border-line-control rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
-            <option value="">All departments / structures</option>
+            <option value="">{t.allDepartments}</option>
             {departments.map((d) => (
               <option key={d} value={d}>
                 {d}
@@ -187,7 +192,7 @@ export default async function StaffCandidatesPage({
             defaultValue={vacancy}
             className="bg-surface border border-line-control rounded-md px-2.5 py-1.5 text-xs focus:outline-none focus:ring-1 focus:ring-accent"
           >
-            <option value="">All vacancies / assessments</option>
+            <option value="">{t.allVacancies}</option>
             {vacancies.map((v) => (
               <option key={v} value={v}>
                 {v}
@@ -195,7 +200,7 @@ export default async function StaffCandidatesPage({
             ))}
           </select>
           <button className="bg-foreground text-background text-xs font-semibold px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity">
-            Apply
+            {t.apply}
           </button>
         </form>
       </div>
@@ -203,11 +208,11 @@ export default async function StaffCandidatesPage({
       <ToastFromParams specs={TOAST_SPECS} />
       {loadError ? (
         <Callout tone="critical" role="alert" className="mb-5">
-          The list could not be loaded, so what you see may be incomplete. Refresh the page; if it keeps happening, tell your administrator.
+          {t.loadError}
         </Callout>
       ) : null}
-      <CandidateExportTable rows={exportRows} exportBase={exportBase} canCopyLink={canCopyLink} />
-      {totalPages > 1 && <DataTablePagination pageNum={page} totalPages={totalPages} total={total} makeHref={pageHref} />}
+      <CandidateExportTable rows={exportRows} exportBase={exportBase} canCopyLink={canCopyLink} lang={lang} text={dict.staff} />
+      {totalPages > 1 && <DataTablePagination pageNum={page} totalPages={totalPages} total={total} makeHref={pageHref} labels={dict.staff.pager} />}
     </div>
   );
 }

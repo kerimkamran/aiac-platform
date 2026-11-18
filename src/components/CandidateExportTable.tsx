@@ -6,11 +6,15 @@ import { Avatar, Icon, ScoreBadge, StatusBadge } from "@/components/ui";
 import { DataTable, type DataTableColumn } from "@/components/DataTable";
 import { nowMs } from "@/lib/time";
 import { buttonClass } from "@/components/ui/Button";
-import { ageLabel, relativeTimeLabel } from "@/lib/dates";
+import { ageText, fillText, pluralText, relativeTimeText } from "@/lib/dates";
+import type { Dict } from "@/i18n/en";
+import type { Lang } from "@/i18n";
 import { candidateTrail } from "@/lib/candidate-trail";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { CopyInviteLinkButton } from "@/components/CopyInviteLinkButton";
 import { resendCandidateInvite } from "@/app/staff/people/actions";
+
+const LOCALE: Record<Lang, string> = { en: "en-GB", az: "az-Latn-AZ", ru: "ru-RU" };
 
 export type CandidateExportRow = {
   id: string;
@@ -31,7 +35,22 @@ export type CandidateExportRow = {
   assessments: { title: string } | null;
 };
 
-export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: { rows: CandidateExportRow[]; exportBase: string; canCopyLink?: boolean }) {
+export function CandidateExportTable({
+  rows,
+  exportBase,
+  canCopyLink = false,
+  lang,
+  text,
+}: {
+  rows: CandidateExportRow[];
+  exportBase: string;
+  canCopyLink?: boolean;
+  lang: Lang;
+  text: Dict["staff"];
+}) {
+  const t = text.candidates;
+  const trailCurrent = (i: number) =>
+    i === 0 ? text.trail.invitedNotSignedIn : i === 1 ? text.trail.signedInNotStarted : text.trail.steps[i] ?? "";
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   const allChecked = rows.length > 0 && selected.size === rows.length;
@@ -67,7 +86,7 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
         // had no accessible name and a hit target under the browser default
         // ~13px -- WCAG 2.5.8/4.1.2.
         <label className="grid place-items-center w-6 h-6 -m-1 cursor-pointer">
-          <input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label="Select all candidates" className="accent-[color:var(--brand)]" />
+          <input type="checkbox" checked={allChecked} onChange={toggleAll} aria-label={t.selectAll} className="accent-[color:var(--brand)]" />
         </label>
       ),
       render: (r) => (
@@ -76,7 +95,7 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
             type="checkbox"
             checked={selected.has(r.id)}
             onChange={() => toggleOne(r.id)}
-            aria-label={`Select ${r.candidate?.full_name || "candidate"}`}
+            aria-label={fillText(t.selectOne, { name: r.candidate?.full_name || t.col.candidate })}
             className="accent-[color:var(--brand)]"
           />
         </label>
@@ -84,7 +103,7 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
     },
     {
       key: "candidate",
-      label: "Candidate",
+      label: t.col.candidate,
       className: "px-2",
       render: (r) => (
         <div className="flex items-center gap-3">
@@ -96,16 +115,16 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
         </div>
       ),
     },
-    { key: "assessment", label: "Test", render: (r) => <span className="text-muted">{r.assessments?.title}</span> },
+    { key: "assessment", label: t.col.test, render: (r) => <span className="text-muted">{r.assessments?.title}</span> },
     {
       key: "status",
-      label: "Status",
+      label: t.col.status,
       render: (r) => {
         const trail = candidateTrail({ status: r.status, lastLoginAt: r.lastLoginAt });
         return (
         <div className="space-y-1.5">
         <span className="inline-flex items-center gap-2">
-          <StatusBadge status={trail.neverSignedIn && r.status === "invited" ? "invited_pending" : r.status} />
+          <StatusBadge status={trail.neverSignedIn && r.status === "invited" ? "invited_pending" : r.status} labels={text.status} />
           {r.due_at && ["invited", "in_progress"].includes(r.status) && (
             <span
               className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
@@ -114,25 +133,25 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
                   : "bg-line-soft text-muted ring-line"
               }`}
             >
-              {new Date(r.due_at).getTime() < nowMs() ? "Overdue" : `Due ${new Date(r.due_at).toLocaleDateString()}`}
+              {new Date(r.due_at).getTime() < nowMs() ? t.overdue : fillText(t.due, { date: new Date(r.due_at).toLocaleDateString(LOCALE[lang]) })}
             </span>
           )}
         </span>
-        <ol className="flex items-center gap-1" aria-label={`Progress: ${trail.current}`}>
-          {trail.steps.map((st) => (
-            <li key={st.label} title={st.label} className={`h-1.5 w-5 rounded-full ${st.done ? "bg-good" : "bg-line"}`}>
+        <ol className="flex items-center gap-1" aria-label={fillText(text.trail.progress, { step: trailCurrent(trail.currentIndex) })}>
+          {trail.steps.map((st, i) => (
+            <li key={st.label} title={text.trail.steps[i]} className={`h-1.5 w-5 rounded-full ${st.done ? "bg-good" : "bg-line"}`}>
               <span className="sr-only">
-                {st.label}: {st.done ? "done" : "not yet"}
+                {text.trail.steps[i]}: {st.done ? text.trail.done : text.trail.notYet}
               </span>
             </li>
           ))}
           <li className="ml-1.5 text-xs text-muted list-none" aria-hidden>
-            {trail.current}
+            {trailCurrent(trail.currentIndex)}
           </li>
         </ol>
         {r.decidedBy && (
           <p className="text-xs text-muted">
-            Decided by <span className="font-semibold text-foreground">{r.decidedBy}</span> · {relativeTimeLabel(r.decidedAt)}
+            {t.decidedBy} <span className="font-semibold text-foreground">{r.decidedBy}</span> · {relativeTimeText(lang, text.time, r.decidedAt)}
           </p>
         )}
         </div>
@@ -141,17 +160,17 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
     },
     {
       key: "score",
-      label: "Score",
+      label: t.col.score,
       render: (r) => (r.overall_score !== null ? <ScoreBadge score={Math.round(r.overall_score)} /> : <span className="text-muted">—</span>),
     },
     {
       key: "flags",
-      label: "Flags",
+      label: t.col.flags,
       render: (r) =>
         r.flags ? (
           <span className="inline-flex items-center gap-1 text-sm font-semibold text-warning">
             <Icon name="alertTriangle" className="w-4 h-4" />
-            {r.flags} to check
+            {pluralText(lang, r.flags, t.toCheck)}
           </span>
         ) : (
           <span className="text-muted">—</span>
@@ -159,10 +178,10 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
     },
     {
       key: "waiting",
-      label: "Waiting since",
+      label: t.col.waiting,
       render: (r) =>
         r.submitted_at && ["submitted", "scored"].includes(r.status) ? (
-          <span className="text-muted">{ageLabel(r.submitted_at)}</span>
+          <span className="text-muted">{ageText(lang, text.time, r.submitted_at)}</span>
         ) : (
           <span className="text-muted">—</span>
         ),
@@ -179,8 +198,8 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
             {waitingToSignIn && (
               <>
                 <form action={resendCandidateInvite.bind(null, email)}>
-                  <SubmitButton variant="ghost" size="sm" pendingLabel="Sending…">
-                    Resend
+                  <SubmitButton variant="ghost" size="sm" pendingLabel={t.sending}>
+                    {t.resend}
                   </SubmitButton>
                 </form>
                 {canCopyLink && <CopyInviteLinkButton email={email} />}
@@ -190,7 +209,7 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
               href={`/staff/reports/candidates/${r.id}`}
               className="inline-flex items-center gap-1.5 text-accent-dark font-semibold whitespace-nowrap hover:underline"
             >
-              Open
+              {t.open}
               <Icon name="arrowRight" className="w-3.5 h-3.5" />
             </Link>
           </div>
@@ -202,7 +221,7 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
   return (
     <>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
-        <p className="text-xs text-muted">{selected.size > 0 ? `${selected.size} selected` : `${rows.length} candidates`}</p>
+        <p className="text-xs text-muted">{selected.size > 0 ? fillText(t.selected, { n: selected.size }) : pluralText(lang, rows.length, t.count)}</p>
         <div className="flex items-center gap-2">
           <a
             href={selectedExportUrl}
@@ -217,14 +236,14 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
             }`}
           >
             <Icon name="download" className="w-4 h-4" />
-            Export selected
+            {t.exportSelected}
           </a>
           <a
             href={exportBase}
             className={buttonClass({ size: "sm" })}
           >
             <Icon name="download" className="w-4 h-4" />
-            Export all (filtered)
+            {t.exportAll}
           </a>
         </div>
       </div>
@@ -233,8 +252,8 @@ export function CandidateExportTable({ rows, exportBase, canCopyLink = false }: 
         columns={columns}
         rows={rows}
         getRowKey={(r) => r.id}
-        caption="Candidates"
-        emptyMessage="No candidates match — try clearing the filters, or invite candidates from the Assessment Builder."
+        caption={t.caption}
+        emptyMessage={t.empty}
       />
     </>
   );

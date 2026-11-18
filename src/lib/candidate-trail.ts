@@ -8,12 +8,18 @@ export type TrailStep = { label: (typeof TRAIL_STEPS)[number]; done: boolean };
 const STARTED = ["in_progress", "submitted", "scored", "reviewed"];
 const SUBMITTED = ["submitted", "scored", "reviewed"];
 
-export function candidateTrail(input: { status: string; lastLoginAt?: string | null }): { steps: TrailStep[]; current: string; neverSignedIn: boolean } {
+export function candidateTrail(input: { status: string; lastLoginAt?: string | null }): {
+  steps: TrailStep[];
+  current: string;
+  // Index of the last finished step, so a translated page can word `current` itself.
+  currentIndex: number;
+  neverSignedIn: boolean;
+} {
   const started = STARTED.includes(input.status);
   const signedIn = !!input.lastLoginAt || started;
   const done = [true, signedIn, started, SUBMITTED.includes(input.status), input.status === "reviewed"];
   const steps = TRAIL_STEPS.map((label, i) => ({ label, done: done[i] }));
   const lastDone = done.lastIndexOf(true);
   const current = lastDone === 0 ? "Invited, not signed in yet" : lastDone === 1 ? "Signed in, not started" : TRAIL_STEPS[lastDone];
-  return { steps, current, neverSignedIn: !signedIn };
+  return { steps, current, currentIndex: lastDone, neverSignedIn: !signedIn };
 }

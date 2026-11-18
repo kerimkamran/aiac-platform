@@ -133,3 +133,30 @@ export type PluralForms = { one: string; few: string; many: string };
 export function pluralText(lang: PluralLang, n: number, forms: PluralForms): string {
   return fill(forms[pluralForm(lang, n)], n);
 }
+
+// Translated versions of ageLabel and relativeTimeLabel for staff pages
+// (Batch 29). The word forms come from the `staff.time` dictionary.
+export type RelativeTimeWords = {
+  justNow: string;
+  minutesAgo: PluralForms;
+  hoursAgo: PluralForms;
+  daysAgo: PluralForms;
+  today: string;
+  days: PluralForms;
+};
+
+export function relativeTimeText(lang: PluralLang, words: RelativeTimeWords, from: string | Date | null | undefined, now: Date = new Date()): string {
+  if (!from) return "";
+  const minutes = Math.floor(Math.max(0, now.getTime() - new Date(from).getTime()) / 60_000);
+  if (minutes < 1) return words.justNow;
+  if (minutes < 60) return pluralText(lang, minutes, words.minutesAgo);
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return pluralText(lang, hours, words.hoursAgo);
+  return pluralText(lang, Math.floor(hours / 24), words.daysAgo);
+}
+
+export function ageText(lang: PluralLang, words: RelativeTimeWords, from: string | Date | null | undefined, now: Date = new Date()): string {
+  if (!from) return "";
+  const days = Math.max(0, Math.floor((now.getTime() - new Date(from).getTime()) / DAY));
+  return days === 0 ? words.today : pluralText(lang, days, words.days);
+}

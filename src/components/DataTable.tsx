@@ -171,29 +171,33 @@ export function DataTablePagination({
   totalPages,
   makeHref,
   total,
+  labels,
 }: {
   pageNum: number;
   totalPages: number;
   makeHref: (page: number) => string;
   /** Total row count, if known -- shown alongside the page count. */
   total?: number;
+  /** Translated wording; English when left out. `{n}` and `{total}` are filled in. */
+  labels?: { page: string; total: string; previous: string; next: string };
 }) {
+  const l = labels ?? { page: "Page {n} of {total}", total: "{n} total", previous: "Previous", next: "Next" };
   if (totalPages <= 1 && total === undefined) return null;
   return (
     <div className="flex items-center justify-between mt-5 text-sm">
       <p className="text-muted">
-        Page {pageNum} of {totalPages}
-        {total !== undefined ? ` · ${total} total` : ""}
+        {l.page.replace("{n}", String(pageNum)).replace("{total}", String(totalPages))}
+        {total !== undefined ? ` · ${l.total.replace("{n}", String(total))}` : ""}
       </p>
       <div className="flex gap-2">
         {pageNum > 1 && (
           <Link href={makeHref(pageNum - 1)} className="border border-line rounded-xl px-4 py-2 font-semibold text-foreground hover:border-brand">
-            Previous
+            {l.previous}
           </Link>
         )}
         {pageNum < totalPages && (
           <Link href={makeHref(pageNum + 1)} className="border border-line rounded-xl px-4 py-2 font-semibold text-foreground hover:border-brand">
-            Next
+            {l.next}
           </Link>
         )}
       </div>

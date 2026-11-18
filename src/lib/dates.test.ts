@@ -81,3 +81,27 @@ describe("counted phrases", () => {
     expect(pluralText("az", 5, az.candidate.exam.minutesLeft)).toBe("5 dəqiqə qalıb.");
   });
 });
+
+describe("staff relative time in every language", async () => {
+  const { relativeTimeText, ageText } = await import("./dates");
+  const { en } = await import("@/i18n/en");
+  const { ru } = await import("@/i18n/ru");
+  const { az } = await import("@/i18n/az");
+  const now = new Date("2026-11-18T12:00:00Z");
+  const ago = (ms: number) => new Date(now.getTime() - ms);
+
+  it("words minutes, hours and days", () => {
+    expect(relativeTimeText("en", en.staff.time, ago(30_000), now)).toBe("just now");
+    expect(relativeTimeText("en", en.staff.time, ago(5 * 60_000), now)).toBe("5 min ago");
+    expect(relativeTimeText("az", az.staff.time, ago(3 * 3_600_000), now)).toBe("3 saat əvvəl");
+    expect(relativeTimeText("en", en.staff.time, ago(86_400_000), now)).toBe("1 day ago");
+  });
+
+  it("uses the Russian plural forms", () => {
+    expect(relativeTimeText("ru", ru.staff.time, ago(1 * 86_400_000), now)).toBe("1 день назад");
+    expect(relativeTimeText("ru", ru.staff.time, ago(3 * 86_400_000), now)).toBe("3 дня назад");
+    expect(relativeTimeText("ru", ru.staff.time, ago(5 * 86_400_000), now)).toBe("5 дней назад");
+    expect(ageText("ru", ru.staff.time, ago(21 * 86_400_000), now)).toBe("21 день");
+    expect(ageText("ru", ru.staff.time, ago(1000), now)).toBe("сегодня");
+  });
+});
