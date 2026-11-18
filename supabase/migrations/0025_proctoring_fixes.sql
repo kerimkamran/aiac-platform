@@ -1,11 +1,11 @@
 -- 0025: proctoring fixes (Batch 26, plan item E-08). Safe to run twice.
 --
---  CAN-B-36  public.proctoring_recordings had one "for all" policy, so a
---            candidate could read, change and delete their own recording
---            rows -- integrity evidence the person being recorded should
---            only ever be able to add. Split it: candidates insert rows for
---            their own attempt while it is in progress; staff keep full
---            access.
+--  CAN-B-36  0022 already stopped candidates changing or deleting their
+--            recording rows. Two gaps remain: a candidate can still read
+--            them, and can add rows to an attempt that is already submitted
+--            or decided. Rows are integrity evidence, so candidates may only
+--            add them, and only while their own attempt is in progress.
+--            Staff update/delete policies from 0022 are unchanged.
 --
 --  Storage   The 'proctoring' bucket had no storage.objects policies in any
 --            migration, so uploads from the candidate's browser were refused
@@ -26,22 +26,20 @@
 
 -- ---------- recording rows ----------
 drop policy if exists "proctoring recordings" on public.proctoring_recordings;
+drop policy if exists "proctoring recordings read" on public.proctoring_recordings;
+create policy "proctoring recordings read" on public.proctoring_recordings for select to authenticated
+  using (public.is_staff());
 
-drop policy if exists "proctoring recordings candidate insert" on public.proctoring_recordings;
-create policy "proctoring recordings candidate insert" on public.proctoring_recordings for insert to authenticated
+drop policy if exists "proctoring recordings insert" on public.proctoring_recordings;
+create policy "proctoring recordings insert" on public.proctoring_recordings for insert to authenticated
   with check (
-    exists (
+    public.is_staff() or exists (
       select 1 from public.candidate_assessments ca
       where ca.id = candidate_assessment_id
         and ca.candidate_id = auth.uid()
         and ca.status = 'in_progress'
     )
   );
-
-drop policy if exists "proctoring recordings staff" on public.proctoring_recordings;
-create policy "proctoring recordings staff" on public.proctoring_recordings for all to authenticated
-  using (public.is_staff())
-  with check (public.is_staff());
 
 -- ---------- storage bucket ----------
 update storage.buckets
