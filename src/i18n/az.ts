@@ -429,6 +429,8 @@ export const az: Dict = {
       submitFailed: "Təqdim edə bilmədik. Cavablarınız hələ buradadır. Yenidən cəhd edin.",
       tabLeft: { one: "Bu vərəqdən {n} dəfə ayrılmısınız.", few: "Bu vərəqdən {n} dəfə ayrılmısınız.", many: "Bu vərəqdən {n} dəfə ayrılmısınız." },
       tabLogged: "Bu, yoxlayan administrator üçün qeydə alınır.",
+      openInOtherTabTitle: "Bu qiymətləndirmə başqa vərəqdə açıqdır",
+      openInOtherTab: "Buradakı cavablar saxlanmayacaq. Davam etmək üçün digər vərəqə keçin.",
       questionOf: "Sual {n} / {total}",
       flag: "İşarələ",
       flagged: "İşarələnib",

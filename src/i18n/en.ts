@@ -430,6 +430,8 @@ export const en = {
       submitFailed: "We couldn't submit. Your answers are still here. Try again.",
       tabLeft: { one: "This tab was left {n} time.", few: "This tab was left {n} times.", many: "This tab was left {n} times." },
       tabLogged: "This is logged for the reviewing admin.",
+      openInOtherTabTitle: "This assessment is open in another tab",
+      openInOtherTab: "Answers here won't be saved. Switch to the other tab to keep going.",
       questionOf: "Question {n} of {total}",
       flag: "Flag",
       flagged: "Flagged",

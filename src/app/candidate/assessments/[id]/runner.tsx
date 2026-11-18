@@ -34,6 +34,71 @@ function draftKey(caId: string) {
   return `aiac-exam-${caId}`;
 }
 
+// CAN-B-33: opening the same exam in a second tab (the invite link clicked
+// twice, or reopened from history) used to make each tab silently clobber
+// the other's localStorage draft on every keystroke, since each kept its own
+// in-memory copy and wrote the whole thing out on every change. Rather than
+// try to merge two independently-typed answers to the same question, only
+// the most recently opened tab stays active; any earlier tab locks its
+// inputs and points back to the active one. Self-healing: if the active tab
+// closes, the remaining tab(s) re-announce and the newest survivor takes
+// over. No BroadcastChannel support (very old browsers) just means no
+// cross-tab lock -- the pre-existing behaviour, not a regression.
+export function useSingleActiveTab(caId: string): boolean {
+  const [locked, setLocked] = useState(false);
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const tabId = Math.random().toString(36).slice(2);
+    const openedAt = Date.now();
+    const channel = new BroadcastChannel(`aiac-exam-lock-${caId}`);
+    const isNewer = (otherOpenedAt: number, otherTabId: string) =>
+      otherOpenedAt > openedAt || (otherOpenedAt === openedAt && otherTabId > tabId);
+    let awaitingRecheck = false;
+    let recheckTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const announce = (type: "hello" | "here") => channel.postMessage({ type, tabId, openedAt });
+
+    channel.onmessage = (e) => {
+      const msg = e.data as { type: "hello" | "here" | "bye"; tabId: string; openedAt: number } | undefined;
+      if (!msg || msg.tabId === tabId) return;
+      if (msg.type === "hello") {
+        if (isNewer(msg.openedAt, msg.tabId)) {
+          setLocked(true);
+          awaitingRecheck = false;
+        }
+        announce("here");
+      } else if (msg.type === "here") {
+        if (isNewer(msg.openedAt, msg.tabId)) {
+          setLocked(true);
+          awaitingRecheck = false;
+        }
+      } else if (msg.type === "bye") {
+        // The tab we may have deferred to just closed. Re-announce and give
+        // any other still-open tab a moment to claim leadership before
+        // unlocking -- a reply during that window cancels the unlock.
+        if (recheckTimer) clearTimeout(recheckTimer);
+        awaitingRecheck = true;
+        announce("hello");
+        recheckTimer = setTimeout(() => {
+          if (awaitingRecheck) setLocked(false);
+          awaitingRecheck = false;
+        }, 250);
+      }
+    };
+
+    announce("hello");
+    const onUnload = () => channel.postMessage({ type: "bye", tabId, openedAt });
+    window.addEventListener("pagehide", onUnload);
+    return () => {
+      if (recheckTimer) clearTimeout(recheckTimer);
+      window.removeEventListener("pagehide", onUnload);
+      onUnload();
+      channel.close();
+    };
+  }, [caId]);
+  return locked;
+}
+
 // Drafts saved before the exam screen existed stored answers alone.
 function readDraft(caId: string): Draft {
   try {
@@ -113,6 +178,11 @@ export function AssessmentRunner({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const answers = draft.answers;
   const flaggedSet = useMemo(() => new Set(draft.flagged), [draft.flagged]);
+  const tabLocked = useSingleActiveTab(caId);
+  const tabLockedRef = useRef(tabLocked);
+  useEffect(() => {
+    tabLockedRef.current = tabLocked;
+  }, [tabLocked]);
 
   /* Restore the local draft once on mount, then keep it saved on this device. */
   useEffect(() => {
@@ -139,13 +209,16 @@ export function AssessmentRunner({
   }, []);
 
   useEffect(() => {
-    if (!restored) return;
+    // A locked (non-active) tab never writes: its in-memory draft is stale
+    // the moment another tab becomes active, and writing it out would wipe
+    // out whatever the active tab has since saved (CAN-B-33).
+    if (!restored || tabLocked) return;
     try {
       localStorage.setItem(draftKey(caId), JSON.stringify(draft));
     } catch {}
     // eslint-disable-next-line react-hooks/set-state-in-effect -- stamps the save time after each change
     setSavedAt(Date.now());
-  }, [draft, restored, caId]);
+  }, [draft, restored, caId, tabLocked]);
 
   /* Integrity deterrents: block copy/cut/context-menu/print and common
      dev-tools / save shortcuts, and flag when the candidate leaves the tab.
@@ -202,7 +275,9 @@ export function AssessmentRunner({
   // whenever the tab is hidden, so nothing depends on this device surviving.
   const lastSavedRef = useRef("");
   useEffect(() => {
-    if (!restored || !saveDraftAction) return;
+    // Same reason as the localStorage write above: a locked tab's answers
+    // are stale and must never reach the server over the active tab's.
+    if (!restored || !saveDraftAction || tabLocked) return;
     const save = () => {
       const snapshot = JSON.stringify(answersRef.current);
       if (snapshot === lastSavedRef.current || submittedRef.current) return;
@@ -220,7 +295,7 @@ export function AssessmentRunner({
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onHide);
     };
-  }, [answers, restored, saveDraftAction]);
+  }, [answers, restored, saveDraftAction, tabLocked]);
   const tabSwitchesRef = useRef(tabSwitches);
   useEffect(() => {
     answersRef.current = answers;
@@ -232,6 +307,12 @@ export function AssessmentRunner({
   const doSubmit = useCallback(
     (reason: "manual" | "expiry" = "manual") => {
       if (submittedRef.current) return;
+      // A locked (non-active) tab's answers are stale by definition -- leave
+      // the submit, including the automatic one at expiry, to whichever tab
+      // is active. If that tab has since closed, this one takes over the
+      // lock within moments (see useSingleActiveTab) and resumes being
+      // eligible on the next tick.
+      if (tabLockedRef.current) return;
       submittedRef.current = true;
       const fd = new FormData();
       for (const s of steps) fd.set(`q_${s.q.id}`, answersRef.current[s.q.id] || "");
@@ -299,15 +380,23 @@ export function AssessmentRunner({
   const answered = steps.filter((s) => (answers[s.q.id] || "").trim().length > 0).length;
   const flaggedCount = steps.filter((s) => flaggedSet.has(s.q.id)).length;
   const current = steps[idx];
-  const set = useCallback((qid: string, val: string) => {
-    setDraft((d) => ({ ...d, answers: { ...d.answers, [qid]: val } }));
-  }, []);
-  const toggleFlag = useCallback((qid: string) => {
-    setDraft((d) => ({
-      ...d,
-      flagged: d.flagged.includes(qid) ? d.flagged.filter((x) => x !== qid) : [...d.flagged, qid],
-    }));
-  }, []);
+  const set = useCallback(
+    (qid: string, val: string) => {
+      if (tabLocked) return;
+      setDraft((d) => ({ ...d, answers: { ...d.answers, [qid]: val } }));
+    },
+    [tabLocked]
+  );
+  const toggleFlag = useCallback(
+    (qid: string) => {
+      if (tabLocked) return;
+      setDraft((d) => ({
+        ...d,
+        flagged: d.flagged.includes(qid) ? d.flagged.filter((x) => x !== qid) : [...d.flagged, qid],
+      }));
+    },
+    [tabLocked]
+  );
 
   /* Keyboard-first navigation: A-D (or 1-4) selects an MCQ option, Enter
      advances (or opens review on the last question), arrows step between
@@ -402,6 +491,12 @@ export function AssessmentRunner({
           </div>
         ))}
       </div>
+
+      {tabLocked ? (
+        <div role="alert" className="sticky top-0 z-40 border-b border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
+          <span className="font-semibold">{text.openInOtherTabTitle}.</span> {text.openInOtherTab}
+        </div>
+      ) : null}
 
       {submitError ? (
         <div role="alert" className="sticky top-0 z-40 border-b border-warning/40 bg-warning-soft px-4 py-3 text-sm font-medium text-warning">
@@ -573,7 +668,7 @@ export function AssessmentRunner({
               </h3>
               <p className="mt-1 text-base text-muted">{text.confirmBody}</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <button type="button" autoFocus onClick={() => doSubmit()} disabled={isPending} className={buttonClass({ size: "md" })}>
+                <button type="button" autoFocus onClick={() => doSubmit()} disabled={isPending || tabLocked} className={buttonClass({ size: "md" })}>
                   {isPending ? text.submitting : text.yesSubmit}
                 </button>
                 <button type="button" onClick={() => setConfirmingSubmit(false)} className={buttonClass({ size: "md", variant: "secondary" })}>
@@ -596,7 +691,7 @@ export function AssessmentRunner({
               <button
                 type="button"
                 onClick={() => setConfirmingSubmit(true)}
-                disabled={isPending}
+                disabled={isPending || tabLocked}
                 className={buttonClass({ size: "lg", block: true })}
               >
                 <Icon name="send" className="h-4 w-4" />
@@ -627,8 +722,9 @@ export function AssessmentRunner({
               <button
                 type="button"
                 onClick={() => toggleFlag(current.q.id)}
+                disabled={tabLocked}
                 aria-pressed={flaggedSet.has(current.q.id)}
-                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-inset transition-colors ${
+                className={`inline-flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold ring-1 ring-inset transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   flaggedSet.has(current.q.id)
                     ? "bg-warning-soft text-warning ring-warning/50"
                     : "text-muted ring-line hover:text-foreground hover:ring-line-strong"
@@ -650,17 +746,16 @@ export function AssessmentRunner({
                   return (
                     <label
                       key={opt.key}
-                      className={`flex min-h-16 cursor-pointer items-center gap-4 rounded-card border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-accent ${
-                        selected
-                          ? "border-brand bg-accent-soft ring-1 ring-brand"
-                          : "border-line bg-surface hover:border-line-strong"
-                      }`}
+                      className={`flex min-h-16 items-center gap-4 rounded-card border px-4 py-3.5 transition-colors has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-accent ${
+                        tabLocked ? "cursor-not-allowed opacity-50" : "cursor-pointer"
+                      } ${selected ? "border-brand bg-accent-soft ring-1 ring-brand" : "border-line bg-surface hover:border-line-strong"}`}
                     >
                       <input
                         type="radio"
                         name={`q_${current.q.id}`}
                         value={opt.key}
                         checked={selected}
+                        disabled={tabLocked}
                         onChange={() => set(current.q.id, opt.key)}
                         className="sr-only"
                       />
@@ -688,9 +783,10 @@ export function AssessmentRunner({
                   id={`answer-${current.q.id}`}
                   value={answers[current.q.id] || ""}
                   onChange={(e) => set(current.q.id, e.target.value)}
+                  disabled={tabLocked}
                   rows={9}
                   placeholder={text.placeholder}
-                  className="w-full resize-y rounded-card border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent"
+                  className="w-full resize-y rounded-card border border-line bg-surface px-4 py-3.5 text-base leading-relaxed text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-[3px] focus:ring-accent disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 <p className="mt-2 text-sm tabular-nums text-muted">
                   {pluralText(lang, (answers[current.q.id] || "").trim().split(/\s+/).filter(Boolean).length, text.words)} {text.aim}
