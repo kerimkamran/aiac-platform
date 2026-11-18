@@ -47,6 +47,8 @@ Supabase (Auth + Postgres with RLS). Charts are hand-rolled SVG — no chart dep
 
 ### Demo accounts (password `Demo12345!`)
 
+> Local or test projects only. Never run `supabase/seed.sql` on the live database: the password above is public.
+
 | Role | Email |
 |---|---|
 | HR admin / recruiter | `recruiter@aiac-demo.com` |

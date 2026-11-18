@@ -1,3 +1,6 @@
+-- !! DEMO DATA ONLY. NEVER RUN THIS FILE ON A REAL / PRODUCTION DATABASE. !!
+-- It creates accounts with a password that is published in this repository.
+-- If it was ever run on a live project, delete every @aiac-demo.com account there.
 -- AIAC Platform — demo seed (mirrors the production demo data)
 -- The governed 37-competency framework with behavioural indicators, demo accounts,
 -- two published assessments, and pre-scored candidate journeys so every screen has

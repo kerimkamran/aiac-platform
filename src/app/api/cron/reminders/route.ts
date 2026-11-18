@@ -1,3 +1,4 @@
+import { isCronAuthorized } from "@/lib/cron-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { emailConfigured, pickLang, reminderEmail, sendEmail } from "@/lib/email";
@@ -25,8 +26,7 @@ export const runtime = "nodejs";
  *
  *  Auth: Vercel Cron sends "Authorization: Bearer <CRON_SECRET>". */
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  if (!secret || request.headers.get("authorization") !== `Bearer ${secret}`) {
+  if (!isCronAuthorized(request.headers.get("authorization"))) {
     return NextResponse.json({ error: "Not authorized" }, { status: 401 });
   }
 
