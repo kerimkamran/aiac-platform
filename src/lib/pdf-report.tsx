@@ -103,6 +103,7 @@ export type ReportData = {
   executiveSummary?: {
     headline: string;
     recommendationLabel: string;
+    recommendationText?: string;
     strengths: string[];
     developmentAreas: string[];
     comparisonSentence: string | null;
@@ -196,7 +197,7 @@ export function CandidateReportDocument({ data }: { data: ReportData }) {
             <View style={styles.execHeadlineRow}>
               <Text style={{ fontSize: 8.5, fontFamily: "Inter", fontWeight: 700, color: INK }}>{c.aiSynthesis}</Text>
               <Text style={{ ...styles.execRecBadge, backgroundColor: recColor(data.executiveSummary.recommendationLabel) }}>
-                {data.executiveSummary.recommendationLabel.toUpperCase()}
+                {(data.executiveSummary.recommendationText ?? data.executiveSummary.recommendationLabel).toUpperCase()}
               </Text>
             </View>
             <Text style={styles.execHeadline}>{data.executiveSummary.headline}</Text>

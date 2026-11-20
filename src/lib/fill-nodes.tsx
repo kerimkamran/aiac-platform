@@ -1,17 +1,14 @@
 import { Fragment, type ReactNode } from "react";
 
-// Fills {name} markers in a dictionary string with React nodes (for example a
-// bold span), so a translated sentence keeps its emphasis wherever the
-// language puts the word.
-export function fillNodes(text: string, nodes: Record<string, ReactNode>): ReactNode {
+/**
+ * Like fillText, but a value can be a React node, so a translated sentence can
+ * carry a bold name or a link wherever that language puts it:
+ * fillNodes("{name} already decided {decision}.", { name: <b>Leyla</b>, decision: "Hold" }).
+ */
+export function fillNodes(text: string, values: Record<string, ReactNode>): ReactNode {
   const parts = text.split(/(\{\w+\})/g);
-  return (
-    <>
-      {parts.map((part, i) => {
-        const m = /^\{(\w+)\}$/.exec(part);
-        if (m && m[1] in nodes) return <Fragment key={i}>{nodes[m[1]]}</Fragment>;
-        return <Fragment key={i}>{part}</Fragment>;
-      })}
-    </>
-  );
+  return parts.map((part, i) => {
+    const key = part.match(/^\{(\w+)\}$/)?.[1];
+    return <Fragment key={i}>{key && key in values ? values[key] : part}</Fragment>;
+  });
 }

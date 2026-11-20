@@ -11,7 +11,8 @@ const PLACEHOLDERS = new Set([
   "фыва", "йцукен", "тест", "ааа", "ыыы",
 ]);
 
-export type NonsenseCheck = { nonsense: boolean; reason: string | null };
+export type NonsenseCode = "symbols" | "repeated" | "single" | "random";
+export type NonsenseCheck = { nonsense: boolean; reason: string | null; code?: NonsenseCode };
 
 function isJunkToken(token: string): boolean {
   const t = token.toLowerCase().replace(/[^\p{L}\p{N}]/gu, "");
@@ -30,18 +31,20 @@ export function checkNonsense(text: string | null | undefined): NonsenseCheck {
 
   const letters = (clean.match(/\p{L}/gu) || []).length;
   if (letters / clean.replace(/\s/g, "").length < 0.5) {
-    return { nonsense: true, reason: "mostly symbols or numbers, not words" };
+    return { nonsense: true, reason: "mostly symbols or numbers, not words", code: "symbols" };
   }
 
   const tokens = clean.split(/\s+/).filter(Boolean);
   if (tokens.length >= 5) {
     const unique = new Set(tokens.map((t) => t.toLowerCase())).size;
-    if (unique / tokens.length < 0.3) return { nonsense: true, reason: "the same few words repeated" };
+    if (unique / tokens.length < 0.3) return { nonsense: true, reason: "the same few words repeated", code: "repeated" };
   }
 
   const junk = tokens.filter(isJunkToken).length;
   if (junk / tokens.length >= 0.5) {
-    return { nonsense: true, reason: tokens.length === 1 ? "a single random or placeholder word" : "random keys or placeholder text" };
+    return tokens.length === 1
+      ? { nonsense: true, reason: "a single random or placeholder word", code: "single" }
+      : { nonsense: true, reason: "random keys or placeholder text", code: "random" };
   }
 
   return { nonsense: false, reason: null };

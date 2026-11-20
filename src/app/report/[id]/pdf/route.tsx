@@ -86,6 +86,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     boxLabel = talentBoxFor(ca.overall_score, potential).label;
   }
 
+  const { lang: viewerLang, t: viewerDict } = await getT();
   const executiveSummary =
     ca.overall_score !== null && competencyLines.length > 0
       ? buildExecutiveSummary({
@@ -95,6 +96,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
           benchmark,
           boxLabel,
           purpose,
+          words: viewerDict.staff.report,
         })
       : null;
 
@@ -113,7 +115,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     percentile: reviewerView ? percentile : null,
     peerAvg: reviewerView ? benchmark.peerAvg : null,
     peerCount: reviewerView ? peerCount : 0,
-    boxLabel: reviewerView ? boxLabel : null,
+    boxLabel: reviewerView && boxLabel ? (viewerDict.staff.report.talentBoxes as Record<string, string>)[boxLabel] ?? boxLabel : null,
     executiveSummary: reviewerView ? executiveSummary : null,
     submittedAt: ca.submitted_at,
     tabSwitchCount: reviewerView ? ca.tab_switch_count || 0 : 0,
@@ -141,7 +143,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     generatedAt: new Date().toISOString(),
     showAiRationale: !isCandidate,
     // The fixed wording follows the language the downloader uses Vantage in.
-    lang: pdfLang((await getT()).lang),
+    lang: pdfLang(viewerLang),
   };
 
   const buffer = await renderToBuffer(<CandidateReportDocument data={data} />);

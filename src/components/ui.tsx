@@ -1,5 +1,6 @@
 import { VantageMark } from "@/components/VantageMark";
 import { CountUp } from "@/components/CountUp";
+import { fillNodes } from "@/lib/fill-nodes";
 import Link from "next/link";
 
 import { Icon } from "@/components/ui/Icon";
@@ -140,7 +141,17 @@ export function ScoreBadge({ score }: { score: number }) {
 // heuristic. Corrected to describe the actual (LLM-primary,
 // heuristic-fallback) behavior, including that either path can flag a score
 // for human confirmation.
-export function ScoringDisclosure({ className = "" }: { className?: string }) {
+export function ScoringDisclosure({ className = "", text }: { className?: string; text?: { title: string; body: string } }) {
+  if (text) {
+    return (
+      <div className={`flex items-start gap-3 rounded-lg bg-warning-soft px-4 py-3 ${className}`}>
+        <Icon name="info" className="w-5 h-5 text-warning shrink-0" />
+        <p className="text-sm text-warning">
+          <span className="font-bold">{text.title}</span> {text.body}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className={`flex items-start gap-3 rounded-lg bg-warning-soft px-4 py-3 ${className}`}>
       <Icon name="info" className="w-5 h-5 text-warning shrink-0" />
@@ -360,22 +371,39 @@ const SUMMARY_FOOTER: Record<string, string> = {
   development: "AI-assisted synthesis, human review required — it supports a development conversation and decides nothing on its own.",
 };
 
-export function ExecutiveSummaryCard({ summary, purpose = "hiring" }: { summary: ExecutiveSummary; purpose?: string }) {
+type SummaryCardText = {
+  summaryTitle: string;
+  strengths: string;
+  developmentAreas: string;
+  noStrengths: string;
+  noDevelopmentAreas: string;
+  summaryFooter: Record<string, string>;
+};
+const SUMMARY_CARD_EN: SummaryCardText = {
+  summaryTitle: "Executive summary",
+  strengths: "Strengths",
+  developmentAreas: "Development areas",
+  noStrengths: "No standout competencies above 60 yet.",
+  noDevelopmentAreas: "No competencies below 70 — solid across the board.",
+  summaryFooter: SUMMARY_FOOTER,
+};
+
+export function ExecutiveSummaryCard({ summary, purpose = "hiring", text = SUMMARY_CARD_EN }: { summary: ExecutiveSummary; purpose?: string; text?: SummaryCardText }) {
   return (
     <Card className="p-6 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
         <p className="flex items-center gap-2 text-sm font-bold text-foreground">
           <Icon name="sparkles" className="w-4 h-4 text-accent-dark" />
-          Executive summary
+          {text.summaryTitle}
         </p>
         <span className={`text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset ${RECOMMENDATION_TONE_CLS[summary.recommendationTone]}`}>
-          {summary.recommendationLabel}
+          {summary.recommendationText}
         </span>
       </div>
       <p className="text-sm text-foreground leading-relaxed mb-4">{summary.headline}</p>
       <div className="grid sm:grid-cols-2 gap-4 mb-3">
         <div>
-          <p className="text-sm font-semibold text-muted mb-2">Strengths</p>
+          <p className="text-sm font-semibold text-muted mb-2">{text.strengths}</p>
           {summary.strengths.length > 0 ? (
             <ul className="space-y-1.5">
               {summary.strengths.map((s, i) => (
@@ -386,11 +414,11 @@ export function ExecutiveSummaryCard({ summary, purpose = "hiring" }: { summary:
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted">No standout competencies above 60 yet.</p>
+            <p className="text-xs text-muted">{text.noStrengths}</p>
           )}
         </div>
         <div>
-          <p className="text-sm font-semibold text-muted mb-2">Development areas</p>
+          <p className="text-sm font-semibold text-muted mb-2">{text.developmentAreas}</p>
           {summary.developmentAreas.length > 0 ? (
             <ul className="space-y-1.5">
               {summary.developmentAreas.map((s, i) => (
@@ -401,7 +429,7 @@ export function ExecutiveSummaryCard({ summary, purpose = "hiring" }: { summary:
               ))}
             </ul>
           ) : (
-            <p className="text-xs text-muted">No competencies below 70 — solid across the board.</p>
+            <p className="text-xs text-muted">{text.noDevelopmentAreas}</p>
           )}
         </div>
       </div>
@@ -409,7 +437,7 @@ export function ExecutiveSummaryCard({ summary, purpose = "hiring" }: { summary:
         <p className="text-xs text-muted border-t border-line/70 pt-3 mt-1">{summary.comparisonSentence}</p>
       )}
       <p className="text-xs text-muted/80 mt-3 italic">
-        {SUMMARY_FOOTER[purpose] ?? SUMMARY_FOOTER.hiring}
+        {text.summaryFooter[purpose] ?? text.summaryFooter.hiring}
       </p>
     </Card>
   );
@@ -420,13 +448,25 @@ export function BenchmarkCard({
   assessmentTitle,
   boxLabel,
   boxHref,
+  text,
 }: {
   benchmark: Benchmark;
   assessmentTitle?: string;
   boxLabel?: string | null;
   boxHref?: string;
+  /** Translated wording (staff.report); English when left out. */
+  text?: {
+    benchmarkTitle: string;
+    percentileSuffix: string;
+    benchmarkBody: string;
+    benchmarkBodyNoTest: string;
+    peerAvg: string;
+    talentMatrix: string;
+    talentBoxes: Record<string, string>;
+  };
 }) {
   if (benchmark.percentile === null || benchmark.peerAvg === null) return null;
+  if (text) return <BenchmarkCardTranslated benchmark={benchmark} assessmentTitle={assessmentTitle} boxLabel={boxLabel} boxHref={boxHref} text={text} />;
   const deltaPositive = (benchmark.delta ?? 0) >= 0;
   return (
     <Card className="p-6 mb-6">
@@ -475,6 +515,69 @@ export function BenchmarkCard({
               <span className="font-semibold text-foreground">{boxLabel}</span>
             )}
           </p>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function BenchmarkCardTranslated({
+  benchmark,
+  assessmentTitle,
+  boxLabel,
+  boxHref,
+  text,
+}: {
+  benchmark: Benchmark;
+  assessmentTitle?: string;
+  boxLabel?: string | null;
+  boxHref?: string;
+  text: NonNullable<Parameters<typeof BenchmarkCard>[0]["text"]>;
+}) {
+  const deltaPositive = (benchmark.delta ?? 0) >= 0;
+  const box = boxLabel ? text.talentBoxes[boxLabel] ?? boxLabel : null;
+  const boxNode = box ? (
+    boxHref ? (
+      <Link href={boxHref} className="font-semibold text-accent-dark hover:underline">
+        {box}
+      </Link>
+    ) : (
+      <span className="font-semibold text-foreground">{box}</span>
+    )
+  ) : null;
+  return (
+    <Card className="p-6 mb-6">
+      <p className="text-sm font-semibold text-muted mb-3">{text.benchmarkTitle}</p>
+      <div className="flex flex-wrap items-center gap-4">
+        <p className="text-2xl font-bold text-accent-dark tabular-nums shrink-0">
+          {benchmark.percentile}
+          <span className="text-sm font-semibold text-muted">{text.percentileSuffix}</span>
+        </p>
+        <div className="flex-1 min-w-[160px]">
+          <div className="h-2.5 rounded-full bg-line/70 overflow-hidden relative">
+            <div className="h-full rounded-full bg-brand anim-grow" style={{ width: `${benchmark.percentile}%` }} />
+          </div>
+          <p className="text-xs text-muted mt-2">
+            {fillNodes(assessmentTitle ? text.benchmarkBody : text.benchmarkBodyNoTest, {
+              pct: benchmark.percentile,
+              n: benchmark.peerCount,
+              test: <span className="font-medium text-foreground">{assessmentTitle}</span>,
+            })}
+          </p>
+        </div>
+        <div className="text-right shrink-0">
+          <p className="text-sm font-semibold text-muted">{text.peerAvg}</p>
+          <p className="text-sm font-bold text-foreground tabular-nums">{benchmark.peerAvg}</p>
+          <p className={`text-xs font-semibold ${deltaPositive ? "text-good" : "text-critical"}`}>
+            {deltaPositive ? "+" : ""}
+            {benchmark.delta}
+          </p>
+        </div>
+      </div>
+      {boxNode && (
+        <div className="mt-4 pt-4 border-t border-line/70 flex items-center gap-2.5">
+          <Icon name="chart" className="w-4 h-4 text-accent-dark shrink-0" />
+          <p className="text-xs text-muted">{fillNodes(text.talentMatrix, { box: boxNode })}</p>
         </div>
       )}
     </Card>

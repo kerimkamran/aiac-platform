@@ -66,6 +66,7 @@ export type CompetencyLine = { name: string; category: string; score: number; le
 export type ExecutiveSummary = {
   headline: string;
   recommendationLabel: "Strong fit" | "Fit with reservations" | "Borderline" | "Not yet meeting bar";
+  recommendationText: string;
   recommendationTone: "emerald" | "accent" | "amber" | "red";
   strengths: string[];
   developmentAreas: string[];
@@ -86,6 +87,58 @@ function toneFor(score: number): ExecutiveSummary["recommendationTone"] {
   return "red";
 }
 
+// Translated wording for the summary (staff.report in the dictionaries).
+// Left out, the summary is written in English, as before.
+export type SummaryWords = {
+  recommendation: { strong: string; reservations: string; borderline: string; below: string };
+  headline: Record<"hiring" | "promotion" | "development", { strong: string; reservations: string; borderline: string; below: string }>;
+  comparison: string;
+  pointsAbove: string;
+  pointsBelow: string;
+  inLine: string;
+  talentMatrix: string;
+  talentBoxes: Record<string, string>;
+};
+
+const ENGLISH_SUMMARY: SummaryWords = {
+  recommendation: { strong: "Strong fit", reservations: "Fit with reservations", borderline: "Borderline", below: "Not yet meeting bar" },
+  headline: {
+    hiring: {
+      strong: "{name} demonstrates strong, well-rounded capability against this role's competency model.",
+      reservations: "{name} meets the bar on most mapped competencies, with a few areas worth probing further in interview.",
+      borderline: "{name}'s results are mixed — some competencies land above the bar, others fall short.",
+      below: "{name}'s scored responses fall mostly below the expected bar for this role's competency model.",
+    },
+    promotion: {
+      strong: "{name} demonstrates strong, well-rounded capability against the target role's competency model.",
+      reservations: "{name} meets the bar on most mapped competencies, with a few areas worth discussing before advancing.",
+      borderline: "{name}'s results are mixed — some competencies land above the bar, others fall short of what the target role needs.",
+      below: "{name}'s scored responses fall mostly below the expected bar for the target role's competency model.",
+    },
+    development: {
+      strong: "{name} demonstrates strong, well-rounded capability across the assessed competencies.",
+      reservations: "{name} shows solid capability on most competencies, with a few clear areas for growth.",
+      borderline: "{name}'s results are mixed — some competencies are strong, others are clear growth areas.",
+      below: "{name}'s scored responses point to several growth areas across the assessed competencies.",
+    },
+  },
+  comparison: "Scored higher than {pct}% of the {n} people assessed on this competency model — {versusPeers} the peer average of {avg}.",
+  pointsAbove: "{n} points above",
+  pointsBelow: "{n} points below",
+  inLine: "in line with",
+  talentMatrix: "Talent Matrix placement: {box}.",
+  talentBoxes: {},
+};
+
+const REC_KEY: Record<ExecutiveSummary["recommendationLabel"], "strong" | "reservations" | "borderline" | "below"> = {
+  "Strong fit": "strong",
+  "Fit with reservations": "reservations",
+  Borderline: "borderline",
+  "Not yet meeting bar": "below",
+};
+
+const fill = (text: string, values: Record<string, string | number>) => text.replace(/\{(\w+)\}/g, (m, k: string) => (k in values ? String(values[k]) : m));
+
 export function buildExecutiveSummary(params: {
   candidateName: string;
   overallScore: number;
@@ -93,11 +146,10 @@ export function buildExecutiveSummary(params: {
   benchmark: Benchmark;
   boxLabel?: string | null;
   purpose?: "hiring" | "promotion" | "development";
+  words?: SummaryWords;
 }): ExecutiveSummary {
-  const { candidateName, overallScore, competencies, benchmark, boxLabel, purpose = "hiring" } = params;
+  const { candidateName, overallScore, competencies, benchmark, boxLabel, purpose = "hiring", words = ENGLISH_SUMMARY } = params;
   const firstName = (candidateName || "This candidate").split(/\s+/)[0];
-  const personNoun = purpose === "hiring" ? "candidate(s)" : "employee(s)";
-  const roleNoun = purpose === "hiring" ? "this role's" : purpose === "promotion" ? "the target role's" : "the";
 
   const sorted = [...competencies].sort((a, b) => b.score - a.score);
   const strengths = sorted.slice(0, 3).filter((c) => c.score >= 60).map((c) => `${c.name} (${Math.round(c.score)})`);
@@ -108,50 +160,30 @@ export function buildExecutiveSummary(params: {
     .filter((c) => c.score < 70)
     .map((c) => `${c.name} (${Math.round(c.score)})`);
 
+  // recommendationLabel stays the English key (tones and the PDF colour use
+  // it); recommendationText is what people read.
   const recommendationLabel = bandLabel(overallScore);
   const recommendationTone = toneFor(overallScore);
+  const recKey = REC_KEY[recommendationLabel];
+  const recommendationText = words.recommendation[recKey];
+  const headline = fill(words.headline[purpose][recKey], { name: firstName });
 
-  const headline =
-    purpose === "hiring"
-      ? recommendationLabel === "Strong fit"
-        ? `${firstName} demonstrates strong, well-rounded capability against this role's competency model.`
-        : recommendationLabel === "Fit with reservations"
-          ? `${firstName} meets the bar on most mapped competencies, with a few areas worth probing further in interview.`
-          : recommendationLabel === "Borderline"
-            ? `${firstName}'s results are mixed — some competencies land above the bar, others fall short.`
-            : `${firstName}'s scored responses fall mostly below the expected bar for this role's competency model.`
-      : purpose === "promotion"
-        ? recommendationLabel === "Strong fit"
-          ? `${firstName} demonstrates strong, well-rounded capability against the target role's competency model.`
-          : recommendationLabel === "Fit with reservations"
-            ? `${firstName} meets the bar on most mapped competencies, with a few areas worth discussing before advancing.`
-            : recommendationLabel === "Borderline"
-              ? `${firstName}'s results are mixed — some competencies land above the bar, others fall short of what the target role needs.`
-              : `${firstName}'s scored responses fall mostly below the expected bar for the target role's competency model.`
-        : recommendationLabel === "Strong fit"
-          ? `${firstName} demonstrates strong, well-rounded capability across the assessed competencies.`
-          : recommendationLabel === "Fit with reservations"
-            ? `${firstName} shows solid capability on most competencies, with a few clear areas for growth.`
-            : recommendationLabel === "Borderline"
-              ? `${firstName}'s results are mixed — some competencies are strong, others are clear growth areas.`
-              : `${firstName}'s scored responses point to several growth areas across the assessed competencies.`;
-
+  const box = boxLabel ? words.talentBoxes[boxLabel] ?? boxLabel : null;
   let comparisonSentence: string | null = null;
   if (benchmark.percentile !== null && benchmark.peerAvg !== null) {
-    const vsPeers =
+    const versusPeers =
       benchmark.delta !== null && benchmark.delta > 0
-        ? `${benchmark.delta.toFixed(1)} points above`
+        ? fill(words.pointsAbove, { n: benchmark.delta.toFixed(1) })
         : benchmark.delta !== null && benchmark.delta < 0
-          ? `${Math.abs(benchmark.delta).toFixed(1)} points below`
-          : "in line with";
-    comparisonSentence = `Scored higher than ${benchmark.percentile}% of the ${benchmark.peerCount} ${personNoun} assessed for ${roleNoun} competency model — ${vsPeers} the peer average of ${benchmark.peerAvg}.${
-      boxLabel ? ` Talent Matrix placement: ${boxLabel}.` : ""
-    }`;
-  } else if (boxLabel) {
-    comparisonSentence = `Talent Matrix placement: ${boxLabel}.`;
+          ? fill(words.pointsBelow, { n: Math.abs(benchmark.delta).toFixed(1) })
+          : words.inLine;
+    comparisonSentence = fill(words.comparison, { pct: benchmark.percentile, n: benchmark.peerCount, versusPeers, avg: benchmark.peerAvg });
+    if (box) comparisonSentence += ` ${fill(words.talentMatrix, { box })}`;
+  } else if (box) {
+    comparisonSentence = fill(words.talentMatrix, { box });
   }
 
-  return { headline, recommendationLabel, recommendationTone, strengths, developmentAreas, comparisonSentence };
+  return { headline, recommendationLabel, recommendationText, recommendationTone, strengths, developmentAreas, comparisonSentence };
 }
 
 /* ---------------- Potential proxy (for Talent Matrix placement) ---------------- */

@@ -15,8 +15,12 @@ import { Callout } from "@/components/ui/Callout";
 import { buttonClass } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { nowMs } from "@/lib/time";
+import { getT } from "@/i18n/server";
+import { fillNodes } from "@/lib/fill-nodes";
+import { fillText, pluralText } from "@/lib/dates";
+import { bandLabelFor } from "@/components/ui";
 
-const DECIDED_WORDS: Record<string, string> = { shortlist: "shortlisted", hold: "put on hold", reject: "not progressed" };
+const LOCALE = { en: "en-GB", az: "az-Latn-AZ", ru: "ru-RU" } as const;
 
 export default async function CandidateReviewPage({
   params,
@@ -31,6 +35,11 @@ export default async function CandidateReviewPage({
   // server action can tell whether someone else decided after this render.
   const loadedAtMs = nowMs();
   const supabase = await createClient();
+  const { lang, t: dict } = await getT();
+  const t = dict.staff.report;
+  const locale = LOCALE[lang];
+  const statusLabels = { ...dict.staff.status, ...dict.staff.statusMore };
+  const decisionWord = (v: string) => (dict.staff.decisions as Record<string, string>)[v] ?? v.replace(/_/g, " ");
 
   const {
     data: { user: viewer },
@@ -58,8 +67,8 @@ export default async function CandidateReviewPage({
     content_language: string | null;
   };
   const purpose = normalizePurpose(assessment?.purpose);
-  const purposeMeta = PURPOSE_META[purpose];
-  const decisionOptions = DECISION_OPTIONS[purpose];
+  const purposeMeta = { ...PURPOSE_META[purpose], reviewerTitle: dict.staff.purpose[purpose].title, blurb: dict.staff.purpose[purpose].blurb };
+  const decisionOptions = DECISION_OPTIONS[purpose].map((o) => ({ ...o, label: decisionWord(o.v) }));
   const isOwnAssessment = !!viewer && ca.candidate_id === viewer.id;
   const canDecide = !isOwnAssessment && ["submitted", "scored", "reviewed"].includes(ca.status);
   // Design-execution-plan Phase 2 / T2.5: the question prompt/options and the
@@ -224,12 +233,13 @@ export default async function CandidateReviewPage({
   const executiveSummary =
     ca.overall_score !== null && competencyLines.length > 0
       ? buildExecutiveSummary({
-          candidateName: candidate?.full_name || "This candidate",
+          candidateName: candidate?.full_name || t.reviewer,
           overallScore: ca.overall_score,
           competencies: competencyLines,
           benchmark,
           boxLabel,
           purpose,
+          words: t,
         })
       : null;
 
@@ -266,7 +276,7 @@ export default async function CandidateReviewPage({
         className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground mb-5 font-medium no-print"
       >
         <Icon name="arrowLeft" className="w-4 h-4" />
-        All candidates
+        {t.back}
       </Link>
 
       {/* Header */}
@@ -280,7 +290,7 @@ export default async function CandidateReviewPage({
             <p className="text-sm text-muted">{candidate?.email}</p>
             <p className="text-xs text-muted mt-1.5 flex flex-wrap items-center gap-2">
               {assessment?.title}
-              <StatusBadge status={ca.status} />
+              <StatusBadge status={ca.status} labels={statusLabels} />
             </p>
           </div>
         </div>
@@ -290,42 +300,44 @@ export default async function CandidateReviewPage({
             className={buttonClass({ size: "md" })}
           >
             <Icon name="download" className="w-4 h-4" />
-            Download PDF
+            {t.downloadPdf}
           </a>
-          <PrintButton />
+          <PrintButton label={t.print} />
         </div>
       </div>
 
-      {decided && DECIDED_WORDS[decided] ? (
-        <Callout tone="good" title={`Decision saved: ${candidate?.full_name} is ${DECIDED_WORDS[decided]}`} className="mb-6 no-print">
-          You can change it below at any time; every decision stays in the history.{" "}
+      {decided && decided in t.decidedWords ? (
+        <Callout
+          tone="good"
+          title={fillText(t.decidedTitle, { name: candidate?.full_name ?? "", word: t.decidedWords[decided as keyof typeof t.decidedWords] })}
+          className="mb-6 no-print"
+        >
+          {t.decidedBody}{" "}
           {nextWaiting ? (
             <Link href={`/staff/reports/candidates/${nextWaiting.id}`} className="font-semibold underline">
-              Next candidate: {nextWaiting.candidate?.full_name ?? "waiting for a decision"}
+              {fillText(t.nextCandidate, { name: nextWaiting.candidate?.full_name ?? t.nextFallback })}
             </Link>
           ) : (
-            <span>Nobody else is waiting for a decision.</span>
+            <span>{t.nobodyWaiting}</span>
           )}
           <form action={tellCandidateReviewed.bind(null, id)} className="mt-3 flex flex-wrap items-center gap-3">
-            <span className="text-sm font-semibold text-foreground">Tell the candidate?</span>
-            <button className={buttonClass({ size: "sm", variant: "secondary" })}>Yes, let them know</button>
-            <span className="text-xs text-muted">They get a short message that their assessment was reviewed. The decision itself is not shown.</span>
+            <span className="text-sm font-semibold text-foreground">{t.tellQuestion}</span>
+            <button className={buttonClass({ size: "sm", variant: "secondary" })}>{t.tellYes}</button>
+            <span className="text-xs text-muted">{t.tellNote}</span>
           </form>
         </Callout>
       ) : null}
-      {told ? (
-        <Callout tone="good" title="The candidate has been told their assessment was reviewed." className="mb-6 no-print" />
-      ) : null}
+      {told ? <Callout tone="good" title={t.told} className="mb-6 no-print" /> : null}
 
       <a href="#decision" className="lg:hidden inline-flex items-center min-h-11 text-sm font-semibold underline mb-4 no-print">
-        Go to the decision
+        {t.goToDecision}
       </a>
 
       <div className="grid lg:grid-cols-[minmax(0,1fr)_22rem] gap-8 items-start">
       <div className="min-w-0">
       {submittedLate ? (
-        <Callout tone="warning" title="Submitted after the time limit" className="mb-6 no-print">
-          The answers arrived after the time limit, or were closed automatically when time ran out. They are kept as written, and you decide how to treat them.
+        <Callout tone="warning" title={t.lateTitle} className="mb-6 no-print">
+          {t.lateBody}
         </Callout>
       ) : null}
 
@@ -339,13 +351,12 @@ export default async function CandidateReviewPage({
           was based on. */}
 
       {fallbackCount > 0 && (
-        <Callout tone="warning" title="Some answers were not read by the AI scorer" className="mb-6 no-print">
-          {fallbackCount} {fallbackCount === 1 ? "answer was" : "answers were"} scored by a fallback that only counts length and sentences. Please read{" "}
-          {fallbackCount === 1 ? "it" : "them"} yourself and agree with or change {fallbackCount === 1 ? "the score" : "each score"}.
+        <Callout tone="warning" title={t.fallbackTitle} className="mb-6 no-print">
+          {pluralText(lang, fallbackCount, t.fallbackBody)}
         </Callout>
       )}
 
-      {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" />}
+      {ca.overall_score !== null && <ScoringDisclosure className="mb-6 no-print" text={{ title: t.disclosureTitle, body: t.disclosureBody }} />}
 
       {/* T0.3's needs-review flag existed already but only as a small badge
           buried inside each response card below -- easy to miss if a
@@ -355,14 +366,8 @@ export default async function CandidateReviewPage({
         <Card className="p-5 mb-6 flex items-start gap-3 bg-warning-soft border-warning/40 no-print">
           <Icon name="alertTriangle" className="w-5 h-5 text-warning shrink-0 mt-0.5" />
           <div>
-            <p className="text-sm font-semibold text-warning">
-              {needsReviewCount} response{needsReviewCount === 1 ? "" : "s"} flagged for review
-            </p>
-            <p className="text-xs text-warning mt-0.5">
-              The scoring engine wasn&apos;t confident in {needsReviewCount === 1 ? "this score" : "these scores"} — check
-              the flagged answer{needsReviewCount === 1 ? "" : "s"} in Response evidence below before relying on{" "}
-              {needsReviewCount === 1 ? "it" : "them"}.
-            </p>
+            <p className="text-sm font-semibold text-warning">{pluralText(lang, needsReviewCount, t.flaggedTitle)}</p>
+            <p className="text-xs text-warning mt-0.5">{pluralText(lang, needsReviewCount, t.flaggedBody)}</p>
           </div>
         </Card>
       )}
@@ -370,23 +375,20 @@ export default async function CandidateReviewPage({
       {/* ---------- Evidence ---------- */}
       {responseRows.length > 0 && (
         <Card className="p-6 mb-6">
-          <p className="text-sm font-bold text-foreground mb-1">Response evidence</p>
-          <p className="text-xs text-muted mb-4">
-            What the candidate actually answered, with the AI&apos;s score and rationale for each — read this before the
-            summary below.
-          </p>
+          <p className="text-sm font-bold text-foreground mb-1">{t.evidenceTitle}</p>
+          <p className="text-xs text-muted mb-4">{t.evidenceIntro}</p>
           <div className="mb-6 no-print" role="status">
             <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
               <p className="text-sm font-semibold text-foreground">
-                {checkedCount} of {responseRows.length} answers checked
+                {fillText(t.checked, { n: checkedCount, total: responseRows.length })}
               </p>
               {nextToCheck && canDecide && ["scored", "reviewed"].includes(ca.status) ? (
                 <a href={`#answer-${nextToCheck.id}`} className="inline-flex items-center gap-1.5 min-h-11 text-sm font-semibold text-accent hover:underline">
-                  Next answer to check
+                  {t.nextAnswer}
                   <Icon name="arrowRight" className="w-4 h-4" />
                 </a>
               ) : checkedCount === responseRows.length ? (
-                <span className="text-sm text-good font-semibold">All answers checked</span>
+                <span className="text-sm text-good font-semibold">{t.allChecked}</span>
               ) : null}
             </div>
             <ProgressBar value={responseRows.length ? (checkedCount / responseRows.length) * 100 : 0} barClass="bg-good" />
@@ -399,7 +401,7 @@ export default async function CandidateReviewPage({
                   <div className="flex flex-wrap items-start justify-between gap-3 mb-2.5">
                     <div>
                       <p className="text-xs font-semibold text-muted mb-1">
-                        Answer {i + 1} of {responseRows.length}
+                        {fillText(t.answerOf, { n: i + 1, total: responseRows.length })}
                       </p>
                       {r.questions?.competencies?.name && (
                         <p className="text-sm font-semibold text-accent-dark mb-1">
@@ -417,20 +419,20 @@ export default async function CandidateReviewPage({
                         return junk.nonsense ? (
                           <span
                             className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-critical-soft text-critical ring-1 ring-inset ring-critical/30"
-                            title={`This does not look like a real answer: ${junk.reason}.`}
+                            title={fillText(t.notRealTitle, { reason: t.nonsenseReasons[junk.code!] })}
                           >
                             <Icon name="alertTriangle" className="w-3 h-3" />
-                            Not a real answer?
+                            {t.notReal}
                           </span>
                         ) : null;
                       })()}
                       {r.needs_review && (
                         <span
                           className="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-warning-soft text-warning ring-1 ring-inset ring-warning/30"
-                          title="The scoring engine wasn't confident in this score -- confirm it yourself before relying on it."
+                          title={t.needsReviewTitle}
                         >
                           <Icon name="alertTriangle" className="w-3 h-3" />
-                          Needs review
+                          {t.needsReview}
                         </span>
                       )}
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ring-1 ring-inset tabular-nums ${b.badge}`}>
@@ -447,7 +449,7 @@ export default async function CandidateReviewPage({
                     </blockquote>
                   ) : (
                     <p className="text-sm text-muted mb-3">
-                      Selected:{" "}
+                      {t.selected}{" "}
                       <span className="font-semibold text-foreground" {...contentLangAttr}>
                         {r.selected_option}. {r.questions?.options?.find((o) => o.key === r.selected_option)?.text ?? "—"}
                       </span>
@@ -463,8 +465,9 @@ export default async function CandidateReviewPage({
                       <div className="mt-4 pt-4 border-t border-line-soft no-print">
                         {info?.reviewed_at && (
                           <p className="text-sm text-muted mb-3">
-                            <span className="font-semibold text-foreground">Confirmed by a reviewer</span> on {new Date(info.reviewed_at).toLocaleDateString()}
-                            {info.ai_score !== null && info.ai_score !== undefined ? ` · changed from ${info.ai_score} to ${r.score}` : ""}
+                            <span className="font-semibold text-foreground">{t.confirmed}</span>{" "}
+                            {fillText(t.confirmedOn, { date: new Date(info.reviewed_at).toLocaleDateString(locale) })}
+                            {info.ai_score !== null && info.ai_score !== undefined ? ` · ${fillText(t.changedFrom, { from: info.ai_score, to: r.score })}` : ""}
                             {info.reviewer_note ? ` — “${info.reviewer_note}”` : ""}
                           </p>
                         )}
@@ -472,16 +475,16 @@ export default async function CandidateReviewPage({
                           <div className="flex flex-wrap items-start gap-3">
                             <form action={reviewAnswer.bind(null, id, r.id)}>
                               <input type="hidden" name="mode" value="agree" />
-                              <SubmitButton size="sm" variant="secondary" pendingLabel="Saving…">
-                                Agree with this score
+                              <SubmitButton size="sm" variant="secondary" pendingLabel={t.saving}>
+                                {t.agree}
                               </SubmitButton>
                             </form>
                             <details className="min-w-0">
-                              <summary className="cursor-pointer min-h-11 inline-flex items-center text-sm font-semibold text-accent">Change score</summary>
+                              <summary className="cursor-pointer min-h-11 inline-flex items-center text-sm font-semibold text-accent">{t.changeScore}</summary>
                               <form action={reviewAnswer.bind(null, id, r.id)} className="mt-2 flex flex-wrap items-end gap-3">
                                 <input type="hidden" name="mode" value="change" />
                                 <label className="text-sm font-semibold text-foreground">
-                                  New score (0 to 100)
+                                  {t.newScore}
                                   <input
                                     name="score"
                                     type="number"
@@ -493,7 +496,7 @@ export default async function CandidateReviewPage({
                                   />
                                 </label>
                                 <label className="text-sm font-semibold text-foreground flex-1 min-w-[12rem]">
-                                  Why?
+                                  {t.why}
                                   <input
                                     name="note"
                                     required
@@ -502,8 +505,8 @@ export default async function CandidateReviewPage({
                                     className="mt-1 block w-full min-h-12 rounded-md border border-line-control bg-surface px-3 text-base font-normal"
                                   />
                                 </label>
-                                <SubmitButton size="md" pendingLabel="Saving…">
-                                  Save score
+                                <SubmitButton size="md" pendingLabel={t.saving}>
+                                  {t.saveScore}
                                 </SubmitButton>
                               </form>
                             </details>
@@ -524,20 +527,20 @@ export default async function CandidateReviewPage({
         <Card className="p-6 mb-6 no-print">
           <p className="text-sm font-bold text-foreground mb-1 flex items-center gap-2">
             <Icon name="video" className="w-4 h-4 text-accent-dark" />
-            Proctoring recordings
+            {t.recordingsTitle}
           </p>
-          <p className="text-xs text-muted mb-4">Consent-gated video captured during the assessment session.</p>
+          <p className="text-xs text-muted mb-4">{t.recordingsIntro}</p>
           <div className="space-y-3">
             {recordingsWithUrls.map((r, i) => (
               <div key={r.id} className="flex items-center justify-between gap-4 border border-line rounded-xl px-4 py-3">
                 <div className="min-w-0 text-sm">
                   <p className="font-medium text-foreground">
-                    {recordingsWithUrls.length > 1 ? `Part ${i + 1} of ${recordingsWithUrls.length} · ` : ""}
-                    {r.consent_given_at ? new Date(r.consent_given_at).toLocaleString() : "Unknown time"} ·{" "}
-                    {formatRecordingLength(r.duration_seconds)}
+                    {recordingsWithUrls.length > 1 ? `${fillText(t.part, { n: i + 1, total: recordingsWithUrls.length })} · ` : ""}
+                    {r.consent_given_at ? new Date(r.consent_given_at).toLocaleString(locale) : t.unknownTime} ·{" "}
+                    {formatRecordingLength(r.duration_seconds, t)}
                   </p>
                   <p className="text-xs text-muted">
-                    {r.url ? "Stored in project database" : "Recorded on candidate's device only — not uploaded"}
+                    {r.url ? t.stored : t.localOnly}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
@@ -550,7 +553,7 @@ export default async function CandidateReviewPage({
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline"
                       >
                         <Icon name="play" className="w-3.5 h-3.5" />
-                        Watch
+                        {t.watch}
                       </a>
                       <a
                         href={r.url}
@@ -558,14 +561,14 @@ export default async function CandidateReviewPage({
                         className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-dark hover:underline"
                       >
                         <Icon name="download" className="w-3.5 h-3.5" />
-                        Download
+                        {t.download}
                       </a>
                     </>
                   )}
                   <form action={deleteProctoringRecording.bind(null, id, r.id, r.storage_path)}>
                     <button className="inline-flex items-center gap-1.5 text-xs font-semibold text-critical hover:underline">
                       <Icon name="trash" className="w-3.5 h-3.5" />
-                      Delete
+                      {t.delete}
                     </button>
                   </form>
                 </div>
@@ -578,21 +581,19 @@ export default async function CandidateReviewPage({
       {/* ---------- The AI's contribution ---------- */}
       {ca.overall_score !== null ? (
         <>
-          {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} purpose={purpose} />}
+          {executiveSummary && <ExecutiveSummaryCard summary={executiveSummary} purpose={purpose} text={t} />}
 
           {/* T5.1 (radar demotion, confirmed): the sorted bar list is the
               primary at-a-glance read next to the score, not the radar --
               see the Competency radar card further down for why. */}
           <div className="grid md:grid-cols-[auto_1fr] gap-5 mb-6">
             <Card className="p-7 flex flex-col items-center justify-center gap-2 min-w-56">
-              <p className="text-sm font-semibold text-muted">Overall role fit</p>
-              <ScoreRing score={Math.round(ca.overall_score)} size={128} label={bandFor(ca.overall_score).label} />
-              <p className="text-xs text-muted text-center max-w-44 mt-1">
-                Weighted average across mapped competencies · AI-assisted, human-confirmed
-              </p>
+              <p className="text-sm font-semibold text-muted">{t.overallFit}</p>
+              <ScoreRing score={Math.round(ca.overall_score)} size={128} label={bandLabelFor(ca.overall_score, dict.candidate.bands)} />
+              <p className="text-xs text-muted text-center max-w-44 mt-1">{t.ringNote}</p>
             </Card>
             <Card className="p-7">
-              <p className="text-sm font-semibold text-muted mb-4">Top competencies</p>
+              <p className="text-sm font-semibold text-muted mb-4">{t.topCompetencies}</p>
               {topCompetencies.length > 0 ? (
                 <div className="space-y-3.5">
                   {topCompetencies.map((s) => {
@@ -611,7 +612,7 @@ export default async function CandidateReviewPage({
                   })}
                 </div>
               ) : (
-                <p className="text-sm text-muted py-8 text-center">No scored competencies yet.</p>
+                <p className="text-sm text-muted py-8 text-center">{t.noScored}</p>
               )}
             </Card>
           </div>
@@ -620,18 +621,21 @@ export default async function CandidateReviewPage({
             benchmark={benchmark}
             assessmentTitle={assessment?.title}
             boxLabel={boxLabel}
+            text={t}
           />
 
           {targeted.length > 0 && (
             <Card className="p-5 mb-5 flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm font-semibold text-foreground">
-                Role-profile bar: meets or exceeds the target on{" "}
-                <span className={meetingBar.length === targeted.length ? "text-good" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
-                  {meetingBar.length} of {targeted.length}
-                </span>{" "}
-                targeted competenc{targeted.length === 1 ? "y" : "ies"}.
+                {fillNodes(t.roleBar, {
+                  count: (
+                    <span className={meetingBar.length === targeted.length ? "text-good" : meetingBar.length === 0 ? "text-critical" : "text-accent-dark"}>
+                      {fillText(t.roleBarCount, { n: meetingBar.length, total: targeted.length })}
+                    </span>
+                  ),
+                })}
               </p>
-              <p className="text-xs text-muted">Targets are set per section in the Assessment Builder.</p>
+              <p className="text-xs text-muted">{t.targetsNote}</p>
             </Card>
           )}
 
@@ -642,15 +646,15 @@ export default async function CandidateReviewPage({
               <Card key={cat} className="p-6 mb-5">
                 <p className="flex items-center gap-2 text-sm font-bold text-foreground mb-5">
                   <span className={`w-2 h-2 rounded-full ${style.dot}`} />
-                  {cat} competencies
-                  {avg !== null && <span className="ml-auto text-xs font-bold text-muted tabular-nums">avg {avg}</span>}
+                  {fillText(t.categoryTitle, { category: (t.categories as Record<string, string>)[cat] ?? cat })}
+                  {avg !== null && <span className="ml-auto text-xs font-bold text-muted tabular-nums">{fillText(t.avg, { n: avg })}</span>}
                 </p>
                 <div className="space-y-4">
                   {rows.map((s, i) => {
                     const b = bandFor(s.score);
                     const target = s.target ?? null;
                     const barState =
-                      target === null ? null : s.score >= target + 10 ? "Exceeds bar" : s.score >= target ? "Meets bar" : "Below bar";
+                      target === null ? null : s.score >= target + 10 ? "exceeds" : s.score >= target ? "meets" : "below";
                     return (
                       <div key={i}>
                         <div className="flex items-center justify-between text-xs mb-1.5">
@@ -659,19 +663,19 @@ export default async function CandidateReviewPage({
                             {barState && (
                               <span
                                 className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${
-                                  barState === "Below bar"
+                                  barState === "below"
                                     ? "bg-critical-soft text-critical ring-critical/30"
-                                    : barState === "Exceeds bar"
+                                    : barState === "exceeds"
                                       ? "bg-good-soft text-good ring-good/30"
                                       : "bg-line-soft text-foreground ring-line"
                                 }`}
-                                title={`Target for this role: ${target}`}
+                                title={fillText(t.targetForRole, { n: target ?? "" })}
                               >
-                                {barState} · {target}
+                                {barState === "exceeds" ? t.exceedsBar : barState === "meets" ? t.meetsBar : t.belowBar} · {target}
                               </span>
                             )}
                             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ring-1 ring-inset ${b.badge}`}>
-                              {s.level}
+                              {bandLabelFor(s.score, dict.candidate.bands)}
                             </span>
                             <span className="font-bold tabular-nums w-8 text-right">{Math.round(s.score)}</span>
                           </span>
@@ -682,7 +686,7 @@ export default async function CandidateReviewPage({
                             <div
                               className="absolute top-0 bottom-0 w-0.5 bg-foreground/70"
                               style={{ left: `${target}%` }}
-                              title={`Target: ${target}`}
+                              title={fillText(t.target, { n: target })}
                             />
                           )}
                         </div>
@@ -704,7 +708,7 @@ export default async function CandidateReviewPage({
             <Card className="p-6 mb-5">
               <details>
                 <summary className="text-sm font-bold text-foreground cursor-pointer select-none">
-                  Competency radar (supporting view)
+                  {t.radar}
                 </summary>
                 <div className="mt-4 max-w-md mx-auto">
                   <RadarChart items={scores.slice(0, 8).map((s) => ({ label: s.competencies!.name, value: Math.round(s.score) }))} />
@@ -716,24 +720,24 @@ export default async function CandidateReviewPage({
       ) : (
         <Card className="p-6 mb-6 flex items-center gap-3 text-sm text-warning bg-warning-soft border-warning/40">
           <Icon name="clock" className="w-5 h-5 shrink-0" />
-          Candidate has not yet submitted this assessment — scores will appear here once they do.
+          {t.notSubmitted}
         </Card>
       )}
 
       </div>
 
       {/* ---------- The human decision (stays in view beside the evidence) ---------- */}
-      <aside id="decision" aria-label="Decision" className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scroll-mt-20">
+      <aside id="decision" aria-label={t.decisionAria} className="space-y-5 lg:sticky lg:top-20 lg:max-h-[calc(100vh-6rem)] lg:overflow-y-auto scroll-mt-20">
       {["invited", "in_progress"].includes(ca.status) && (
-        <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} />
+        <ExtraTimeCard action={setExtraTime.bind(null, id)} current={extraMinutes} limitMinutes={limitMinutes} text={t} />
       )}
 
       {["invited", "in_progress"].includes(ca.status) && (
         <Card className="p-5">
-          <p className="text-sm font-bold text-foreground mb-1">Deadline</p>
+          <p className="text-sm font-bold text-foreground mb-1">{t.deadlineTitle}</p>
           <p className="text-xs text-muted mb-3">
-            {currentDue ? `Now ends the evening of ${new Date(currentDue).toLocaleDateString("en-GB", { timeZone: "Asia/Baku" })}.` : "No deadline is set."} Pick a new date to
-            extend it, or leave it empty to remove it.
+            {currentDue ? fillText(t.deadlineEnds, { date: new Date(currentDue).toLocaleDateString(locale, { timeZone: "Asia/Baku" }) }) : t.deadlineNone}{" "}
+            {t.deadlineHint}
           </p>
           <form action={setDeadline.bind(null, id)} className="flex flex-wrap items-end gap-2">
             <input
@@ -741,10 +745,10 @@ export default async function CandidateReviewPage({
               name="due_date"
               min={orgToday()}
               defaultValue={currentDue ? new Date(currentDue).toLocaleDateString("en-CA", { timeZone: "Asia/Baku" }) : ""}
-              aria-label="Deadline"
+              aria-label={t.deadlineTitle}
               className="bg-surface border border-line-control rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
             />
-            <button className={buttonClass({ size: "sm" })}>Save deadline</button>
+            <button className={buttonClass({ size: "sm" })}>{t.deadlineSave}</button>
           </form>
         </Card>
       )}
@@ -752,24 +756,20 @@ export default async function CandidateReviewPage({
       {/* Manager sign-off (promotion only) */}
       {purpose === "promotion" && (
         <Card className="p-6 mb-6 no-print">
-          <p className="text-sm font-bold text-foreground mb-1">Manager sign-off</p>
+          <p className="text-sm font-bold text-foreground mb-1">{t.signoffTitle}</p>
           {!candidate?.manager_id ? (
-            <p className="text-xs text-muted">
-              This employee has no manager on file — set one in People &amp; Access to request sign-off.
-            </p>
+            <p className="text-xs text-muted">{t.signoffNoManager}</p>
           ) : !managerProfile ? (
-            <p className="text-xs text-muted">Assigned manager could not be found.</p>
+            <p className="text-xs text-muted">{t.signoffNotFound}</p>
           ) : !signoff ? (
             <>
               <p className="text-xs text-muted mb-4">
-                Optional — ask <span className="font-semibold text-foreground">{managerProfile.full_name}</span>{" "}
-                (this employee&apos;s manager) to weigh in before the promotion decision is finalized. Not a blocking
-                requirement; your decision above can still be submitted either way.
+                {fillNodes(t.signoffAsk, { name: <span className="font-semibold text-foreground">{managerProfile.full_name}</span> })}
               </p>
               <form action={requestSignoffWithId}>
                 <button className={buttonClass({ size: "md" })}>
                   <Icon name="send" className="w-4 h-4" />
-                  Request sign-off from {managerProfile.full_name}
+                  {fillText(t.signoffRequest, { name: managerProfile.full_name })}
                 </button>
               </form>
             </>
@@ -777,20 +777,18 @@ export default async function CandidateReviewPage({
             <div className="flex items-start gap-3">
               <StatusBadge
                 status={signoff.status === "pending" ? "signoff_pending" : signoff.status === "approved" ? "signoff_approved" : "signoff_declined"}
+                labels={statusLabels}
               />
               <div className="text-sm text-muted">
                 <p>
-                  <span className="font-semibold text-foreground">{managerProfile.full_name}</span>
-                  {signoff.status === "pending"
-                    ? " — sign-off requested, awaiting response."
-                    : signoff.status === "approved"
-                      ? " approved this promotion."
-                      : " declined this promotion."}
+                  {fillNodes(signoff.status === "pending" ? t.signoffPending : signoff.status === "approved" ? t.signoffApproved : t.signoffDeclined, {
+                    name: <span className="font-semibold text-foreground">{managerProfile.full_name}</span>,
+                  })}
                 </p>
                 {signoff.comment && <p className="mt-1 italic">&ldquo;{signoff.comment}&rdquo;</p>}
                 <p className="text-muted text-xs mt-1">
-                  Requested {new Date(signoff.requested_at).toLocaleString()}
-                  {signoff.decided_at ? ` · Decided ${new Date(signoff.decided_at).toLocaleString()}` : ""}
+                  {fillText(t.signoffRequested, { date: new Date(signoff.requested_at).toLocaleString(locale) })}
+                  {signoff.decided_at ? ` · ${fillText(t.signoffDecided, { date: new Date(signoff.decided_at).toLocaleString(locale) })}` : ""}
                 </p>
               </div>
             </div>
@@ -804,9 +802,7 @@ export default async function CandidateReviewPage({
         <p className="text-xs text-muted mb-5">{purposeMeta.blurb}</p>
         {!canDecide ? (
           <p className="mb-4 rounded-card bg-surface p-4 text-sm text-muted no-print" role="status">
-            {isOwnAssessment
-              ? "This is your own assessment. Another reviewer needs to decide."
-              : "The candidate hasn't submitted yet. You can record a decision once they have."}
+            {isOwnAssessment ? t.ownAssessment : t.notSubmittedYet}
           </p>
         ) : null}
         {/* STF-B-12: this reviewer's page loaded before someone else decided,
@@ -814,12 +810,15 @@ export default async function CandidateReviewPage({
         {conflictBy && conflictDecision ? (
           <div role="alertdialog" aria-labelledby="decision-conflict-h" className="mb-4 rounded-card border border-warning/40 bg-warning-soft p-4 no-print">
             <p id="decision-conflict-h" className="text-sm font-semibold text-warning">
-              <span className="font-bold">{conflictBy}</span> already decided{" "}
-              <span className="font-bold">{decisionOptions.find((o) => o.v === conflictAs)?.label ?? conflictAs}</span> while you were viewing this.
+              {fillNodes(t.conflictTitle, {
+                name: <span className="font-bold">{conflictBy}</span>,
+                decision: <span className="font-bold">{decisionOptions.find((o) => o.v === conflictAs)?.label ?? conflictAs}</span>,
+              })}
             </p>
             <p className="mt-1 text-sm text-warning">
-              Add your decision (<span className="font-semibold">{decisionOptions.find((o) => o.v === conflictDecision)?.label ?? conflictDecision}</span>)
-              anyway? Both will be kept — this becomes a calibration case, not a replacement.
+              {fillNodes(t.conflictBody, {
+                decision: <span className="font-semibold">{decisionOptions.find((o) => o.v === conflictDecision)?.label ?? conflictDecision}</span>,
+              })}
             </p>
             <div className="mt-3 flex flex-wrap gap-2.5">
               <form action={submitReviewWithId}>
@@ -827,10 +826,10 @@ export default async function CandidateReviewPage({
                 <input type="hidden" name="comment" value={conflictComment || ""} />
                 <input type="hidden" name="loaded_at" value={loadedAtMs} />
                 <input type="hidden" name="force" value="1" />
-                <button className={buttonClass({ size: "sm" })}>Add my decision anyway</button>
+                <button className={buttonClass({ size: "sm" })}>{t.addAnyway}</button>
               </form>
               <Link href={`/staff/reports/candidates/${id}`} className={buttonClass({ size: "sm", variant: "secondary" })}>
-                Cancel, let me reconsider
+                {t.reconsider}
               </Link>
             </div>
           </div>
@@ -853,12 +852,13 @@ export default async function CandidateReviewPage({
           <textarea
             name="comment"
             rows={3}
-            placeholder="Reviewer notes — what stood out, what to probe in interview…"
+            placeholder={t.notesPlaceholder}
+            aria-label={t.notesPlaceholder}
             className="w-full bg-surface border border-line-control rounded-xl px-4 py-3 text-sm placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent"
           />
           <button className={buttonClass({ size: "md" })}>
             <Icon name="send" className="w-4 h-4" />
-            Submit decision
+            {t.submitDecision}
           </button>
         </form>
 
@@ -875,21 +875,18 @@ export default async function CandidateReviewPage({
           // mind is not a disagreement (STF-B-09).
           const latestPerReviewer = new Map<string, string>();
           for (const r of reviewRows) if (r.reviewer_id && !latestPerReviewer.has(r.reviewer_id)) latestPerReviewer.set(r.reviewer_id, r.decision);
-          const decisionName = (v: string) => decisionOptions.find((o) => o.v === v)?.label ?? v.replace(/_/g, " ");
+          const decisionName = decisionWord;
           const distinctDecisions = Array.from(new Set(latestPerReviewer.values())).map(decisionName);
           const diverges = latestPerReviewer.size >= 2 && distinctDecisions.length > 1;
           return (
             <div className="mt-6 space-y-3 border-t border-line pt-5">
               <p className="text-sm font-semibold text-muted">
-                {reviewRows.length >= 2 ? "Reviewer calibration" : "Decision history"}
+                {reviewRows.length >= 2 ? t.calibration : t.history}
               </p>
               {diverges && (
                 <div className="flex items-start gap-2.5 bg-critical-soft text-critical rounded-xl px-4 py-3 text-sm">
                   <Icon name="alertTriangle" className="w-4 h-4 mt-0.5 shrink-0" />
-                  <p>
-                    <span className="font-semibold">Reviewers disagree</span> — {distinctDecisions.join(" vs. ")}. Worth a
-                    calibration conversation before the final decision.
-                  </p>
+                  <p>{fillText(t.disagree, { decisions: distinctDecisions.join(t.versus) })}</p>
                 </div>
               )}
               {reviewRows.length >= 2 ? (
@@ -897,22 +894,22 @@ export default async function CandidateReviewPage({
                   {reviewRows.map((r, i) => (
                     <div key={i} className="border border-line rounded-xl p-4">
                       <div className="flex items-center justify-between gap-2 mb-2">
-                        <p className="font-semibold text-foreground text-sm">{r.reviewer?.full_name || "Reviewer"}</p>
-                        <StatusBadge status={r.decision} />
+                        <p className="font-semibold text-foreground text-sm">{r.reviewer?.full_name || t.reviewer}</p>
+                        <StatusBadge status={r.decision} labels={statusLabels} />
                       </div>
                       {r.comment && <p className="text-xs text-muted">“{r.comment}”</p>}
-                      <p className="text-muted text-xs mt-2">{new Date(r.created_at).toLocaleString()}</p>
+                      <p className="text-muted text-xs mt-2">{new Date(r.created_at).toLocaleString(locale)}</p>
                     </div>
                   ))}
                 </div>
               ) : (
                 reviewRows.map((r, i) => (
                   <div key={i} className="flex items-start gap-3 text-sm">
-                    <StatusBadge status={r.decision} />
+                    <StatusBadge status={r.decision} labels={statusLabels} />
                     <p className="text-muted">
                       <span className="font-semibold text-foreground">{r.reviewer?.full_name}</span>
                       {r.comment ? ` — “${r.comment}”` : ""}
-                      <span className="text-muted text-xs"> · {new Date(r.created_at).toLocaleString()}</span>
+                      <span className="text-muted text-xs"> · {new Date(r.created_at).toLocaleString(locale)}</span>
                     </p>
                   </div>
                 ))
@@ -926,18 +923,18 @@ export default async function CandidateReviewPage({
         <Card className="p-6 mt-5 no-print">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-bold text-foreground mb-1">Development feedback for the candidate</p>
+              <p className="text-sm font-bold text-foreground mb-1">{t.feedbackTitle}</p>
               <p className="text-xs text-muted max-w-xl">
                 {ca.feedback_released_at
-                  ? `Released ${new Date(ca.feedback_released_at).toLocaleString()} — the candidate now sees a growth-framed summary (top strengths and development areas) on their results page. No reviewer comments or benchmarks are shared.`
-                  : "Release a growth-framed summary (top strengths, development areas) to the candidate's results page. Reviewer comments, benchmarks, and internal notes are never included."}
+                  ? fillText(t.feedbackReleased, { date: new Date(ca.feedback_released_at).toLocaleString(locale) })
+                  : t.feedbackNotReleased}
               </p>
             </div>
             {!ca.feedback_released_at && (
               <form action={releaseFeedback.bind(null, id)}>
                 <button className={buttonClass({ size: "md" })}>
                   <Icon name="send" className="w-4 h-4" />
-                  Release feedback
+                  {t.releaseFeedback}
                 </button>
               </form>
             )}
@@ -946,7 +943,7 @@ export default async function CandidateReviewPage({
       )}
       {nextWaiting && !decided && (
         <Link href={`/staff/reports/candidates/${nextWaiting.id}`} className="no-print inline-flex items-center gap-1.5 text-sm font-semibold underline min-h-11">
-          Skip to next candidate: {nextWaiting.candidate?.full_name ?? "waiting"}
+          {fillText(t.skipNext, { name: nextWaiting.candidate?.full_name ?? t.skipFallback })}
           <Icon name="arrowRight" className="w-4 h-4" />
         </Link>
       )}
@@ -956,8 +953,8 @@ export default async function CandidateReviewPage({
   );
 }
 
-function formatRecordingLength(seconds: number | null): string {
+function formatRecordingLength(seconds: number | null, t: { seconds: string; minutes: string }): string {
   if (!seconds) return "—";
-  if (seconds < 90) return `${Math.round(seconds)} sec`;
-  return `${Math.round(seconds / 60)} min`;
+  if (seconds < 90) return fillText(t.seconds, { n: Math.round(seconds) });
+  return fillText(t.minutes, { n: Math.round(seconds / 60) });
 }
